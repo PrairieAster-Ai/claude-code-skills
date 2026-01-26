@@ -1,0 +1,39 @@
+# Personal configuration files (contain sensitive data)
+**/config.yaml
+**/profiles/*.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs and temp files
+*.log
+logs/
+*.tmp
+*.temp
+.cache/
+/tmp/
+
+# Environment
+.env
+.env.local
+*.local

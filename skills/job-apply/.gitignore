@@ -1,0 +1,22 @@
+# Personal configuration (contains name, phone, email, work history)
+config.yaml
+
+# Saved user profiles (contain personal data)
+profiles/*.yaml
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db

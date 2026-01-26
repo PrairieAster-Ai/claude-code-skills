@@ -1,0 +1,115 @@
+# Job Application Skill Configuration
+# Copy this file to config.yaml and fill in your information
+# All paths support ~ for home directory expansion
+
+candidate:
+  name: "Your Full Name"
+  phone: "555.123.4567"
+  email: "your.email@example.com"
+  linkedin: "linkedin.com/in/yourprofile"
+  calendar: ""  # Optional: calendly.com/yourname/30min
+
+paths:
+  # Where to find your existing resume
+  resume_locations:
+    - "~/Documents/Job Application Docs/resume/"
+    - "~/Documents/resume/"
+    - "~/Documents/"
+
+  # Where your code projects live
+  portfolio_dir: "~/Projects/"
+
+  # Where to save generated documents
+  output_dir: "~/Documents/Job Application Docs/generated/"
+
+preferences:
+  # Default style: classic, modern_professional, or creative
+  default_style: "modern_professional"
+
+  # Default accent color (hex without #) - leave empty to use style default
+  accent_color: ""
+
+# =============================================================================
+# QUALIFICATIONS
+# Your work history, skills, certifications, and education
+# This is the structured data used to generate resumes
+# =============================================================================
+
+qualifications:
+  # Professional summary (2-3 sentences)
+  summary: ""
+  # Example: "Technical Product Manager with 10+ years of agile product ownership..."
+
+  # Skills organized by category
+  skills:
+    []
+    # Example:
+    # - category: "Enterprise Applications"
+    #   items: "Salesforce CRM, NetSuite ERP, Power BI, SAP"
+    # - category: "Product Management"
+    #   items: "Roadmaps, User Stories, Backlog Prioritization, Sprint Planning"
+    # - category: "Tools"
+    #   items: "JIRA, Azure DevOps, Confluence, LucidChart"
+
+  # Work experience (most recent first)
+  experience:
+    []
+    # Example:
+    # - title: "Senior Product Manager"
+    #   company: "Company Name"
+    #   location: "City, State"  # Optional
+    #   dates: "Jan 2022 - Present"
+    #   bullets:
+    #     - text: "Led product strategy for platform serving 500K users"
+    #       highlights: ["500K users"]  # Phrases to bold
+    #     - text: "Reduced deployment time from 2 weeks to 2 hours"
+    #       highlights: ["2 weeks to 2 hours"]
+    #     - text: "Managed backlog and sprint planning for 12-person team"
+    #       highlights: ["12-person team"]
+
+  # Certifications (most relevant first)
+  certifications:
+    []
+    # Example:
+    # - name: "SAFe Product Owner/Product Manager (POPM)"
+    #   year: "2022"
+    #   issuer: "Scaled Agile"  # Optional
+    # - name: "Certified Scrum Product Owner (CSPO)"
+    #   year: "2020"
+    #   issuer: "Scrum Alliance"
+
+  # Education
+  education:
+    []
+    # Example:
+    # - degree: "Bachelor of Science, Computer Science"
+    #   school: "University Name"
+    #   year: "2015"  # Optional
+    # - degree: "Associate of Arts, Web Development"
+    #   school: "Community College"
+
+# =============================================================================
+# PORTFOLIO PROJECTS
+# Code projects that demonstrate skills and achievements
+# =============================================================================
+
+portfolio_projects:
+  []
+  # Example:
+  # - name: "Project Name"
+  #   url: "https://project-url.com"
+  #   repo: "https://github.com/username/repo"
+  #   description: "Brief description of what the project does"
+  #   technologies:
+  #     - "React"
+  #     - "TypeScript"
+  #     - "Node.js"
+  #   achievements:
+  #     - metric: "80% time reduction"
+  #       description: "Reduced application prep time from hours to minutes"
+  #     - metric: "99.8% uptime"
+  #       description: "Production reliability over 30 days"
+  #   keywords:
+  #     - "AI integration"
+  #     - "full-stack development"
+  #     - "serverless architecture"

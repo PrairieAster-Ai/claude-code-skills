@@ -1,0 +1,26 @@
+{
+  "validation": {
+    "deprecatedTech": [
+      "Jekyll",
+      "WordPress",
+      "Gatsby"
+    ],
+    "hardcodedPatterns": [
+      "[0-9]+ projects",
+      "[0-9]+ clients",
+      "[0-9]+ portfolios",
+      "[0-9]+ templates"
+    ],
+    "investorDocTypes": [
+      "Executive",
+      "Business",
+      "Technical",
+      "Pitch"
+    ]
+  },
+  "projectSpecific": {
+    "name": "portfolio-factory",
+    "primaryFocus": "B2B portfolio automation and generation platform",
+    "techStack": "Next.js, Vercel, PostgreSQL, React, Tailwind CSS"
+  }
+}
