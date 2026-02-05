@@ -13,24 +13,53 @@ Usage:
 
 import sys
 import re
-import subprocess
+import zipfile
+import platform
 from pathlib import Path
-import yaml
+
+# Check for pyyaml before importing
+try:
+    import yaml
+except ImportError:
+    print("ERROR: Missing required dependency: pyyaml")
+    print()
+    if platform.system() == "Darwin":  # macOS
+        print("On macOS, use a virtual environment to install dependencies:")
+        print()
+        print("    python3 -m venv ~/.claude-venv")
+        print("    source ~/.claude-venv/bin/activate")
+        print("    pip install pyyaml")
+        print()
+        print("Then add to your ~/.zshrc to auto-activate:")
+        print("    source ~/.claude-venv/bin/activate")
+    else:  # Linux and others
+        print("Install with:")
+        print("    pip3 install pyyaml --user")
+    print()
+    sys.exit(1)
 
 
 def extract_text_from_docx(file_path):
-    """Extract text from a Word document using unzip."""
+    """Extract text from a Word document using Python's zipfile module.
+
+    This is cross-platform and doesn't require external tools like unzip.
+    """
     try:
-        result = subprocess.run(
-            ['unzip', '-p', str(file_path), 'word/document.xml'],
-            capture_output=True,
-            text=True
-        )
+        with zipfile.ZipFile(file_path, 'r') as docx:
+            # Read the main document XML
+            xml_content = docx.read('word/document.xml').decode('utf-8')
+
         # Remove XML tags
-        text = re.sub(r'<[^>]+>', ' ', result.stdout)
+        text = re.sub(r'<[^>]+>', ' ', xml_content)
         # Normalize whitespace
         text = re.sub(r'\s+', ' ', text).strip()
         return text
+    except zipfile.BadZipFile:
+        print(f"Error: {file_path} is not a valid .docx file")
+        return None
+    except KeyError:
+        print(f"Error: {file_path} does not contain expected Word document structure")
+        return None
     except Exception as e:
         print(f"Error extracting text from {file_path}: {e}")
         return None

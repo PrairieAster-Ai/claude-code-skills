@@ -14,8 +14,28 @@ Generate tailored cover letters and resumes optimized for ATS parsing and human 
 
 ### 1. Install Prerequisites
 
+**On Linux:**
 ```bash
 pip3 install python-docx pyyaml --user
+```
+
+**On macOS (Sonoma, Ventura, or Homebrew Python):**
+
+Due to PEP 668, macOS now protects system Python from pip modifications. Use one of these methods:
+
+```bash
+# Recommended: Use a virtual environment
+python3 -m venv ~/.claude-venv
+source ~/.claude-venv/bin/activate
+pip install python-docx pyyaml
+
+# Add to your shell profile (~/.zshrc or ~/.bashrc) to auto-activate:
+# source ~/.claude-venv/bin/activate
+```
+
+**Verify installation:**
+```bash
+python3 -c "import docx; import yaml; print('Dependencies OK')"
 ```
 
 ### 2. Set Up Your Configuration
@@ -233,11 +253,35 @@ python3 ~/.claude/skills/job-apply/profiles.py switch myname
 
 ## Troubleshooting
 
-### "python-docx not found"
+### "python-docx not found" or "ModuleNotFoundError: No module named 'docx'"
 
-Install the dependency:
+**On Linux:**
 ```bash
-pip3 install python-docx --user
+pip3 install python-docx pyyaml --user
+```
+
+**On macOS - "externally-managed-environment" error:**
+
+This error occurs on macOS Sonoma/Ventura or with Homebrew Python due to PEP 668 protection.
+
+```bash
+# Solution 1: Use a virtual environment (recommended)
+python3 -m venv ~/.claude-venv
+source ~/.claude-venv/bin/activate
+pip install python-docx pyyaml
+
+# Solution 2: Override protection (not recommended for system Python)
+pip3 install python-docx pyyaml --break-system-packages
+```
+
+If using a virtual environment, remember to activate it before running the skill:
+```bash
+source ~/.claude-venv/bin/activate
+```
+
+Or add this line to your `~/.zshrc` (or `~/.bashrc`):
+```bash
+source ~/.claude-venv/bin/activate
 ```
 
 ### "No config.yaml found"
@@ -250,6 +294,41 @@ cp ~/.claude/skills/job-apply/config.example.yaml ~/.claude/skills/job-apply/con
 ### Documents look different than expected
 
 Check that you're opening .docx files in Microsoft Word or a compatible application. Some viewers may not render all formatting.
+
+### macOS: "python3: command not found"
+
+Install Python 3 via Homebrew:
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install python
+```
+
+Or install from [python.org](https://www.python.org/downloads/).
+
+### macOS: Permission denied or path issues
+
+If you see errors with paths containing spaces (like "Job Application Docs"), ensure paths are properly quoted in any manual shell commands:
+```bash
+# Correct:
+ls ~/Documents/"Job Application Docs"/generated/
+
+# Incorrect (will fail):
+ls ~/Documents/Job Application Docs/generated/
+```
+
+### Verify your setup
+
+Run this diagnostic to check everything is working:
+```bash
+# Check Python
+python3 --version
+
+# Check dependencies
+python3 -c "import docx; import yaml; print('Dependencies: OK')"
+
+# Check config exists
+ls ~/.claude/skills/job-apply/config.yaml && echo "Config: OK" || echo "Config: MISSING"
+```
 
 ## Contributing
 

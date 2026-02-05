@@ -15,9 +15,22 @@ Job Description: $ARGUMENTS
 
 ## Workflow
 
-### Phase 0: Configuration Check
+### Phase 0: Configuration and Dependency Check
 
-**First, check for user configuration:**
+**First, verify dependencies are installed:**
+
+Run this check before proceeding:
+```bash
+python3 -c "import docx; import yaml; print('Dependencies OK')" 2>&1
+```
+
+If this fails with `ModuleNotFoundError`, inform the user:
+- **On Linux:** `pip3 install python-docx pyyaml --user`
+- **On macOS:** See the macOS installation instructions below (PEP 668 may require a virtual environment)
+
+Stop and help the user install dependencies before continuing.
+
+**Then, check for user configuration:**
 
 1. **Look for config file** at `~/.claude/skills/job-apply/config.yaml`
 
@@ -67,7 +80,7 @@ Job Description: $ARGUMENTS
      - `~/Documents/resume/`
      - Current project directory
    - Look for `.docx`, `.pdf`, or `.md` files with "resume" in the name
-   - For `.docx` files, extract text using: `unzip -p "file.docx" word/document.xml | sed -e 's/<[^>]*>//g' | tr -s '[:space:]' '\n'`
+   - For `.docx` files, use Python's zipfile to extract text (cross-platform, no external dependencies)
    - **Recommend** user run import wizard to save qualifications: `python3 ~/.claude/skills/job-apply/import_resume.py`
 
 4. **Load portfolio projects from config.yaml**:
@@ -255,9 +268,32 @@ Create both files in configured output directory (default: `~/Documents/Job Appl
 
 Use the Python script at `~/.claude/skills/job-apply/generate_word_docs.py` to create styled Word documents.
 
-**Prerequisites:** Ensure python-docx is installed:
+**Prerequisites:** Ensure python-docx is installed. Check with:
 ```bash
-pip3 install python-docx --user
+python3 -c "import docx; print('python-docx OK')" 2>/dev/null || echo "MISSING: python-docx"
+python3 -c "import yaml; print('pyyaml OK')" 2>/dev/null || echo "MISSING: pyyaml"
+```
+
+**If dependencies are missing, install them:**
+
+On Linux:
+```bash
+pip3 install python-docx pyyaml --user
+```
+
+On macOS (Sonoma/Ventura or Homebrew Python):
+```bash
+# Option 1: Use a virtual environment (recommended)
+python3 -m venv ~/.claude-venv
+source ~/.claude-venv/bin/activate
+pip install python-docx pyyaml
+
+# Option 2: Use pipx for isolated installs
+brew install pipx
+pipx install python-docx
+
+# Option 3: Override system protection (not recommended)
+pip3 install python-docx pyyaml --break-system-packages
 ```
 
 **Script Usage:**

@@ -15,8 +15,29 @@ Usage:
 
 import sys
 import shutil
+import platform
 from pathlib import Path
-import yaml
+
+# Check for pyyaml before importing
+try:
+    import yaml
+except ImportError:
+    print("ERROR: Missing required dependency: pyyaml")
+    print()
+    if platform.system() == "Darwin":  # macOS
+        print("On macOS, use a virtual environment to install dependencies:")
+        print()
+        print("    python3 -m venv ~/.claude-venv")
+        print("    source ~/.claude-venv/bin/activate")
+        print("    pip install pyyaml")
+        print()
+        print("Then add to your ~/.zshrc to auto-activate:")
+        print("    source ~/.claude-venv/bin/activate")
+    else:  # Linux and others
+        print("Install with:")
+        print("    pip3 install pyyaml --user")
+    print()
+    sys.exit(1)
 
 
 def get_skill_dir():

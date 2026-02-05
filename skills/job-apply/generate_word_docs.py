@@ -17,6 +17,45 @@ Usage:
     )
 """
 
+import sys
+import platform
+
+def check_dependencies():
+    """Check that required dependencies are installed and provide helpful error messages."""
+    missing = []
+
+    try:
+        import docx
+    except ImportError:
+        missing.append("python-docx")
+
+    try:
+        import yaml
+    except ImportError:
+        missing.append("pyyaml")
+
+    if missing:
+        print(f"ERROR: Missing required dependencies: {', '.join(missing)}")
+        print()
+
+        if platform.system() == "Darwin":  # macOS
+            print("On macOS, use a virtual environment to install dependencies:")
+            print()
+            print("    python3 -m venv ~/.claude-venv")
+            print("    source ~/.claude-venv/bin/activate")
+            print(f"    pip install {' '.join(missing)}")
+            print()
+            print("Then add to your ~/.zshrc to auto-activate:")
+            print("    source ~/.claude-venv/bin/activate")
+        else:  # Linux and others
+            print("Install with:")
+            print(f"    pip3 install {' '.join(missing)} --user")
+
+        print()
+        sys.exit(1)
+
+check_dependencies()
+
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_LINE_SPACING
