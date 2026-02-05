@@ -38,18 +38,31 @@ def check_dependencies():
         print(f"ERROR: Missing required dependencies: {', '.join(missing)}")
         print()
 
-        if platform.system() == "Darwin":  # macOS
+        system = platform.system()
+        packages = ' '.join(missing)
+
+        if system == "Darwin":  # macOS
             print("On macOS, use a virtual environment to install dependencies:")
             print()
             print("    python3 -m venv ~/.claude-venv")
             print("    source ~/.claude-venv/bin/activate")
-            print(f"    pip install {' '.join(missing)}")
+            print(f"    pip install {packages}")
             print()
             print("Then add to your ~/.zshrc to auto-activate:")
             print("    source ~/.claude-venv/bin/activate")
+        elif system == "Windows":
+            print("On Windows, install with:")
+            print()
+            print(f"    pip install {packages}")
+            print()
+            print("Or use a virtual environment:")
+            print()
+            print("    python -m venv %USERPROFILE%\\.claude-venv")
+            print("    %USERPROFILE%\\.claude-venv\\Scripts\\activate.bat")
+            print(f"    pip install {packages}")
         else:  # Linux and others
             print("Install with:")
-            print(f"    pip3 install {' '.join(missing)} --user")
+            print(f"    pip3 install {packages} --user")
 
         print()
         sys.exit(1)
@@ -513,7 +526,7 @@ def load_config():
     if not config_path.exists():
         return None
 
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 

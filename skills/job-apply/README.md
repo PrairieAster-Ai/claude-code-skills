@@ -33,9 +33,30 @@ pip install python-docx pyyaml
 # source ~/.claude-venv/bin/activate
 ```
 
+**On Windows:**
+
+```cmd
+pip install python-docx pyyaml
+```
+
+Or use a virtual environment (recommended):
+
+```cmd
+python -m venv %USERPROFILE%\.claude-venv
+%USERPROFILE%\.claude-venv\Scripts\activate.bat
+pip install python-docx pyyaml
+```
+
 **Verify installation:**
+
+Linux/macOS:
 ```bash
 python3 -c "import docx; import yaml; print('Dependencies OK')"
+```
+
+Windows:
+```cmd
+python -c "import docx; import yaml; print('Dependencies OK')"
 ```
 
 ### 2. Set Up Your Configuration
@@ -316,9 +337,34 @@ ls ~/Documents/"Job Application Docs"/generated/
 ls ~/Documents/Job Application Docs/generated/
 ```
 
+### Windows: "python" or "python3" not found
+
+On Windows, Python is typically invoked as `python` (not `python3`). If neither works:
+
+1. Install Python from [python.org](https://www.python.org/downloads/)
+2. During installation, check "Add Python to PATH"
+3. Restart your terminal
+
+You can also use the Python Launcher:
+```cmd
+py -3 --version
+py -3 -m pip install python-docx pyyaml
+```
+
+### Windows: Path issues with `~`
+
+The `~` shortcut for home directory works in Python but not in Windows Command Prompt. Use the full path:
+
+```cmd
+:: Instead of ~/.claude/skills/job-apply/
+%USERPROFILE%\.claude\skills\job-apply\
+
+:: Or use PowerShell which supports ~
+```
+
 ### Verify your setup
 
-Run this diagnostic to check everything is working:
+**Linux/macOS:**
 ```bash
 # Check Python
 python3 --version
@@ -328,6 +374,30 @@ python3 -c "import docx; import yaml; print('Dependencies: OK')"
 
 # Check config exists
 ls ~/.claude/skills/job-apply/config.yaml && echo "Config: OK" || echo "Config: MISSING"
+```
+
+**Windows (Command Prompt):**
+```cmd
+:: Check Python
+python --version
+
+:: Check dependencies
+python -c "import docx; import yaml; print('Dependencies: OK')"
+
+:: Check config exists
+if exist "%USERPROFILE%\.claude\skills\job-apply\config.yaml" (echo Config: OK) else (echo Config: MISSING)
+```
+
+**Windows (PowerShell):**
+```powershell
+# Check Python
+python --version
+
+# Check dependencies
+python -c "import docx; import yaml; print('Dependencies: OK')"
+
+# Check config exists
+Test-Path ~/.claude/skills/job-apply/config.yaml
 ```
 
 ## Contributing

@@ -24,7 +24,8 @@ try:
 except ImportError:
     print("ERROR: Missing required dependency: pyyaml")
     print()
-    if platform.system() == "Darwin":  # macOS
+    system = platform.system()
+    if system == "Darwin":  # macOS
         print("On macOS, use a virtual environment to install dependencies:")
         print()
         print("    python3 -m venv ~/.claude-venv")
@@ -33,6 +34,16 @@ except ImportError:
         print()
         print("Then add to your ~/.zshrc to auto-activate:")
         print("    source ~/.claude-venv/bin/activate")
+    elif system == "Windows":
+        print("On Windows, install with:")
+        print()
+        print("    pip install pyyaml")
+        print()
+        print("Or use a virtual environment:")
+        print()
+        print("    python -m venv %USERPROFILE%\\.claude-venv")
+        print("    %USERPROFILE%\\.claude-venv\\Scripts\\activate.bat")
+        print("    pip install pyyaml")
     else:  # Linux and others
         print("Install with:")
         print("    pip3 install pyyaml --user")
@@ -96,11 +107,11 @@ def get_current_profile_name():
     if not config_path.exists():
         return None
 
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         current_config = f.read()
 
     for profile_path in get_profiles_dir().glob("*.yaml"):
-        with open(profile_path, 'r') as f:
+        with open(profile_path, 'r', encoding='utf-8') as f:
             if f.read() == current_config:
                 return profile_path.stem
 
@@ -116,7 +127,7 @@ def show_current():
         print("Run /job-apply to trigger onboarding\n")
         return
 
-    with open(config_path, 'r') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
     profile_name = get_current_profile_name()

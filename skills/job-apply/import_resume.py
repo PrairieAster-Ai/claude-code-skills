@@ -23,7 +23,8 @@ try:
 except ImportError:
     print("ERROR: Missing required dependency: pyyaml")
     print()
-    if platform.system() == "Darwin":  # macOS
+    system = platform.system()
+    if system == "Darwin":  # macOS
         print("On macOS, use a virtual environment to install dependencies:")
         print()
         print("    python3 -m venv ~/.claude-venv")
@@ -32,6 +33,16 @@ except ImportError:
         print()
         print("Then add to your ~/.zshrc to auto-activate:")
         print("    source ~/.claude-venv/bin/activate")
+    elif system == "Windows":
+        print("On Windows, install with:")
+        print()
+        print("    pip install pyyaml")
+        print()
+        print("Or use a virtual environment:")
+        print()
+        print("    python -m venv %USERPROFILE%\\.claude-venv")
+        print("    %USERPROFILE%\\.claude-venv\\Scripts\\activate.bat")
+        print("    pip install pyyaml")
     else:  # Linux and others
         print("Install with:")
         print("    pip3 install pyyaml --user")
@@ -68,8 +79,16 @@ def extract_text_from_docx(file_path):
 def read_text_file(file_path):
     """Read text from a plain text file."""
     try:
-        with open(file_path, 'r') as f:
+        with open(file_path, 'r', encoding='utf-8') as f:
             return f.read()
+    except UnicodeDecodeError:
+        # Fallback to system default encoding
+        try:
+            with open(file_path, 'r') as f:
+                return f.read()
+        except Exception as e:
+            print(f"Error reading {file_path}: {e}")
+            return None
     except Exception as e:
         print(f"Error reading {file_path}: {e}")
         return None
@@ -91,10 +110,10 @@ def load_config():
     example_path = get_example_config_path()
 
     if config_path.exists():
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     elif example_path.exists():
-        with open(example_path, 'r') as f:
+        with open(example_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     else:
         return {
@@ -109,7 +128,7 @@ def load_config():
 def save_config(config):
     """Save config to file."""
     config_path = get_config_path()
-    with open(config_path, 'w') as f:
+    with open(config_path, 'w', encoding='utf-8') as f:
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
     print(f"\nConfiguration saved to: {config_path}")
 

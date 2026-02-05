@@ -20,13 +20,21 @@ Job Description: $ARGUMENTS
 **First, verify dependencies are installed:**
 
 Run this check before proceeding:
+
+On Linux/macOS:
 ```bash
 python3 -c "import docx; import yaml; print('Dependencies OK')" 2>&1
+```
+
+On Windows:
+```cmd
+python -c "import docx; import yaml; print('Dependencies OK')"
 ```
 
 If this fails with `ModuleNotFoundError`, inform the user:
 - **On Linux:** `pip3 install python-docx pyyaml --user`
 - **On macOS:** See the macOS installation instructions below (PEP 668 may require a virtual environment)
+- **On Windows:** `pip install python-docx pyyaml`
 
 Stop and help the user install dependencies before continuing.
 
