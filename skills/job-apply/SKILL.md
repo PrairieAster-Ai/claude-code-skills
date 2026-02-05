@@ -17,56 +17,133 @@ Job Description: $ARGUMENTS
 
 ### Phase 0: Configuration and Dependency Check
 
-**First, verify dependencies are installed:**
+#### Step 0.1: Check and Auto-Install Dependencies
 
-Run this check before proceeding:
-
-On Linux/macOS:
+Run this check:
 ```bash
-python3 -c "import docx; import yaml; print('Dependencies OK')" 2>&1
+python3 -c "import docx; import yaml; print('OK')" 2>&1 || echo "MISSING"
+```
+
+**If dependencies are missing**, offer to install them automatically:
+
+Use AskUserQuestion:
+```
+I need to install python-docx and pyyaml to generate Word documents.
+
+Options:
+- "Install now" - I'll run the install command for you
+- "Show me the command" - I'll show you what to run manually
+- "Skip" - Continue without installing (will fail at document generation)
+```
+
+**If user chooses "Install now"**, run the appropriate command:
+
+On Linux:
+```bash
+pip3 install python-docx pyyaml --user
+```
+
+On macOS (try standard install first, fall back to break-system-packages):
+```bash
+pip3 install python-docx pyyaml --user 2>&1 || pip3 install python-docx pyyaml --break-system-packages
 ```
 
 On Windows:
 ```cmd
-python -c "import docx; import yaml; print('Dependencies OK')"
+pip install python-docx pyyaml
 ```
 
-If this fails with `ModuleNotFoundError`, inform the user:
-- **On Linux:** `pip3 install python-docx pyyaml --user`
-- **On macOS:** See the macOS installation instructions below (PEP 668 may require a virtual environment)
-- **On Windows:** `pip install python-docx pyyaml`
+Verify installation succeeded, then continue.
 
-Stop and help the user install dependencies before continuing.
+#### Step 0.2: Check for User Configuration
 
-**Then, check for user configuration:**
+**Look for config file** at `~/.claude/skills/job-apply/config.yaml`
 
-1. **Look for config file** at `~/.claude/skills/job-apply/config.yaml`
+**If config exists**, load and continue to Phase 1.
 
-2. **If config exists**, load:
-   - Candidate information (name, phone, email, linkedin, calendar)
-   - Path preferences (resume locations, portfolio dir, output dir)
-   - Style preferences
-   - Portfolio projects with achievements and technologies
+**If config does NOT exist**, run the guided first-time setup (Step 0.3).
 
-3. **If config does NOT exist**, run first-time setup:
-   - Inform user: "This appears to be your first time using the job-apply skill. Let me set up your profile."
-   - Copy `config.example.yaml` to `config.yaml`
-   - Use AskUserQuestion to gather:
-     - Full name
-     - Phone number
-     - Email address
-     - LinkedIn URL
-     - Calendar link (optional)
-   - Save to config.yaml
-   - Ask if they want to:
-     - Import qualifications from an existing resume file
-     - Enter qualifications manually
-     - Add portfolio projects
+#### Step 0.3: Guided First-Time Setup (New Users Only)
 
-4. **Resume Import Options** (for new users):
-   - **Interactive wizard**: `python3 ~/.claude/skills/job-apply/import_resume.py`
-   - **From Word document**: `python3 ~/.claude/skills/job-apply/import_resume.py resume.docx`
-   - **From text file**: `python3 ~/.claude/skills/job-apply/import_resume.py resume.txt`
+Welcome the user:
+> "Welcome to the Job Application skill! Let's set up your profile. This takes about 2 minutes and you only need to do it once."
+
+**Gather contact information using AskUserQuestion:**
+
+Question 1 - Name:
+```
+What is your full name (as it should appear on your resume)?
+```
+(Free text input)
+
+Question 2 - Contact Method:
+```
+How should employers contact you?
+Options:
+- "Phone and Email" - Provide both
+- "Email only" - Just email address
+- "Email + LinkedIn" - Email and LinkedIn profile
+```
+
+Question 3 - Based on previous answer, gather:
+- Phone number (if selected)
+- Email address
+- LinkedIn URL (if selected)
+
+Question 4 - Style preference:
+```
+What industry are you targeting?
+Options:
+- "Tech/Corporate" - Modern Professional style (recommended for most roles)
+- "Finance/Law/Healthcare" - Classic conservative style
+- "Design/Marketing/Startups" - Creative style with more personality
+```
+
+**Create config.yaml with the gathered information:**
+
+Use Write tool to create `~/.claude/skills/job-apply/config.yaml` with:
+```yaml
+candidate:
+  name: "{gathered_name}"
+  phone: "{gathered_phone}"
+  email: "{gathered_email}"
+  linkedin: "{gathered_linkedin}"
+  calendar: ""
+
+paths:
+  output_dir: "~/Documents/Job Applications/"
+
+preferences:
+  default_style: "{selected_style}"
+
+qualifications:
+  summary: ""
+  skills: []
+  experience: []
+  certifications: []
+  education: []
+
+portfolio_projects: []
+```
+
+**Ask about existing resume:**
+
+Use AskUserQuestion:
+```
+Do you have an existing resume to import?
+Options:
+- "Yes, import from file" - I'll help you import your work history
+- "No, I'll add details later" - Start with basic profile, add experience manually
+- "Yes, let me paste it" - Paste your resume text and I'll parse it
+```
+
+**If importing from file:**
+- Ask for the file path
+- Use the import_resume.py logic to parse and populate qualifications
+- Confirm what was imported
+
+**Confirm setup complete:**
+> "Profile created! Your documents will be saved to ~/Documents/Job Applications/. You can edit your full work history anytime by running `/job-apply-setup`."
 
 ---
 
@@ -404,45 +481,78 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 
 ### Phase 6: Output
 
-1. Save files with naming convention:
-   - `{FirstName}_{LastName}_Cover_Letter_{Role_Keywords}_{Company}.docx`
-   - `{FirstName}_{LastName}_Resume_{Role_Keywords}_{Company}.docx`
-   - Also save `.md` versions for reference/editing if requested
+#### Step 6.1: Save Documents
 
-2. Provide comprehensive summary to user:
+Save files with naming convention:
+- `{FirstName}_{LastName}_Cover_Letter_{Role_Keywords}_{Company}.docx`
+- `{FirstName}_{LastName}_Resume_{Role_Keywords}_{Company}.docx`
+
+#### Step 6.2: Log Application (for tracking)
+
+Append to `~/.claude/skills/job-apply/applications.log`:
+```
+{date} | {company} | {role} | {fit_score}% | {output_dir}
+```
+
+#### Step 6.3: Open Output Folder
+
+Automatically open the folder containing the generated documents so the user can immediately access them:
+
+**On macOS:**
+```bash
+open "{output_dir}"
+```
+
+**On Linux:**
+```bash
+xdg-open "{output_dir}" 2>/dev/null || nautilus "{output_dir}" 2>/dev/null || dolphin "{output_dir}" 2>/dev/null
+```
+
+**On Windows:**
+```cmd
+explorer "{output_dir}"
+```
+
+#### Step 6.4: Provide Summary
+
+Display comprehensive summary:
 
 ```
-## Application Summary
+## Application Complete! 🎉
+
+### Documents Generated
+📄 Cover Letter: {filename}.docx
+📄 Resume: {filename}.docx
+📂 Location: {output_dir} (folder opened)
 
 ### Fit Assessment
 - Overall Score: {X}%
 - Recommendation: {Strong/Good/Stretch Fit}
 
-### Documents Generated
-- Cover Letter: {full path}.docx
-- Resume: {full path}.docx
-
-### Style Applied
-- Preset: {Classic/Modern Professional/Creative}
-- Accent Color: {Color name} ({hex code})
-- Contrast: WCAG AA accessible (7:1+ ratio)
-
 ### Key Matches Highlighted
 - {Top 3-5 strongest qualification matches}
-
-### Portfolio Projects Referenced
-- {Project name}: Used to demonstrate {skill}
 
 ### Gaps Addressed in Cover Letter
 - {Gap}: {How it was addressed}
 
-### Interview Preparation Notes
+### Next Steps
+1. Review the documents in the opened folder
+2. Upload to the job portal
+3. Prepare for interview questions about: {gap areas}
+
+### Interview Prep Tips
 - Be ready to discuss: {Gap areas they may probe}
 - Emphasize: {Your strongest differentiators}
 - Portfolio demos: {Projects to show if asked}
 ```
 
-3. Offer next steps:
-   - Documents ready to upload to job portals
-   - Interview prep suggestions based on gaps
-   - Suggest portfolio pieces to reference
+#### Step 6.5: Ask About Next Action
+
+Use AskUserQuestion:
+```
+What would you like to do next?
+Options:
+- "Apply to another job" - Start a new application
+- "Edit these documents" - Open in editor for manual tweaks
+- "Done for now" - Exit
+```

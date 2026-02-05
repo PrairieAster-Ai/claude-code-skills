@@ -10,11 +10,15 @@ Generate tailored cover letters and resumes optimized for ATS parsing and human 
 
 ## Features
 
+- **Guided Setup**: First-time users are walked through configuration with simple questions
+- **Auto-Install Dependencies**: Detects missing packages and offers to install them
 - **Job Fit Assessment**: Scores your qualifications against job requirements with detailed gap analysis
 - **Portfolio Integration**: Automatically includes achievements from your coding projects
 - **Style Presets**: Classic, Modern Professional, or Creative styling based on industry
 - **WCAG AA Accessible**: High-contrast colors for readability
 - **Word Document Output**: Professional .docx files preferred by recruiters
+- **Auto-Open Output**: Opens the folder with your documents after generation
+- **Application History**: Tracks what jobs you've applied to
 
 ## Quick Start
 
@@ -193,13 +197,22 @@ Portfolio projects provide evidence for technical skills. For each project, incl
 
 ## Workflow
 
-1. **Phase 0**: Check for configuration (first-time setup if needed)
+1. **Phase 0**: Check dependencies (auto-install if missing) and configuration (guided setup for new users)
 2. **Phase 1**: Gather resume and portfolio materials
 3. **Phase 2**: Assess job fit with scoring
 4. **Phase 3**: Select style preset based on industry
 5. **Phase 4**: Match experience to requirements
 6. **Phase 5**: Generate Word documents
-7. **Phase 6**: Output summary with interview prep notes
+7. **Phase 6**: Open output folder, log application, show summary with interview prep
+
+### First-Time Experience
+
+New users are guided through setup with simple questions:
+1. Enter your name and contact info
+2. Choose your target industry (determines document style)
+3. Optionally import an existing resume
+
+No manual YAML editing required!
 
 ## Style Presets
 

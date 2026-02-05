@@ -515,6 +515,95 @@ def generate_application_documents(candidate, job, cover_letter, resume, output_
     return str(cl_path), str(resume_path)
 
 
+def open_output_folder(folder_path):
+    """Open the output folder in the system file manager.
+
+    Args:
+        folder_path: Path to the folder to open
+
+    Returns:
+        bool: True if command was executed, False if unsupported platform
+    """
+    import subprocess
+
+    folder = Path(folder_path).expanduser()
+
+    if not folder.exists():
+        print(f"Folder does not exist: {folder}")
+        return False
+
+    system = platform.system()
+
+    try:
+        if system == "Darwin":  # macOS
+            subprocess.run(["open", str(folder)], check=True)
+        elif system == "Windows":
+            subprocess.run(["explorer", str(folder)], check=True)
+        elif system == "Linux":
+            # Try common file managers in order
+            for cmd in ["xdg-open", "nautilus", "dolphin", "thunar", "pcmanfm"]:
+                try:
+                    subprocess.run([cmd, str(folder)], check=True,
+                                   stderr=subprocess.DEVNULL)
+                    break
+                except (subprocess.CalledProcessError, FileNotFoundError):
+                    continue
+        else:
+            print(f"Unsupported platform: {system}")
+            return False
+
+        return True
+    except Exception as e:
+        print(f"Could not open folder: {e}")
+        return False
+
+
+def log_application(company, role, fit_score, output_dir):
+    """Log an application to the applications history file.
+
+    Args:
+        company: Company name
+        role: Job title
+        fit_score: Fit assessment score (0-100)
+        output_dir: Where documents were saved
+    """
+    from datetime import datetime
+
+    log_path = Path(__file__).parent / "applications.log"
+
+    entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M')} | {company} | {role} | {fit_score}% | {output_dir}\n"
+
+    with open(log_path, 'a', encoding='utf-8') as f:
+        f.write(entry)
+
+
+def get_application_history():
+    """Get list of past applications.
+
+    Returns:
+        list: List of dicts with date, company, role, score, path
+    """
+    log_path = Path(__file__).parent / "applications.log"
+
+    if not log_path.exists():
+        return []
+
+    history = []
+    with open(log_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            parts = [p.strip() for p in line.strip().split('|')]
+            if len(parts) >= 4:
+                history.append({
+                    'date': parts[0],
+                    'company': parts[1],
+                    'role': parts[2],
+                    'score': parts[3],
+                    'path': parts[4] if len(parts) > 4 else ''
+                })
+
+    return history
+
+
 # =============================================================================
 # Configuration Loading
 # =============================================================================
