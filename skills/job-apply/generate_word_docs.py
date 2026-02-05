@@ -150,12 +150,26 @@ def add_section_heading(doc, text, is_first=False):
     return section
 
 
-def sanitize_filename(text):
-    """Convert text to a safe filename component."""
-    # Remove or replace unsafe characters
-    safe = re.sub(r'[^\w\s-]', '', text)
+def sanitize_filename(text, max_length=50):
+    """Convert text to a safe filename component.
+
+    Preserves Unicode letters/numbers (José, Müller, 田中) while removing
+    characters that are unsafe in filenames across platforms.
+
+    Args:
+        text: Input text to sanitize
+        max_length: Maximum length for the sanitized filename component
+                   (helps avoid Windows 260-char path limit)
+    """
+    # Remove characters unsafe in filenames: / \ : * ? " < > |
+    safe = re.sub(r'[/\\:*?"<>|]', '', text)
+    # Replace whitespace and hyphens with underscores
     safe = re.sub(r'[-\s]+', '_', safe)
-    return safe.strip('_')
+    # Remove any remaining control characters
+    safe = re.sub(r'[\x00-\x1f\x7f]', '', safe)
+    # Truncate to avoid path length issues (especially on Windows)
+    safe = safe.strip('_')[:max_length].rstrip('_')
+    return safe
 
 
 # =============================================================================

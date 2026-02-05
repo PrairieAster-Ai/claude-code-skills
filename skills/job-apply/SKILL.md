@@ -1,7 +1,7 @@
 ---
 name: job-apply
 description: Assess job fit and generate tailored cover letter and resume for a job application based on job description, existing resume, and portfolio projects. Includes fit scoring, style presets, and gap analysis.
-argument-hint: "[job-description-text or 'clipboard' or path-to-job-file]"
+argument-hint: "[job-description-text or path-to-job-file]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Task, AskUserQuestion
 ---
 
@@ -87,8 +87,9 @@ Stop and help the user install dependencies before continuing.
      - `~/Documents/Job Application Docs/resume/`
      - `~/Documents/resume/`
      - Current project directory
-   - Look for `.docx`, `.pdf`, or `.md` files with "resume" in the name
+   - Look for `.docx` or `.md` files with "resume" in the name
    - For `.docx` files, use Python's zipfile to extract text (cross-platform, no external dependencies)
+   - Note: PDF files are not currently supported for automatic parsing
    - **Recommend** user run import wizard to save qualifications: `python3 ~/.claude/skills/job-apply/import_resume.py`
 
 4. **Load portfolio projects from config.yaml**:
@@ -296,9 +297,9 @@ python3 -m venv ~/.claude-venv
 source ~/.claude-venv/bin/activate
 pip install python-docx pyyaml
 
-# Option 2: Use pipx for isolated installs
-brew install pipx
-pipx install python-docx
+# Option 2: Use Homebrew Python (avoids PEP 668)
+brew install python
+/opt/homebrew/bin/pip3 install python-docx pyyaml
 
 # Option 3: Override system protection (not recommended)
 pip3 install python-docx pyyaml --break-system-packages

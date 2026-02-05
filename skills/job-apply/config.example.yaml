@@ -1,6 +1,10 @@
 # Job Application Skill Configuration
 # Copy this file to config.yaml and fill in your information
-# All paths support ~ for home directory expansion
+#
+# Path notes:
+# - Use ~ for home directory (works on all platforms)
+# - Windows users: ~ expands to %USERPROFILE% (e.g., C:\Users\YourName)
+# - If ~/Documents/ doesn't exist, the skill will create it or use current directory
 
 candidate:
   name: "Your Full Name"

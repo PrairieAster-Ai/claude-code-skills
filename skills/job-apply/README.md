@@ -2,6 +2,12 @@
 
 Generate tailored cover letters and resumes optimized for ATS parsing and human scanning, with job fit assessment and style customization.
 
+## Requirements
+
+- **Python 3.8+** (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
+- **python-docx** >= 0.8.11
+- **pyyaml** >= 5.0
+
 ## Features
 
 - **Job Fit Assessment**: Scores your qualifications against job requirements with detailed gap analysis
@@ -399,6 +405,12 @@ python -c "import docx; import yaml; print('Dependencies: OK')"
 # Check config exists
 Test-Path ~/.claude/skills/job-apply/config.yaml
 ```
+
+## Known Limitations
+
+- **PDF resumes**: Not currently supported for automatic parsing. Convert to .docx or .txt first.
+- **Clipboard input**: Not implemented. Paste job description directly or save to a file.
+- **Non-Latin scripts**: Filenames support Unicode, but some special characters may be removed for cross-platform compatibility.
 
 ## Contributing
 
