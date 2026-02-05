@@ -22,14 +22,16 @@ Structure and styling guidelines for ATS-optimized, visually appealing resumes.
 ## PROFESSIONAL EXPERIENCE
 
 ### {Job Title}
-**{Company Name}** | {Mon YYYY - Mon YYYY}
+**{Company Name}**
+{Mon YYYY - Mon YYYY}
 
 - {Achievement with quantified result}
 - {Achievement demonstrating key skill from job description}
 - {Achievement showing scale/scope}
 
 ### {Job Title}
-**{Company Name}** | {Mon YYYY - Mon YYYY}
+**{Company Name}**
+{Mon YYYY - Mon YYYY}
 
 - {Achievement bullets, 3-5 per role}
 
@@ -93,7 +95,8 @@ h3 { color: #1a202c; margin-bottom: 2px; }
 ## Professional Experience
 
 ### {Job Title}
-**{Company Name}** | {Mon YYYY - Present}
+**{Company Name}**
+{Mon YYYY - Present}
 
 - {**Bold the metric**} - Action verb + what you did + measurable outcome
 - Managed {X}-member team achieving {result}
@@ -101,7 +104,8 @@ h3 { color: #1a202c; margin-bottom: 2px; }
 - Delivered {project} resulting in {business impact}
 
 ### {Job Title}
-**{Company Name}** | {Mon YYYY - Mon YYYY}
+**{Company Name}**
+{Mon YYYY - Mon YYYY}
 
 - {Most impressive achievement first}
 - {3-5 bullets per recent role, 2-3 for older roles}
@@ -165,14 +169,16 @@ h2 { color: var(--accent); font-size: 14px; text-transform: uppercase; letter-sp
 ## Experience
 
 ### {Job Title}
-**{Company Name}** | {Mon YYYY - Present}
+**{Company Name}**
+{Mon YYYY - Present}
 
 - {Achievement with quantified result}
 - {Achievement demonstrating creativity/innovation}
 - {Achievement showing collaboration/leadership}
 
 ### {Job Title}
-**{Company Name}** | {Mon YYYY - Mon YYYY}
+**{Company Name}**
+{Mon YYYY - Mon YYYY}
 
 - {Achievements - can include brief project descriptions}
 
@@ -280,3 +286,39 @@ Bold the most important elements in each bullet:
 - [ ] Dates for each position
 - [ ] PDF with selectable text (not image)
 - [ ] File under 2MB
+
+---
+
+## ATS-Optimized Experience Format
+
+**Critical for "Fill from Resume" features:** Many ATS systems (Workday, Taleo, iCIMS, Greenhouse) parse job entries by looking for distinct elements on separate lines.
+
+### Recommended Format (3-line header):
+```
+Job Title           (bold, 11pt - on its own line)
+Company Name        (bold, 10pt - on its own line)
+Mon YYYY - Mon YYYY (regular, 10pt - on its own line)
+```
+
+### Why This Works:
+1. **Job Title on its own line** - ATS can clearly identify the role
+2. **Company Name on its own line** - Prevents confusion with dates or location
+3. **Dates on their own line** - Enables accurate tenure calculation
+4. **No pipe separators** - Pipes (`|`) aren't universally recognized delimiters
+5. **Bold company name** - Adds visual hierarchy for human readers too
+
+### Avoid These Formats:
+```
+❌ Job Title
+   Company Name | Jan 2020 - Present    (company/dates combined)
+
+❌ Job Title | Company Name | Dates     (all on one line)
+
+❌ Company Name (Jan 2020 - Present)    (dates in parentheses)
+```
+
+### Date Format Best Practices:
+- Always include month AND year: `Jan 2020 - Present`
+- Use consistent format throughout: Don't mix `01/2020` with `January 2020`
+- Spell out month abbreviations: `Jan`, `Feb`, `Mar` (not `1`, `2`, `3`)
+- Some ATS default missing months to January 1st, which can affect tenure calculations

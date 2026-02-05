@@ -399,12 +399,19 @@ def create_resume(candidate, content, output_path):
             job_title_run.font.size = Pt(11)
             job_title_p.space_after = Pt(1)
 
-            # Company and dates
-            meta_p = doc.add_paragraph()
-            meta_run = meta_p.add_run(f"{job['company']} | {job['dates']}")
-            meta_run.font.color.rgb = TEXT_SECONDARY
-            meta_run.font.size = Pt(10)
-            meta_p.space_after = Pt(4)
+            # Company name on its own line (ATS-optimized: separate from dates)
+            company_p = doc.add_paragraph()
+            company_run = company_p.add_run(job['company'])
+            company_run.bold = True
+            company_run.font.size = Pt(10)
+            company_p.space_after = Pt(1)
+
+            # Dates on separate line (ATS-optimized: clear date parsing)
+            dates_p = doc.add_paragraph()
+            dates_run = dates_p.add_run(job['dates'])
+            dates_run.font.color.rgb = TEXT_SECONDARY
+            dates_run.font.size = Pt(10)
+            dates_p.space_after = Pt(4)
 
             # Bullets - indented to group with job entry
             for bullet in job.get('bullets', []):
