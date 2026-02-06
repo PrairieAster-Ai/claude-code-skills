@@ -22,7 +22,7 @@ Use this skill entirely in your browser — no install, no CLI, no Python requir
 ### What You Need
 
 - A [claude.ai](https://claude.ai) account (free tier is fine)
-- Your resume as a .docx file (or qualifications as text)
+- Your resume as a .docx or .pdf file (or qualifications as text)
 - A job description to paste
 
 ### Setup (One-Time)
@@ -40,7 +40,18 @@ Use this skill entirely in your browser — no install, no CLI, no Python requir
    | `resume-template.md` | Resume structure |
    | `best-practices.md` | Strategic advice |
 
-   All files are in the [`skills/job-apply/`](./) directory of this repo.
+   **Download all files at once:**
+
+   ```bash
+   mkdir -p ~/Downloads/job-apply-webchat && cd ~/Downloads/job-apply-webchat && \
+   for f in SKILL-webchat.md generate_word_docs_web.py fit-assessment.md \
+            style-presets.md cover-letter-template.md resume-template.md \
+            best-practices.md; do
+     curl -sO "https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/$f"
+   done && echo "Downloaded $(ls | wc -l) files to $(pwd)"
+   ```
+
+   Or browse the files in [`skills/job-apply/`](./) and download individually.
 
 ### First Run
 
@@ -62,7 +73,7 @@ The `profile.yaml` works with both the web chat and CLI versions of this skill.
 
 ### Tips for Free Tier
 
-- **Upload your resume as .docx** — PDF parsing isn't supported
+- **PDF and .docx both work** — Claude reads PDF text directly; .docx is extracted via code execution
 - **Save your `profile.yaml`** after the first run to reduce message count on future applications
 - **Paste the full job description** directly into chat rather than describing it
 - **Say "Yes" or "Proceed"** to the fit assessment to avoid spending a message on elaboration
@@ -495,7 +506,7 @@ Test-Path ~/.claude/skills/job-apply/config.yaml
 
 ## Known Limitations
 
-- **PDF resumes**: Not currently supported for automatic parsing. Convert to .docx or .txt first.
+- **PDF resumes (CLI only)**: Not supported for automatic parsing in Claude Code CLI. Convert to .docx or .txt first. (Web chat handles PDFs natively.)
 - **Clipboard input**: Not implemented. Paste job description directly or save to a file.
 - **Non-Latin scripts**: Filenames support Unicode, but some special characters may be removed for cross-platform compatibility.
 
