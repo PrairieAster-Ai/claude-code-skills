@@ -61,10 +61,12 @@ Structure and styling guidelines for ATS-optimized, visually appealing resumes.
 
 ### Modern Professional Template
 
+> **Note:** The `<style>` block below documents the intended visual styling. Actual formatting is handled by `generate_word_docs.py` / `generate_word_docs_web.py`.
+
 ```markdown
 <style>
-h1 { color: #2b6cb0; margin-bottom: 4px; }
-h2 { color: #2b6cb0; border-bottom: 2px solid #2b6cb0; padding-bottom: 4px; font-size: 14px; }
+h1 { color: #1a5276; margin-bottom: 4px; }
+h2 { color: #1a5276; border-bottom: 2px solid #1a5276; padding-bottom: 4px; font-size: 14px; }
 h3 { color: #1a202c; margin-bottom: 2px; }
 </style>
 
@@ -127,6 +129,8 @@ h3 { color: #1a202c; margin-bottom: 2px; }
 ---
 
 ### Creative Template
+
+> **Note:** The `<style>` block below documents the intended visual styling. Actual formatting is handled by `generate_word_docs.py` / `generate_word_docs_web.py`.
 
 ```markdown
 <style>

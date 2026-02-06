@@ -142,7 +142,7 @@ Research shows 62% of candidates who applied for jobs they were "underqualified"
 ## ATS Success Factors
 
 1. **File format**
-   - Markdown converts cleanly to PDF
+   - Output as .docx (preferred by recruiters and ATS systems)
    - Avoid complex formatting that breaks parsing
    - Test by copying text to notepad - should be readable
 

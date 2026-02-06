@@ -164,7 +164,7 @@ def _format_cert_detail(cert):
         parts.append(cert['issuer'])
     if cert.get('year'):
         parts.append(cert['year'])
-    return ', '.join(parts)
+    return ', '.join(str(p) for p in parts)
 
 
 def sanitize_filename(text, max_length=50):
@@ -316,6 +316,12 @@ def _add_text_with_highlights(paragraph, text, highlights):
     Finds all highlight positions, resolves overlaps (longer match wins),
     then emits runs in text order.
     """
+    if not highlights:
+        paragraph.add_run(text)
+        return
+
+    # Filter out empty/whitespace-only highlights (str.find('') matches everywhere)
+    highlights = [h for h in highlights if h and h.strip()]
     if not highlights:
         paragraph.add_run(text)
         return

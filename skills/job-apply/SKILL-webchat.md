@@ -36,7 +36,16 @@ These files contain guidelines used throughout the workflow. They are uploaded t
 - Confirm: "Loaded your profile. Proceeding with fit assessment."
 
 **If user uploaded a resume .docx:**
-- Use the Analysis tool to extract text from the .docx via Python's `zipfile` module
+- Use the Analysis tool to extract text from the .docx via Python's `zipfile` module:
+  ```python
+  import zipfile, re
+  with zipfile.ZipFile("resume.docx") as z:
+      xml = z.read("word/document.xml").decode("utf-8")
+  text = re.sub(r"</w:p>", "\n", xml)
+  text = re.sub(r"<[^>]+>", " ", text)
+  lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.split("\n")]
+  text = "\n".join(line for line in lines if line)
+  ```
 - Parse the extracted text to identify:
   - Contact info (name, phone, email, LinkedIn)
   - Professional summary
@@ -135,14 +144,11 @@ Shall I proceed with generating your documents?
 
 #### Document Generation
 
-Use the Analysis tool to run `generate_word_docs_web.py` (uploaded to the Project).
+Use the Analysis tool to generate documents. Copy the core functions from `generate_word_docs_web.py` (available in the Project knowledge) into the Analysis code block, then call `generate_application_documents()`.
 
-**Load the script first:**
-```python
-exec(open("generate_word_docs_web.py").read())
-```
+The script auto-installs `python-docx` if needed and writes output to `/tmp/`.
 
-Then call `generate_application_documents()` with:
+Call `generate_application_documents()` with:
 
 - `candidate`: Contact info parsed from resume/profile
 - `job`: Title, company, location from JD

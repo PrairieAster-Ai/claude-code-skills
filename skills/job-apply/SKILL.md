@@ -13,6 +13,10 @@ Evaluate job fit, then generate a tailored cover letter (1 page max) and resume 
 
 Job Description: $ARGUMENTS
 
+**Determine input type:**
+- If `$ARGUMENTS` looks like a file path (ends in `.txt`, `.md`, `.docx`, or contains `/`), read the file to get the job description text.
+- Otherwise, treat `$ARGUMENTS` as the job description text directly.
+
 ## Workflow
 
 ### Phase 0: Configuration and Dependency Check
@@ -148,7 +152,7 @@ Options:
 - Confirm what was imported
 
 **Confirm setup complete:**
-> "Profile created! Your documents will be saved to ~/Documents/Job Application Docs/generated/. You can edit your full work history anytime by running `/job-apply-setup`."
+> "Profile created! Your documents will be saved to ~/Documents/Job Application Docs/generated/. You can edit your full work history anytime by running `python3 ~/.claude/skills/job-apply/import_resume.py` or editing `config.yaml` directly."
 
 ---
 
@@ -172,7 +176,6 @@ Options:
    - Look for `.docx` or `.md` files with "resume" in the name
    - For `.docx` files, use Python's zipfile to extract text (cross-platform, no external dependencies)
    - Note: PDF files are not currently supported for automatic parsing
-   - **Recommend** user run import wizard to save qualifications: `python3 ~/.claude/skills/job-apply/import_resume.py`
 
 4. **Load portfolio projects from config.yaml**:
    - Each project includes: name, url, description, technologies, achievements, keywords
@@ -238,8 +241,12 @@ Overall Score = (Must-Have Score × 0.7) + (Nice-to-Have Score × 0.3)
 **Non-negotiable gaps (do not proceed):**
 - Missing legally required credentials (licenses, certifications required by law)
 - Missing the core technical skill the role is built around
-- Experience gap > 10 years (they want 15, you have 3)
+- Experience gap > 10 years (they want 15 years, you have 2)
 - Security clearance requirements you cannot meet
+- Cannot meet non-negotiable location or relocation requirements
+- Compensation range is significantly below candidate expectations
+
+See [fit-assessment.md](fit-assessment.md) for the complete disqualifier checklist.
 
 #### Step 5: Generate Recommendation
 

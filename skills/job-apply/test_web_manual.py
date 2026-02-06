@@ -11,6 +11,8 @@ Tests:
 3. Resume .docx parsing → extract text from generated resume
 4. Highlight ordering → both highlights bolded regardless of position/length
 5. Certification schema → both {detail} and {year, issuer} formats render correctly
+6. Integer year in certification → str() coercion produces correct output
+7. Empty-string highlights → no infinite loop, text preserved
 
 All output goes to /tmp/job-apply-test/. Inspect the .docx files manually.
 """
@@ -312,6 +314,64 @@ def test_cert_schema():
     return detail_ok and year_ok and year_only_ok and empty_ok
 
 
+def test_integer_year_cert():
+    """Test 6: _format_cert_detail handles integer year without crashing.
+
+    Regression test for the bug where integer years (from YAML without quotes)
+    caused ', '.join() to fail with "expected str, got int".
+    """
+    print("=" * 60)
+    print("TEST 6: Integer Year in Certification")
+    print("=" * 60)
+
+    # Integer year (YAML parsed without quotes)
+    int_cert = {"name": "CKA", "year": 2023, "issuer": "CNCF"}
+    int_result = _format_cert_detail(int_cert)
+    int_ok = int_result == "CNCF, 2023"
+
+    # Integer year only (no issuer)
+    int_only = {"name": "CKA", "year": 2022}
+    int_only_result = _format_cert_detail(int_only)
+    int_only_ok = int_only_result == "2022"
+
+    print(f"  Integer year + issuer:  {'PASS' if int_ok else 'FAIL'} → '{int_result}'")
+    print(f"  Integer year only:      {'PASS' if int_only_ok else 'FAIL'} → '{int_only_result}'")
+    print()
+    return int_ok and int_only_ok
+
+
+def test_empty_highlights():
+    """Test 7: _add_text_with_highlights handles empty-string highlights safely.
+
+    Regression test for the bug where an empty string in highlights
+    would cause an infinite loop in str.find('', start).
+    """
+    print("=" * 60)
+    print("TEST 7: Empty-String Highlights")
+    print("=" * 60)
+
+    from docx import Document
+    doc = Document()
+    p = doc.add_paragraph()
+
+    text = "Reduced costs by 40% through optimization"
+    highlights = ["40%", "", "  "]  # includes empty and whitespace-only
+    _add_text_with_highlights(p, text, highlights)
+
+    runs = [(r.text, r.bold) for r in p.runs]
+    full_text = "".join(r[0] for r in runs)
+    text_preserved = full_text == text
+    bold_texts = [r[0] for r in runs if r[1]]
+    pct_bolded = "40%" in bold_texts
+
+    print(f"  Text preserved:   {'PASS' if text_preserved else 'FAIL'}")
+    print(f"  '40%' bolded:     {'PASS' if pct_bolded else 'FAIL'}")
+    print(f"  No crash:         PASS (reached this point)")
+    print(f"  Runs: {runs}")
+    print()
+    return text_preserved and pct_bolded
+
+
 def main():
     print()
     print("Job Apply Web Chat — Manual Test Suite")
@@ -337,6 +397,12 @@ def main():
 
     ok = test_cert_schema()
     results.append(("Certification Schema", ok))
+
+    ok = test_integer_year_cert()
+    results.append(("Integer Year Cert", ok))
+
+    ok = test_empty_highlights()
+    results.append(("Empty-String Highlights", ok))
 
     # Summary
     print("=" * 60)

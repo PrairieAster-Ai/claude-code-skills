@@ -28,10 +28,8 @@ paths:
 
 preferences:
   # Default style: classic, modern_professional, or creative
+  # Note: Currently only modern_professional is implemented in document generation
   default_style: "modern_professional"
-
-  # Default accent color (hex without #) - leave empty to use style default
-  accent_color: ""
 
 # =============================================================================
 # QUALIFICATIONS

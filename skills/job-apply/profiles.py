@@ -74,8 +74,12 @@ def get_profiles_dir():
 
 
 def get_profile_path(name):
-    """Get path to a named profile."""
-    return get_profiles_dir() / f"{name}.yaml"
+    """Get path to a named profile. Sanitizes name to prevent path traversal."""
+    import re
+    safe_name = re.sub(r'[/\\:*?"<>|.\s]', '_', name).strip('_')
+    if not safe_name:
+        safe_name = 'default'
+    return get_profiles_dir() / f"{safe_name}.yaml"
 
 
 def list_profiles():
@@ -101,19 +105,31 @@ def list_profiles():
     print()
 
 
+def _active_profile_path():
+    """Path to the sidecar file that tracks the active profile name."""
+    return get_profiles_dir() / ".active_profile"
+
+
+def _set_active_profile(name):
+    """Record the active profile name."""
+    path = _active_profile_path()
+    if name is None:
+        path.unlink(missing_ok=True)
+    else:
+        path.write_text(name, encoding='utf-8')
+
+
 def get_current_profile_name():
-    """Get the name of the current profile, if it matches a saved one."""
+    """Get the name of the current profile, if recorded."""
     config_path = get_config_path()
     if not config_path.exists():
         return None
 
-    with open(config_path, 'r', encoding='utf-8') as f:
-        current_config = f.read()
-
-    for profile_path in get_profiles_dir().glob("*.yaml"):
-        with open(profile_path, 'r', encoding='utf-8') as f:
-            if f.read() == current_config:
-                return profile_path.stem
+    active_path = _active_profile_path()
+    if active_path.exists():
+        name = active_path.read_text(encoding='utf-8').strip()
+        if name and get_profile_path(name).exists():
+            return name
 
     return None
 
@@ -171,6 +187,7 @@ def save_profile(name):
             return False
 
     shutil.copy(config_path, profile_path)
+    _set_active_profile(name)
     print(f"\nProfile '{name}' saved")
     print(f"  Location: {profile_path}\n")
     return True
@@ -200,6 +217,7 @@ def switch_profile(name):
                     save_profile(save_name)
 
     shutil.copy(profile_path, config_path)
+    _set_active_profile(name)
     print(f"\nSwitched to profile '{name}'")
     show_current()
     return True
@@ -223,6 +241,7 @@ def switch_to_new():
     # Remove current config to simulate new user
     if config_path.exists():
         config_path.unlink()
+    _set_active_profile(None)
 
     print("\nSwitched to new user state")
     print("config.yaml has been removed")

@@ -133,9 +133,11 @@ candidate:
 
 paths:
   resume_locations:
+    - "~/Documents/Job Application Docs/resume/"
     - "~/Documents/resume/"
+    - "~/Documents/"
   portfolio_dir: "~/Projects/"
-  output_dir: "~/Documents/Job Applications/generated/"
+  output_dir: "~/Documents/Job Application Docs/generated/"
 
 preferences:
   default_style: "modern_professional"  # classic, modern_professional, creative

@@ -2,6 +2,8 @@
 
 Visual styling specifications for resume and cover letter generation. All presets maintain ATS compatibility while optimizing for human reviewers.
 
+> **Implementation note:** The document generator (`generate_word_docs.py`) currently implements the **Modern Professional** style only. Classic and Creative presets are defined here as reference specifications for future implementation. When Claude selects a style, the content strategy (tone, structure, keyword emphasis) should match the selected preset, but the visual output (colors, fonts, spacing) will use Modern Professional styling.
+
 ## The 6-Second Rule
 
 Hiring managers spend **6-10 seconds** scanning a resume before deciding to read further. Design elements should:
@@ -25,7 +27,7 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - **Section spacing:** 16-20pt between sections
 
 ### Typography
-- **Name:** 18-20pt, bold
+- **Name:** 22pt, bold (accent color)
 - **Section headers:** 12-14pt, bold, UPPERCASE or Title Case
 - **Body text:** 11pt
 - **Font family:** Calibri, Arial, Garamond, or Georgia
@@ -152,12 +154,14 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 | Accent secondary | Lighter tint of primary | - |
 | Background accent | Very light tint | 5-10% opacity of primary |
 
-**Accent colors by creative sub-industry:**
+**Accent colors by creative sub-industry** (use only for large text 18pt+ bold or decorative elements — many do not meet WCAG AA 4.5:1 for body text on white):
 - Design/UX: Coral `#f56565` or Purple `#805ad5`
 - Marketing: Orange `#dd6b20` or Magenta `#d53f8c`
 - Advertising: Bold Blue `#3182ce` or Yellow `#d69e2e`
 - Startups: Teal `#319795` or Green `#38a169`
 - Media: Red `#c53030` or Deep Purple `#6b46c1`
+
+Body text should always use `#2d3748` (Dark Gray, 10:1 contrast) regardless of accent choice.
 
 ### Visual Elements
 - **Dividers:** Can use colored blocks, geometric shapes
@@ -235,7 +239,7 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 
 | Element | Classic | Modern | Creative |
 |---------|---------|--------|----------|
-| Name | 18-20pt | 20-24pt | 24-32pt |
+| Name | 22pt | 20-24pt | 24-32pt |
 | Title/Tagline | 12pt | 12-14pt | 14-16pt |
 | Section headers | 12-14pt | 13-14pt | 12-14pt |
 | Job titles | 11pt bold | 11pt bold | 11pt bold |

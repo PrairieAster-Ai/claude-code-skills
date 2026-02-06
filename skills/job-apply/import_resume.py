@@ -138,7 +138,7 @@ def save_config(config):
 
 def prompt_input(prompt, default=None):
     """Prompt user for input with optional default."""
-    if default:
+    if default is not None and default != '':
         result = input(f"{prompt} [{default}]: ").strip()
         return result if result else default
     else:
@@ -190,11 +190,16 @@ def collect_summary(config):
             return config
 
     lines = []
+    prev_blank = False
     print("\nEnter your summary:")
     while True:
         line = input()
-        if not line and lines:
-            break
+        if not line:
+            if prev_blank and lines:
+                break
+            prev_blank = True
+            continue
+        prev_blank = False
         lines.append(line)
 
     config['qualifications']['summary'] = ' '.join(lines)
@@ -273,7 +278,7 @@ def collect_experience(config):
                 break
 
             highlights_input = input("    Phrases to highlight (comma-separated, or Enter for none): ")
-            highlights = [h.strip() for h in highlights_input.split(',')] if highlights_input else []
+            highlights = [h.strip() for h in highlights_input.split(',') if h.strip()] if highlights_input else []
 
             bullets.append({
                 'text': bullet_text,

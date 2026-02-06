@@ -57,11 +57,13 @@ My experience demonstrates direct alignment with your requirements:
 
 ### Modern Professional Template
 
+> **Note:** The `<style>` block below documents the intended visual styling. Actual formatting is handled by `generate_word_docs.py` / `generate_word_docs_web.py`.
+
 ```markdown
 <style>
-h1 { color: #2b6cb0; margin-bottom: 4px; }
-h2 { color: #2b6cb0; font-size: 13px; margin-top: 16px; }
-.header-line { border-bottom: 2px solid #2b6cb0; margin: 8px 0 16px 0; }
+h1 { color: #1a5276; margin-bottom: 4px; }
+h2 { color: #1a5276; font-size: 13px; margin-top: 16px; }
+.header-line { border-bottom: 2px solid #1a5276; margin: 8px 0 16px 0; }
 </style>
 
 # {Full Name}
@@ -110,6 +112,8 @@ Best regards,
 ---
 
 ### Creative Template
+
+> **Note:** The `<style>` block below documents the intended visual styling. Actual formatting is handled by `generate_word_docs.py` / `generate_word_docs_web.py`.
 
 ```markdown
 <style>
