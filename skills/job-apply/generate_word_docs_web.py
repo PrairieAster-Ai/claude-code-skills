@@ -8,10 +8,12 @@ to the skill directory.
 
 Also provides:
 - generate_profile_yaml(): Export candidate data to portable YAML
+- load_profile_yaml(): Load a previously saved profile
 - parse_uploaded_resume(): Extract structured text from uploaded .docx
 
 Usage in Analysis tool:
-    exec(open("generate_word_docs_web.py").read())
+    Copy the entire contents of this script into the Analysis code block,
+    then call generate_application_documents().
 
     generate_application_documents(
         candidate=candidate_data,
@@ -22,16 +24,6 @@ Usage in Analysis tool:
     )
 """
 
-import subprocess
-import sys
-
-# Auto-install python-docx if missing (Analysis sandbox has pip)
-try:
-    import docx
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "python-docx", "-q"])
-    import docx
-
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_LINE_SPACING
@@ -40,14 +32,12 @@ from docx.oxml import OxmlElement
 from datetime import datetime
 from pathlib import Path
 import re
-import zipfile
 
 
 # =============================================================================
 # WCAG AA Accessible Colors (7:1+ contrast ratio on white)
 # =============================================================================
 ACCENT_COLOR = RGBColor(0x1a, 0x52, 0x76)  # Navy Blue #1a5276 - 8:1 contrast
-TEXT_PRIMARY = RGBColor(0x1a, 0x20, 0x2c)  # Near-black #1a202c - 16:1 contrast
 TEXT_SECONDARY = RGBColor(0x37, 0x41, 0x51)  # Dark Gray #374151 - 10:1 contrast
 
 # Spacing constants
@@ -504,6 +494,7 @@ def parse_uploaded_resume(file_path):
         print(f"Error: {file_path} is not a .docx file. Supported format: .docx")
         return None
 
+    import zipfile
     try:
         with zipfile.ZipFile(file_path, 'r') as docx_zip:
             xml_content = docx_zip.read('word/document.xml').decode('utf-8')
@@ -527,6 +518,57 @@ def parse_uploaded_resume(file_path):
         return None
 
 
+def _write_yaml(f, obj, indent=0):
+    """Write a Python object as YAML without requiring pyyaml.
+
+    Handles the subset of types used in profile data: dicts, lists, strings,
+    numbers, booleans, and None. Not a general-purpose YAML serializer.
+    """
+    prefix = "  " * indent
+    if isinstance(obj, dict):
+        for i, (key, value) in enumerate(obj.items()):
+            if isinstance(value, (dict,)):
+                f.write(f"{prefix}{key}:\n")
+                _write_yaml(f, value, indent + 1)
+            elif isinstance(value, list):
+                f.write(f"{prefix}{key}:\n")
+                _write_yaml(f, value, indent + 1)
+            else:
+                f.write(f"{prefix}{key}: {_yaml_scalar(value)}\n")
+    elif isinstance(obj, list):
+        for item in obj:
+            if isinstance(item, dict):
+                first = True
+                for key, value in item.items():
+                    marker = "- " if first else "  "
+                    first = False
+                    if isinstance(value, (dict,)):
+                        f.write(f"{prefix}{marker}{key}:\n")
+                        _write_yaml(f, value, indent + 2)
+                    elif isinstance(value, list):
+                        f.write(f"{prefix}{marker}{key}:\n")
+                        _write_yaml(f, value, indent + 2)
+                    else:
+                        f.write(f"{prefix}{marker}{key}: {_yaml_scalar(value)}\n")
+            else:
+                f.write(f"{prefix}- {_yaml_scalar(item)}\n")
+
+
+def _yaml_scalar(value):
+    """Format a scalar value for YAML output."""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    s = str(value)
+    # Quote if it contains special YAML characters or is empty
+    if not s or any(c in s for c in ':#{}[]&*!|>\'"?,') or s.strip() != s:
+        return f'"{s}"'
+    return s
+
+
 def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.yaml",
                           portfolio_projects=None):
     """
@@ -544,13 +586,6 @@ def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.y
     Returns:
         str: Path to the generated profile.yaml
     """
-    # Import yaml or install it
-    try:
-        import yaml
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml", "-q"])
-        import yaml
-
     profile = {
         'candidate': {
             'name': candidate.get('name', ''),
@@ -566,8 +601,14 @@ def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.y
     if portfolio_projects:
         profile['portfolio_projects'] = portfolio_projects
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        yaml.dump(profile, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    try:
+        import yaml
+        with open(output_path, 'w', encoding='utf-8') as f:
+            yaml.dump(profile, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    except ImportError:
+        # Fallback: write YAML manually (works without pyyaml in sandbox)
+        with open(output_path, 'w', encoding='utf-8') as f:
+            _write_yaml(f, profile, indent=0)
 
     print(f"Profile saved: {output_path}")
     return output_path
@@ -576,6 +617,10 @@ def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.y
 def load_profile_yaml(file_path):
     """
     Load a previously saved profile.yaml.
+
+    Requires pyyaml. In the Analysis sandbox, if pyyaml is unavailable,
+    Claude should parse the YAML text in conversation and pass structured
+    data directly to generate_application_documents().
 
     Args:
         file_path: Path to the profile.yaml file
@@ -587,14 +632,23 @@ def load_profile_yaml(file_path):
     try:
         import yaml
     except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml", "-q"])
-        import yaml
+        print("Error: pyyaml is not available. In the Analysis sandbox, "
+              "read the profile.yaml text and parse it in conversation instead.")
+        return None, None, None
 
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             profile = yaml.safe_load(f)
 
+        if not isinstance(profile, dict):
+            print("Error: profile.yaml is not a valid YAML mapping.")
+            return None, None, None
+
         candidate = profile.get('candidate', {})
+        if not candidate.get('name'):
+            print("Error: profile.yaml is missing candidate.name.")
+            return None, None, None
+
         qualifications = profile.get('qualifications', {})
         portfolio_projects = profile.get('portfolio_projects', [])
         return candidate, qualifications, portfolio_projects

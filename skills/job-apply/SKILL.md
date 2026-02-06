@@ -2,7 +2,7 @@
 name: job-apply
 description: Assess job fit and generate tailored cover letter and resume for a job application based on job description, existing resume, and portfolio projects. Includes fit scoring, style presets, and gap analysis.
 argument-hint: "[job-description-text or path-to-job-file]"
-allowed-tools: "Bash,Read,Write,Edit,Glob,Grep,Task,AskUserQuestion"
+allowed-tools: "Bash,Read,Write,Edit,Glob,Grep,Task,WebFetch,AskUserQuestion"
 ---
 
 # Job Application Document Generator
@@ -14,7 +14,9 @@ Evaluate job fit, then generate a tailored cover letter (1 page max) and resume 
 Job Description: $ARGUMENTS
 
 **Determine input type:**
-- If `$ARGUMENTS` looks like a file path (ends in `.txt`, `.md`, `.docx`, or contains `/`), read the file to get the job description text.
+- If `$ARGUMENTS` is empty or blank, use AskUserQuestion to ask the user to provide a job description (paste text or provide a file path).
+- If `$ARGUMENTS` looks like a URL (starts with `http://` or `https://`), use WebFetch to retrieve the job description from the page.
+- If `$ARGUMENTS` looks like a file path (ends in `.txt`, `.md`, `.docx`, or contains `/`), read the file. For `.docx` files, use Python's zipfile to extract text (see the technique in `import_resume.py`'s `extract_text_from_docx()` function).
 - Otherwise, treat `$ARGUMENTS` as the job description text directly.
 
 ## Workflow
@@ -23,7 +25,7 @@ Job Description: $ARGUMENTS
 
 #### Step 0.1: Check and Auto-Install Dependencies
 
-Run this check:
+Run this check (use `python` or `py -3` instead of `python3` on Windows):
 ```bash
 python3 -c "import docx; import yaml; print('OK')" 2>&1 || echo "MISSING"
 ```
@@ -61,9 +63,9 @@ Verify installation succeeded, then continue.
 
 #### Step 0.2: Check for User Configuration
 
-**Look for config file** at `~/.claude/skills/job-apply/config.yaml`
+**Look for config file** in the same directory as this SKILL.md file (typically `~/.claude/skills/job-apply/config.yaml`).
 
-**If config exists**, load and continue to Phase 1.
+**If config exists**, load it and check that `qualifications.experience` is not empty. If qualifications are empty, inform the user and offer to run the resume import flow (from Step 0.3's "Ask about existing resume" section) before continuing to Phase 1.
 
 **If config does NOT exist**, run the guided first-time setup (Step 0.3).
 
@@ -96,7 +98,7 @@ Question 3 - Based on previous answer, gather:
 
 Question 4 - Style preference:
 ```
-What industry are you targeting?
+What industry are you targeting? (This affects content tone and structure. Visual styling currently uses Modern Professional for all presets.)
 Options:
 - "Tech/Corporate" - Modern Professional style (recommended for most roles)
 - "Finance/Law/Healthcare" - Classic conservative style
@@ -148,7 +150,9 @@ Options:
 
 **If importing from file:**
 - Ask for the file path
-- Use the import_resume.py logic to parse and populate qualifications
+- Read the file using the Read tool (for `.txt`/`.md`) or `extract_text_from_docx()` from `import_resume.py` (for `.docx`)
+- Parse the extracted text to identify contact info, summary, skills, experience, certifications, and education
+- Populate the `qualifications` section of config.yaml with the structured data
 - Confirm what was imported
 
 **Confirm setup complete:**
@@ -313,6 +317,8 @@ Based on this assessment, would you like to:
 
 See [style-presets.md](style-presets.md) for complete styling specifications.
 
+> **Note:** Document visual styling currently uses Modern Professional for all presets. Style selection affects content strategy (tone, structure, keyword emphasis) but not the generated document's colors, fonts, or layout.
+
 **Check config.yaml for default_style preference first.**
 
 **Auto-detect industry from job description, or ask user to confirm:**
@@ -325,7 +331,7 @@ See [style-presets.md](style-presets.md) for complete styling specifications.
 
 **If ambiguous, ask user:**
 ```
-Which style best fits this role?
+Which style best fits this role? (Affects content tone; visual styling uses Modern Professional for all.)
 - Classic (conservative industries: finance, law, healthcare)
 - Modern Professional (corporate, tech, consulting)
 - Creative (design, marketing, startups)
@@ -374,11 +380,67 @@ Create both files in configured output directory (default: `~/Documents/Job Appl
 
 #### Word Document Generation
 
-Use the Python script at `~/.claude/skills/job-apply/generate_word_docs.py` to create styled Word documents.
+Use the Python script at `generate_word_docs.py` (in the same directory as this SKILL.md) to create styled Word documents. Dependencies were verified in Step 0.1.
 
 Dependencies (`python-docx`, `pyyaml`) should already be installed from Phase 0. If not, re-run the Phase 0 dependency check.
 
-**Script Usage:** Read `~/.claude/skills/job-apply/generate_word_docs.py` for the `generate_application_documents()` function signature and parameter format. The function accepts `candidate`, `job`, `cover_letter`, `resume`, and `output_dir` arguments.
+**How to execute:** Write a temporary Python script and run it via Bash. The script must add the skill directory to `sys.path` before importing:
+
+```python
+# Write this to a temp file, then run with: python3 /tmp/gen_docs.py
+import sys, os
+sys.path.insert(0, os.path.expanduser("~/.claude/skills/job-apply"))
+from generate_word_docs import generate_application_documents
+
+generate_application_documents(
+    candidate={
+        "name": "Full Name",
+        "phone": "Phone",
+        "email": "Email",
+        "linkedin": "LinkedIn URL",
+        "calendar": "Calendar link (optional)",
+        "title": "Target Role Title"
+    },
+    job={
+        "title": "Job Title",
+        "company": "Company Name",
+        "location": "Location"
+    },
+    cover_letter={
+        "opening": "Opening paragraph text...",
+        "sections": [
+            {
+                "title": "Section Title",
+                "paragraphs": [
+                    {"label": "Bold Label", "text": "Content...", "highlights": ["phrase to bold"]},
+                    ["Bullet item 1", "Bullet item 2"]
+                ]
+            }
+        ],
+        "closing": "Best regards,",
+        "signature_title": "Title | Specialty"
+    },
+    resume={
+        "summary": "Summary paragraph...",
+        "skills": [{"category": "Category", "items": "Skill1, Skill2, Skill3"}],
+        "experience": [
+            {
+                "title": "Job Title",
+                "company": "Company",
+                "dates": "Mon YYYY - Mon YYYY",
+                "bullets": [
+                    {"text": "Achievement with metric", "highlights": ["metric"]}
+                ]
+            }
+        ],
+        "certifications": [{"name": "Cert Name", "year": "2023", "issuer": "Org"}],
+        "education": [{"degree": "Degree, Major", "school": "University"}]
+    },
+    output_dir=os.path.expanduser("~/Documents/Job Application Docs/generated/")
+)
+```
+
+The script also provides `log_application(company, role, fit_score, output_dir)` and `open_output_folder(output_dir)` — use these in Phase 6 instead of manual Bash commands.
 
 #### Cover Letter Requirements
 
@@ -429,47 +491,30 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 
 #### Step 6.1: Save Documents
 
-Save files with naming convention:
-- `{FirstName}_{LastName}_Cover_Letter_{Role_Keywords}_{Company}.docx`
-- `{FirstName}_{LastName}_Resume_{Role_Keywords}_{Company}.docx`
+The `generate_application_documents()` function handles file naming automatically:
+- `{Full_Name}_Cover_Letter_{Role}_{Company}.docx`
+- `{Full_Name}_Resume_{Role}_{Company}.docx`
 
-#### Step 6.2: Log Application (for tracking)
+#### Step 6.2: Log Application and Open Folder
 
-Append to `~/.claude/skills/job-apply/applications.log`:
-```
-{date} | {company} | {role} | {fit_score}% | {output_dir}
-```
-
-#### Step 6.3: Open Output Folder
-
-Automatically open the folder containing the generated documents so the user can immediately access them:
-
-**On macOS:**
-```bash
-open "{output_dir}"
+Use the helper functions from the generation script (call in the same temp Python script):
+```python
+from generate_word_docs import log_application, open_output_folder
+log_application(company, role, fit_score, output_dir)
+open_output_folder(output_dir)
 ```
 
-**On Linux:**
-```bash
-xdg-open "{output_dir}" 2>/dev/null || nautilus "{output_dir}" 2>/dev/null || dolphin "{output_dir}" 2>/dev/null
-```
-
-**On Windows:**
-```cmd
-explorer "{output_dir}"
-```
-
-#### Step 6.4: Provide Summary
+#### Step 6.3: Provide Summary
 
 Display comprehensive summary:
 
 ```
-## Application Complete! 🎉
+## Application Complete
 
 ### Documents Generated
-📄 Cover Letter: {filename}.docx
-📄 Resume: {filename}.docx
-📂 Location: {output_dir} (folder opened)
+- Cover Letter: {filename}.docx
+- Resume: {filename}.docx
+- Location: {output_dir} (folder opened)
 
 ### Fit Assessment
 - Overall Score: {X}%
@@ -492,13 +537,15 @@ Display comprehensive summary:
 - Portfolio demos: {Projects to show if asked}
 ```
 
-#### Step 6.5: Ask About Next Action
+#### Step 6.4: Ask About Next Action
 
 Use AskUserQuestion:
 ```
 What would you like to do next?
 Options:
-- "Apply to another job" - Start a new application
-- "Edit these documents" - Open in editor for manual tweaks
+- "Apply to another job" - Provide the next job description and restart from Phase 1
+- "Edit these documents" - Tell me what to change and I'll regenerate
 - "Done for now" - Exit
 ```
+
+For profile management (switching between configurations), see `profiles.py` in the skill directory.

@@ -6,23 +6,23 @@ Evaluate job fit, then generate a tailored cover letter (1 page max) and resume 
 
 This is a Project instruction file for claude.ai. Upload it along with the reference files to a Claude Project, then start a conversation with your resume and a job description.
 
-**Message budget: 3-4 messages for a complete run.**
+**Message budget: 3-4 messages for a typical run** (up to 6 if user requests profile.yaml or detailed gap analysis).
 
 ## Input
 
 The user provides:
-1. A **resume** — uploaded as .docx, or a `profile.yaml` from a previous session
+1. A **resume** — uploaded as .docx or .pdf, a `profile.yaml` from a previous session, or qualifications pasted as text
 2. A **job description** — pasted into chat or uploaded as a file
 
 ## Reference Files
 
-These files contain guidelines used throughout the workflow. They are uploaded to the Project alongside this file:
+These files are available in the Project knowledge alongside this file:
 
-- [fit-assessment.md](fit-assessment.md) — Evaluation framework, scoring formula, recommendation matrix
-- [style-presets.md](style-presets.md) — Visual styling specs for Classic, Modern Professional, Creative
-- [cover-letter-template.md](cover-letter-template.md) — Cover letter structure and writing guidelines
-- [resume-template.md](resume-template.md) — Resume structure and ATS optimization
-- [best-practices.md](best-practices.md) — Strategic advice, gap mitigation, evidence selection
+- **fit-assessment.md** — Evaluation framework, scoring formula, recommendation matrix
+- **style-presets.md** — Visual styling specs for Classic, Modern Professional, Creative
+- **cover-letter-template.md** — Cover letter structure and writing guidelines
+- **resume-template.md** — Resume structure and ATS optimization
+- **best-practices.md** — Strategic advice, gap mitigation, evidence selection
 
 ## Workflow
 
@@ -30,23 +30,34 @@ These files contain guidelines used throughout the workflow. They are uploaded t
 
 **Goal:** Extract all source data in a single turn. No setup wizard, no config file.
 
+**If user uploaded both a `profile.yaml` and a resume**, prefer the profile.yaml (it has structured data). Note: "I see you uploaded both a profile and a resume. I'll use the profile.yaml since it has structured data. Let me know if you'd prefer I re-parse from the resume instead."
+
 **If user uploaded a `profile.yaml`** (from a previous session):
 - Parse the YAML to load candidate info, qualifications, and portfolio projects
 - Skip resume parsing entirely — this saves a full message
 - Confirm: "Loaded your profile. Proceeding with fit assessment."
 
+**If user uploaded a resume .pdf:**
+- Claude can read uploaded PDF text directly from the conversation context
+- Skip the Analysis tool extraction step — parse the PDF text to identify candidate information
+
 **If user uploaded a resume .docx:**
 - Use the Analysis tool to extract text from the .docx via Python's `zipfile` module:
   ```python
   import zipfile, re
-  with zipfile.ZipFile("resume.docx") as z:
+  # Replace "resume.docx" with the actual uploaded file path
+  with zipfile.ZipFile(uploaded_file_path) as z:
       xml = z.read("word/document.xml").decode("utf-8")
   text = re.sub(r"</w:p>", "\n", xml)
   text = re.sub(r"<[^>]+>", " ", text)
   lines = [re.sub(r"[ \t]+", " ", line).strip() for line in text.split("\n")]
   text = "\n".join(line for line in lines if line)
   ```
-- Parse the extracted text to identify:
+
+**If user pasted qualifications as text** (no file upload):
+- Parse the text directly to extract candidate information. Proceed as normal.
+
+For all resume sources, parse the extracted text to identify:
   - Contact info (name, phone, email, LinkedIn)
   - Professional summary
   - Skills by category
@@ -93,7 +104,8 @@ Overall Fit Score = (Must-Have Score × 0.7) + (Nice-to-Have Score × 0.3)
 
 #### Style Selection
 
-Auto-detect industry from job description and select the appropriate preset per style-presets.md:
+Auto-detect industry from job description and select the appropriate preset per style-presets.md. Style selection affects content strategy (tone, structure, keyword emphasis). Visual styling currently uses Modern Professional for all presets.
+
 - Finance, Law, Healthcare, Government → **Classic**
 - Tech, Corporate, Consulting → **Modern Professional**
 - Design, Marketing, Startups → **Creative**
@@ -131,7 +143,8 @@ Display a combined assessment:
 
 ### Disqualifiers: {None / List}
 
-Shall I proceed with generating your documents?
+{If no disqualifiers: "Shall I proceed with generating your documents?"}
+{If disqualifiers found: "Disqualifiers found — I'd recommend not proceeding, but I can generate documents if you'd like."}
 ```
 
 **Wait for user confirmation before proceeding.** This is the one required interaction point.
@@ -144,9 +157,12 @@ Shall I proceed with generating your documents?
 
 #### Document Generation
 
-Use the Analysis tool to generate documents. Copy the core functions from `generate_word_docs_web.py` (available in the Project knowledge) into the Analysis code block, then call `generate_application_documents()`.
+Use the Analysis tool to generate documents. Copy the **entire contents** of `generate_word_docs_web.py` (available in the Project knowledge) into the Analysis code block, then call `generate_application_documents()`. The script requires `python-docx` which is pre-installed in the Analysis sandbox. Output is written to `/tmp/`.
 
-The script auto-installs `python-docx` if needed and writes output to `/tmp/`.
+**If document generation fails** (timeout, memory limit, missing package), offer the user alternatives:
+1. Try again with a simpler run
+2. Output the cover letter and resume as formatted text in the conversation for manual copy into Word
+3. Generate simpler documents with fewer styling features
 
 Call `generate_application_documents()` with:
 
@@ -213,9 +229,11 @@ The portable `profile.yaml` contains a subset of the full config.yaml used by Cl
 ```yaml
 candidate:
   name: "Full Name"
+  title: "Target Role Title"      # Set per application
   phone: "555.123.4567"
   email: "email@example.com"
   linkedin: "linkedin.com/in/profile"
+  calendar: ""                     # Optional: calendly.com/name/30min
 
 qualifications:
   summary: "Professional summary..."
@@ -236,6 +254,7 @@ qualifications:
   education:
     - degree: "Degree, Major"
       school: "University"
+      year: "YYYY"                 # Optional
 
 # Optional — include if user has portfolio projects
 portfolio_projects:
@@ -255,5 +274,9 @@ portfolio_projects:
 | 2 | Claude | Parses both, shows fit assessment, asks "Proceed?" |
 | 3 | User | "Yes" |
 | 4 | Claude | Generates .docx files, provides downloads, offers profile.yaml |
+| 5 | User | "Yes, generate profile" (optional) |
+| 6 | Claude | Provides profile.yaml download (optional) |
 
-**Returning user with profile.yaml:** Messages 1-2 can be combined (no resume parsing needed), potentially reducing to 3 messages total.
+**Typical first run: 4 messages.** Add 2 if user wants a profile.yaml.
+
+**Returning user with profile.yaml:** Upload profile + paste JD → 3-4 messages total.

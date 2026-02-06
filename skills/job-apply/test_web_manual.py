@@ -13,6 +13,8 @@ Tests:
 5. Certification schema → both {detail} and {year, issuer} formats render correctly
 6. Integer year in certification → str() coercion produces correct output
 7. Empty-string highlights → no infinite loop, text preserved
+8. YAML fallback writer → _write_yaml produces valid YAML without pyyaml
+9. Profile validation → load_profile_yaml rejects malformed input
 
 All output goes to /tmp/job-apply-test/. Inspect the .docx files manually.
 """
@@ -30,6 +32,7 @@ from generate_word_docs_web import (
     parse_uploaded_resume,
     _add_text_with_highlights,
     _format_cert_detail,
+    _write_yaml,
 )
 
 OUTPUT_DIR = "/tmp/job-apply-test/"
@@ -372,6 +375,115 @@ def test_empty_highlights():
     return text_preserved and pct_bolded
 
 
+def test_yaml_fallback_writer():
+    """Test 8: _write_yaml produces valid YAML that pyyaml can parse.
+
+    Verifies the fallback YAML writer (used when pyyaml is unavailable
+    in the Analysis sandbox) produces output that round-trips correctly.
+    """
+    print("=" * 60)
+    print("TEST 8: YAML Fallback Writer")
+    print("=" * 60)
+
+    import yaml
+    from io import StringIO
+
+    profile = {
+        'candidate': {
+            'name': 'Alex Rivera',
+            'title': 'Senior Engineer',
+            'email': 'alex@example.com',
+        },
+        'qualifications': {
+            'summary': 'A skilled engineer',
+            'skills': [
+                {'category': 'Languages', 'items': 'Python, Go'},
+            ],
+            'experience': [
+                {
+                    'title': 'Engineer',
+                    'company': 'Acme Corp',
+                    'dates': 'Jan 2020 - Present',
+                    'bullets': [
+                        {'text': 'Built platform', 'highlights': ['platform']},
+                    ],
+                },
+            ],
+            'certifications': [
+                {'name': 'AWS SAP', 'year': '2023', 'issuer': 'Amazon'},
+            ],
+            'education': [
+                {'degree': 'BS CS', 'school': 'State U'},
+            ],
+        },
+        'portfolio_projects': [
+            {
+                'name': 'AutoDeploy',
+                'technologies': ['Python', 'Docker'],
+                'achievements': [{'metric': '60% faster', 'description': 'CI speed'}],
+            },
+        ],
+    }
+
+    buf = StringIO()
+    _write_yaml(buf, profile, indent=0)
+    yaml_text = buf.getvalue()
+
+    # Parse it back with pyyaml
+    parsed = yaml.safe_load(yaml_text)
+
+    name_ok = parsed['candidate']['name'] == 'Alex Rivera'
+    exp_ok = len(parsed['qualifications']['experience']) == 1
+    proj_ok = len(parsed['portfolio_projects']) == 1
+    cert_ok = parsed['qualifications']['certifications'][0]['issuer'] == 'Amazon'
+
+    print(f"  Name roundtrip:    {'PASS' if name_ok else 'FAIL'}")
+    print(f"  Experience count:  {'PASS' if exp_ok else 'FAIL'}")
+    print(f"  Portfolio count:   {'PASS' if proj_ok else 'FAIL'}")
+    print(f"  Cert issuer:       {'PASS' if cert_ok else 'FAIL'}")
+    print()
+    return name_ok and exp_ok and proj_ok and cert_ok
+
+
+def test_profile_validation():
+    """Test 9: load_profile_yaml rejects malformed input."""
+    print("=" * 60)
+    print("TEST 9: Profile Validation")
+    print("=" * 60)
+
+    import tempfile
+
+    # Test 1: Empty file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        f.write("")
+        empty_path = f.name
+    c, q, p = load_profile_yaml(empty_path)
+    empty_ok = c is None and q is None and p is None
+    os.unlink(empty_path)
+
+    # Test 2: Missing candidate.name
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        f.write("candidate:\n  email: test@test.com\n")
+        noname_path = f.name
+    c, q, p = load_profile_yaml(noname_path)
+    noname_ok = c is None
+    os.unlink(noname_path)
+
+    # Test 3: Valid minimal profile
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.yaml', delete=False) as f:
+        f.write("candidate:\n  name: Test User\nqualifications:\n  summary: test\n")
+        valid_path = f.name
+    c, q, p = load_profile_yaml(valid_path)
+    valid_ok = c is not None and c['name'] == 'Test User'
+    os.unlink(valid_path)
+
+    print(f"  Empty file rejected:       {'PASS' if empty_ok else 'FAIL'}")
+    print(f"  Missing name rejected:     {'PASS' if noname_ok else 'FAIL'}")
+    print(f"  Valid profile accepted:    {'PASS' if valid_ok else 'FAIL'}")
+    print()
+    return empty_ok and noname_ok and valid_ok
+
+
 def main():
     print()
     print("Job Apply Web Chat — Manual Test Suite")
@@ -403,6 +515,12 @@ def main():
 
     ok = test_empty_highlights()
     results.append(("Empty-String Highlights", ok))
+
+    ok = test_yaml_fallback_writer()
+    results.append(("YAML Fallback Writer", ok))
+
+    ok = test_profile_validation()
+    results.append(("Profile Validation", ok))
 
     # Summary
     print("=" * 60)

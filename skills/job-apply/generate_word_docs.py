@@ -546,7 +546,7 @@ def generate_application_documents(candidate, job, cover_letter, resume, output_
     Returns:
         Tuple of (cover_letter_path, resume_path)
     """
-    output_dir = Path(output_dir)
+    output_dir = Path(output_dir).expanduser()
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Generate filenames
