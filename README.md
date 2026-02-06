@@ -7,6 +7,7 @@ A collection of reusable skills for [Claude Code](https://docs.anthropic.com/en/
 | Skill | Description | Invoke With |
 |-------|-------------|-------------|
 | [**job-apply**](skills/job-apply/) | Generate tailored cover letters and resumes with job fit assessment | `/job-apply [job description]` |
+| [**code-quality**](skills/code-quality/) | Code quality assessment and improvement for TypeScript/React projects | `/code-quality` |
 | [**github**](skills/github/) | GitHub Wiki management, business model validation, and memory-bank integration | `/github` |
 
 ---
@@ -22,6 +23,9 @@ Copy a specific skill to your project's `.claude/skills/` directory:
 git clone https://github.com/PrairieAster-Ai/claude-code-skills.git /tmp/claude-code-skills
 cp -r /tmp/claude-code-skills/skills/job-apply ~/.claude/skills/
 
+# Or install code-quality skill
+cp -r /tmp/claude-code-skills/skills/code-quality ~/.claude/skills/
+
 # Or install github skill
 cp -r /tmp/claude-code-skills/skills/github ~/.claude/skills/
 ```
@@ -34,6 +38,7 @@ git submodule add https://github.com/PrairieAster-Ai/claude-code-skills.git .cla
 
 # Symlink individual skills you want to use
 ln -s skills-collection/skills/job-apply .claude/skills/job-apply
+ln -s skills-collection/skills/code-quality .claude/skills/code-quality
 ln -s skills-collection/skills/github .claude/skills/github
 ```
 
@@ -46,6 +51,7 @@ git clone https://github.com/PrairieAster-Ai/claude-code-skills.git ~/.claude/sk
 
 # Symlink to global skills directory
 ln -s ~/.claude/skills-collection/skills/job-apply ~/.claude/skills/job-apply
+ln -s ~/.claude/skills-collection/skills/code-quality ~/.claude/skills/code-quality
 ln -s ~/.claude/skills-collection/skills/github ~/.claude/skills/github
 ```
 
@@ -75,7 +81,28 @@ python3 ~/.claude/skills/job-apply/import_resume.py
 /job-apply [paste job description or path to file]
 ```
 
+> **No CLI?** This skill also works in Claude's free web chat — no install required.
+> See the [web chat quick start](skills/job-apply/README.md#web-chat-quick-start).
+
 See [job-apply README](skills/job-apply/README.md) for full documentation.
+
+---
+
+### code-quality
+
+**Purpose:** Systematic code quality analysis and improvement for TypeScript/React projects.
+
+**Features:**
+- Lint, type-check, coverage, duplication, and complexity analysis
+- Sprint planning for quality improvements
+- Metric tracking over time
+
+**Quick Start:**
+```
+/code-quality
+```
+
+See [code-quality README](skills/code-quality/README.md) for full documentation.
 
 ---
 

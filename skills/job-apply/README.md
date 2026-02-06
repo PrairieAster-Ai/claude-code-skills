@@ -2,13 +2,78 @@
 
 Generate tailored cover letters and resumes optimized for ATS parsing and human scanning, with job fit assessment and style customization.
 
-## Requirements
+## Two Ways to Use This Skill
 
-- **Python 3.8+** (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
-- **python-docx** >= 0.8.11
-- **pyyaml** >= 5.0
+| | **Web Chat** (claude.ai) | **Claude Code CLI** |
+|---|---|---|
+| **Setup** | Create a Project, upload files | Install Python packages, configure YAML |
+| **Cost** | Free tier works | Requires Claude Code subscription |
+| **Invoke** | Start a conversation | `/job-apply [job description]` |
+| **Output** | .docx download from chat | .docx saved to output directory |
+| **Messages** | 3–4 per application | Single slash command |
+| **Best for** | Quick start, occasional use | Power users, batch workflows |
 
-## Features
+---
+
+## Web Chat Quick Start
+
+Use this skill entirely in your browser — no install, no CLI, no Python required. Works on Claude's free tier.
+
+### What You Need
+
+- A [claude.ai](https://claude.ai) account (free tier is fine)
+- Your resume as a .docx file (or qualifications as text)
+- A job description to paste
+
+### Setup (One-Time)
+
+1. Go to [claude.ai](https://claude.ai) and create a new **Project**
+2. Upload these files to the Project's knowledge:
+
+   | File | Purpose |
+   |------|---------|
+   | `SKILL-webchat.md` | Workflow instructions (add as Project instructions) |
+   | `generate_word_docs_web.py` | Document generator for the Analysis sandbox |
+   | `fit-assessment.md` | Evaluation framework |
+   | `style-presets.md` | Visual styling specs |
+   | `cover-letter-template.md` | Cover letter structure |
+   | `resume-template.md` | Resume structure |
+   | `best-practices.md` | Strategic advice |
+
+   All files are in the [`skills/job-apply/`](./) directory of this repo.
+
+### First Run
+
+1. Start a new conversation in your Project
+2. Upload your resume (.docx) and paste the job description
+3. Claude will parse both, show a fit assessment, and ask to proceed
+4. Confirm, and Claude generates .docx cover letter + resume for download
+
+**Typical message count: 3–4 messages** (upload → assessment → confirm → delivery).
+
+### Returning Users — Portable Profile
+
+After your first run, Claude offers to generate a `profile.yaml` file. Download and save it. On future runs:
+
+1. Upload `profile.yaml` + paste a new job description
+2. Claude skips resume parsing (saves a message) and goes straight to fit assessment
+
+The `profile.yaml` works with both the web chat and CLI versions of this skill.
+
+### Tips for Free Tier
+
+- **Upload your resume as .docx** — PDF parsing isn't supported
+- **Save your `profile.yaml`** after the first run to reduce message count on future applications
+- **Paste the full job description** directly into chat rather than describing it
+- **Say "Yes" or "Proceed"** to the fit assessment to avoid spending a message on elaboration
+
+---
+
+## CLI Quick Start
+
+For full automation with Claude Code's slash command interface.
+
+### Features
 
 - **Guided Setup**: First-time users are walked through configuration with simple questions
 - **Auto-Install Dependencies**: Detects missing packages and offers to install them
@@ -20,7 +85,11 @@ Generate tailored cover letters and resumes optimized for ATS parsing and human 
 - **Auto-Open Output**: Opens the folder with your documents after generation
 - **Application History**: Tracks what jobs you've applied to
 
-## Quick Start
+### Requirements
+
+- **Python 3.8+** (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
+- **python-docx** >= 0.8.11
+- **pyyaml** >= 5.0
 
 ### 1. Install Prerequisites
 
@@ -423,47 +492,6 @@ python -c "import docx; import yaml; print('Dependencies: OK')"
 # Check config exists
 Test-Path ~/.claude/skills/job-apply/config.yaml
 ```
-
-## Web Chat Usage (claude.ai)
-
-This skill also works in Claude's free-tier web chat on claude.ai. Instead of the CLI slash command, you upload files to a Claude Project and interact through conversation.
-
-### Setup
-
-1. Create a new **Project** on claude.ai
-2. Upload these files to the Project's knowledge:
-   - `SKILL-webchat.md` — the web chat workflow (Project instructions)
-   - `generate_word_docs_web.py` — standalone document generator for the Analysis sandbox
-   - `fit-assessment.md` — evaluation framework
-   - `style-presets.md` — visual styling specs
-   - `cover-letter-template.md` — cover letter structure
-   - `resume-template.md` — resume structure
-   - `best-practices.md` — strategic advice
-
-### First Run
-
-1. Start a new conversation in your Project
-2. Upload your resume (.docx) and paste the job description
-3. Claude will parse both, show a fit assessment, and ask to proceed
-4. Confirm, and Claude generates .docx cover letter + resume for download
-
-**Typical message count: 3-4 messages** (user upload, assessment, confirm, delivery).
-
-### Returning Users — Portable Profile
-
-After your first run, Claude will offer to generate a `profile.yaml` file. Download and save it. On future runs:
-
-1. Upload `profile.yaml` + paste a new job description
-2. Claude skips resume parsing (saves a message) and goes straight to fit assessment
-
-The `profile.yaml` contains your contact info and qualifications in a format compatible with both the web chat and CLI versions of this skill.
-
-### Tips for Free Tier
-
-- **Upload your resume as .docx** — PDF parsing isn't supported
-- **Save your `profile.yaml`** after the first run to reduce message count on future applications
-- **Paste the full job description** directly into chat rather than describing it
-- **Say "Yes" or "Proceed"** to the fit assessment to avoid spending a message on elaboration
 
 ## Known Limitations
 
