@@ -17,66 +17,9 @@ Generate tailored cover letters and resumes optimized for ATS parsing and human 
 
 ## Web Chat Quick Start
 
-Use this skill entirely in your browser — no install, no CLI, no Python required. Works on Claude's free tier.
+This skill also works entirely in your browser — no install, no CLI, no Python required. Works on Claude's free tier. Only **2 files** to upload.
 
-### What You Need
-
-- A [claude.ai](https://claude.ai) account (free tier is fine)
-- Your resume as a .docx or .pdf file (or qualifications as text)
-- A job description to paste
-
-### Setup (One-Time)
-
-1. Go to [claude.ai](https://claude.ai) and create a new **Project**
-2. Upload these files to the Project's knowledge:
-
-   | File | Purpose |
-   |------|---------|
-   | `SKILL-webchat.md` | Workflow instructions (add as Project instructions) |
-   | `generate_word_docs_web.py` | Document generator for the Analysis sandbox |
-   | `fit-assessment.md` | Evaluation framework |
-   | `style-presets.md` | Visual styling specs |
-   | `cover-letter-template.md` | Cover letter structure |
-   | `resume-template.md` | Resume structure |
-   | `best-practices.md` | Strategic advice |
-
-   **Download all files at once:**
-
-   ```bash
-   mkdir -p ~/Downloads/job-apply-webchat && cd ~/Downloads/job-apply-webchat && \
-   for f in SKILL-webchat.md generate_word_docs_web.py fit-assessment.md \
-            style-presets.md cover-letter-template.md resume-template.md \
-            best-practices.md; do
-     curl -sO "https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/$f"
-   done && echo "Downloaded $(ls | wc -l) files to $(pwd)"
-   ```
-
-   Or browse the files in [`skills/job-apply/`](./) and download individually.
-
-### First Run
-
-1. Start a new conversation in your Project
-2. Upload your resume (.docx) and paste the job description
-3. Claude will parse both, show a fit assessment, and ask to proceed
-4. Confirm, and Claude generates .docx cover letter + resume for download
-
-**Typical message count: 3–4 messages** (upload → assessment → confirm → delivery).
-
-### Returning Users — Portable Profile
-
-After your first run, Claude offers to generate a `profile.yaml` file. Download and save it. On future runs:
-
-1. Upload `profile.yaml` + paste a new job description
-2. Claude skips resume parsing (saves a message) and goes straight to fit assessment
-
-The `profile.yaml` works with both the web chat and CLI versions of this skill.
-
-### Tips for Free Tier
-
-- **PDF and .docx both work** — Claude reads PDF text directly; .docx is extracted via code execution
-- **Save your `profile.yaml`** after the first run to reduce message count on future applications
-- **Paste the full job description** directly into chat rather than describing it
-- **Say "Yes" or "Proceed"** to the fit assessment to avoid spending a message on elaboration
+See the [web chat setup guide](webchat/README.md) for instructions.
 
 ---
 
@@ -320,12 +263,10 @@ Documents are saved to your configured output directory:
 ```
 ~/.claude/skills/job-apply/
 ├── SKILL.md                  # Skill definition (Claude Code CLI)
-├── SKILL-webchat.md          # Skill definition (claude.ai web chat)
 ├── README.md                 # This file
 ├── config.yaml               # Active configuration (CLI)
 ├── config.example.yaml       # Example configuration template
 ├── generate_word_docs.py     # Word document generator (CLI)
-├── generate_word_docs_web.py # Word document generator (web chat sandbox)
 ├── import_resume.py          # Resume import wizard
 ├── profiles.py               # Profile switching utility
 ├── profiles/                 # Saved user profiles
@@ -334,7 +275,11 @@ Documents are saved to your configured output directory:
 ├── style-presets.md          # Visual styling specifications
 ├── fit-assessment.md         # Job fit evaluation framework
 ├── cover-letter-template.md  # Cover letter structure
-└── resume-template.md        # Resume structure
+├── resume-template.md        # Resume structure
+└── webchat/                  # Web chat edition (claude.ai)
+    ├── SKILL-webchat.md      # Self-contained project instructions
+    ├── generate_word_docs_web.py  # Document generator for Analysis sandbox
+    └── README.md             # Setup guide for web chat users
 ```
 
 ## Profile Management

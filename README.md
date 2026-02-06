@@ -81,8 +81,8 @@ python3 ~/.claude/skills/job-apply/import_resume.py
 /job-apply [paste job description or path to file]
 ```
 
-> **No CLI?** This skill also works in Claude's free web chat — no install required.
-> See the [web chat quick start](skills/job-apply/README.md#web-chat-quick-start).
+> **No CLI?** This skill also works in Claude's free web chat — just 2 files to upload, no install required.
+> See the [web chat setup guide](skills/job-apply/webchat/README.md).
 
 See [job-apply README](skills/job-apply/README.md) for full documentation.
 
