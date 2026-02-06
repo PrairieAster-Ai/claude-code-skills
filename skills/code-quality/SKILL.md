@@ -1,7 +1,7 @@
 ---
 name: code-quality
 description: Assess and improve code quality in TypeScript/React projects. Runs lint, type-check, coverage, duplication, and complexity analysis with sprint planning.
-allowed-tools: "Bash(npm:*),Bash(npx:*),Read,Grep,Glob"
+allowed-tools: "Bash(npm:*),Bash(npx:*),Read,Write,Edit,Grep,Glob"
 ---
 
 # Code Quality Assessment & Improvement Skill
@@ -118,41 +118,7 @@ Structure improvement work into focused sprints:
 - Standard Sprint: 16-24 hours, tackles systematic issues
 - Deep Dive Sprint: 40+ hours, major architectural refactoring
 
-### Phase 4: Execution Patterns
-
-**Pattern: File Modularization**
-When a file exceeds 500 lines:
-1. Identify cohesive groups of functions
-2. Create subdirectory with same name as file
-3. Extract groups into focused modules
-4. Create `index.ts` re-exporting public API
-5. Update original file to re-export from index
-6. Verify all imports still work
-
-**Pattern: Type Safety Improvement**
-When fixing `any` types:
-1. Start with files having highest `any` concentration
-2. Create interface definitions for external data
-3. Use type guards for runtime validation
-4. Prefer `unknown` over `any` when type is truly unknown
-5. Add JSDoc for complex types
-
-**Pattern: Duplication Elimination**
-When reducing code duplication:
-1. Identify semantic similarity (same purpose, not just similar code)
-2. Extract to shared utility only if used 3+ times
-3. Prefer composition over inheritance
-4. Keep extracted code in appropriate layer (utils, hooks, services)
-
-**Pattern: Component Consolidation**
-When multiple components share similar structure/styling:
-1. Identify shared visual patterns (card layout, icon placement, theming)
-2. Create a base component with configurable props (title, icon, theme, children, footer)
-3. Compose specialized components using the base
-4. Extract shared logic to utils (e.g., color theme helpers)
-5. Add comprehensive tests for the base component
-
-### Phase 5: Validation
+### Phase 4: Validation
 
 After each sprint, run full validation:
 
@@ -208,6 +174,5 @@ When reporting assessment results, use this format:
 
 ## Related Files
 
-- `methodology.md` - Detailed methodology and lessons learned
-- `metrics-template.md` - Tracking templates
-- `refactoring-patterns.md` - Common refactoring patterns with examples
+- `methodology.md` - Refactoring patterns, sprint structure, prioritization, and lessons learned
+- `metrics-template.md` - Tracking templates for baseline, sprint progress, and final validation

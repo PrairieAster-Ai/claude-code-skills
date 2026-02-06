@@ -33,8 +33,8 @@ This skill provides:
 | File | Purpose |
 |------|---------|
 | `SKILL.md` | Main skill prompt with workflow and commands |
-| `methodology.md` | Sprint structure, prioritization, lessons learned |
-| `metrics-template.md` | Templates for tracking metrics over time |
+| `methodology.md` | Refactoring patterns, sprint structure, prioritization, lessons learned |
+| `metrics-template.md` | Templates for baseline, sprint progress, and final validation |
 
 ## Key Metrics
 
@@ -43,10 +43,10 @@ This skill provides:
 | ESLint Errors | 0 | `npm run lint` |
 | ESLint Warnings | 0 | `npm run lint` |
 | TypeScript Errors | 0 | `npm run type-check` |
-| Test Coverage | 80%+ | `vitest --coverage` |
-| Code Duplication | <2% | `jscpd src` |
-| `any` Types | <50 | `grep -rn ": any"` |
-| Large Files | 0 (>500 LOC) | `wc -l` |
+| Test Coverage | 80%+ | `npx vitest run --coverage` |
+| Code Duplication | <2% | `npx jscpd src --reporters json` |
+| `any` Types | <50 | Grep tool: pattern `: any`, glob `*.{ts,tsx}` |
+| Large Files | 0 (>500 LOC) | Glob tool + Read to count lines |
 
 ## Sprint Model
 

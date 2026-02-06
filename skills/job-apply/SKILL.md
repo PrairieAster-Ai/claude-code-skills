@@ -2,7 +2,7 @@
 name: job-apply
 description: Assess job fit and generate tailored cover letter and resume for a job application based on job description, existing resume, and portfolio projects. Includes fit scoring, style presets, and gap analysis.
 argument-hint: "[job-description-text or path-to-job-file]"
-allowed-tools: Read, Glob, Grep, Bash, Write, Task, AskUserQuestion
+allowed-tools: "Bash,Read,Write,Edit,Glob,Grep,Task,AskUserQuestion"
 ---
 
 # Job Application Document Generator
@@ -354,85 +354,9 @@ Create both files in configured output directory (default: `~/Documents/Job Appl
 
 Use the Python script at `~/.claude/skills/job-apply/generate_word_docs.py` to create styled Word documents.
 
-**Prerequisites:** Ensure python-docx is installed. Check with:
-```bash
-python3 -c "import docx; print('python-docx OK')" 2>/dev/null || echo "MISSING: python-docx"
-python3 -c "import yaml; print('pyyaml OK')" 2>/dev/null || echo "MISSING: pyyaml"
-```
+Dependencies (`python-docx`, `pyyaml`) should already be installed from Phase 0. If not, re-run the Phase 0 dependency check.
 
-**If dependencies are missing, install them:**
-
-On Linux:
-```bash
-pip3 install python-docx pyyaml --user
-```
-
-On macOS (Sonoma/Ventura or Homebrew Python):
-```bash
-# Option 1: Use a virtual environment (recommended)
-python3 -m venv ~/.claude-venv
-source ~/.claude-venv/bin/activate
-pip install python-docx pyyaml
-
-# Option 2: Use Homebrew Python (avoids PEP 668)
-brew install python
-/opt/homebrew/bin/pip3 install python-docx pyyaml
-
-# Option 3: Override system protection (not recommended)
-pip3 install python-docx pyyaml --break-system-packages
-```
-
-**Script Usage:**
-```python
-from generate_word_docs import generate_application_documents
-
-generate_application_documents(
-    candidate={
-        "name": "Full Name",
-        "phone": "Phone",
-        "email": "Email",
-        "linkedin": "LinkedIn URL",
-        "calendar": "Calendar link (optional)",
-        "title": "Target Role Title"
-    },
-    job={
-        "title": "Job Title",
-        "company": "Company Name",
-        "location": "Location"
-    },
-    cover_letter={
-        "opening": "Opening paragraph text...",
-        "sections": [
-            {
-                "title": "Section Title",
-                "paragraphs": [
-                    {"label": "Bold Label", "text": "Content...", "highlights": ["phrase to bold"]},
-                    ["Bullet item 1", "Bullet item 2"]
-                ]
-            }
-        ],
-        "closing": "Best regards,",
-        "signature_title": "Title | Specialty"
-    },
-    resume={
-        "summary": "Summary paragraph...",
-        "skills": [{"category": "Category", "items": "Skill1, Skill2, Skill3"}],
-        "experience": [
-            {
-                "title": "Job Title",
-                "company": "Company",
-                "dates": "Mon YYYY - Mon YYYY",
-                "bullets": [
-                    {"text": "Achievement with metric", "highlights": ["metric"]}
-                ]
-            }
-        ],
-        "certifications": [{"name": "Cert Name", "detail": "Year"}],
-        "education": [{"degree": "Degree, Major", "school": "University"}]
-    },
-    output_dir="~/Documents/Job Application Docs/generated/"
-)
-```
+**Script Usage:** Read `~/.claude/skills/job-apply/generate_word_docs.py` for the `generate_application_documents()` function signature and parameter format. The function accepts `candidate`, `job`, `cover_letter`, `resume`, and `output_dir` arguments.
 
 #### Cover Letter Requirements
 

@@ -170,20 +170,6 @@ After:
 2. **How to group?** By feature/responsibility, not by type (don't group all interfaces together)
 3. **What about existing imports?** Index re-exports maintain backward compatibility
 
-**Example**:
-```
-bigService.ts (700 lines) →
-  bigService/
-  ├── index.ts           (re-exports)
-  ├── types.ts           (interfaces)
-  ├── featureA.ts        (cohesive group 1)
-  ├── featureB.ts        (cohesive group 2)
-  ├── utils.ts           (shared helpers)
-  └── __tests__/
-      ├── featureA.test.ts
-      └── featureB.test.ts
-```
-
 ### Pattern 2: Type Safety Improvement
 
 **When**: File has 5+ `any` types
@@ -242,6 +228,17 @@ if (!isApiResponse(data)) {
 - Creating "utils" that are actually domain logic
 - Parameterizing everything (simple duplication is sometimes clearer)
 
+### Pattern 4: Component Consolidation
+
+**When**: Multiple components share similar structure/styling
+
+**Process**:
+1. Identify shared visual patterns (card layout, icon placement, theming)
+2. Create a base component with configurable props (title, icon, theme, children, footer)
+3. Compose specialized components using the base
+4. Extract shared logic to utils (e.g., color theme helpers)
+5. Add comprehensive tests for the base component
+
 ## Lessons Learned
 
 ### What Worked Well
@@ -293,6 +290,3 @@ Code quality work is **never done** - but that's okay. Maintain through:
 | Grep tool | `any` type count | Pattern `: any`, glob `*.{ts,tsx}`, path `src/` |
 | Glob tool | File size audit | Pattern `src/**/*.{ts,tsx}`, then Read to count lines |
 
-## Changelog
-
-- 2026-02-03: Initial version based on production sprint experience
