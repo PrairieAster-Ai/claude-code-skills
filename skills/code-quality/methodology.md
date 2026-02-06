@@ -284,13 +284,14 @@ Code quality work is **never done** - but that's okay. Maintain through:
 
 ## Tools Reference
 
-| Tool | Purpose | Command |
-|------|---------|---------|
+| Tool | Purpose | How |
+|------|---------|-----|
 | ESLint | Lint analysis | `npm run lint` |
 | TypeScript | Type checking | `npm run type-check` |
 | Vitest | Test coverage | `npx vitest --coverage` |
 | jscpd | Duplication | `npx jscpd src --reporters json` |
-| wc | File size | `find src -name "*.ts" \| xargs wc -l` |
+| Grep tool | `any` type count | Pattern `: any`, glob `*.{ts,tsx}`, path `src/` |
+| Glob tool | File size audit | Pattern `src/**/*.{ts,tsx}`, then Read to count lines |
 
 ## Changelog
 

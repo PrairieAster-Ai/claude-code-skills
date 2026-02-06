@@ -211,48 +211,17 @@ Use this template to track code quality metrics over time.
 
 ---
 
-## Quick Metrics Collection Script
+## Quick Metrics Collection
 
-Save as `collect-metrics.sh`:
+Run these checks to collect all metrics. Use Bash for npm/npx commands and Claude Code built-in tools for file analysis:
 
-```bash
-#!/bin/bash
-# Collect code quality metrics
-
-echo "=== Code Quality Metrics ==="
-echo "Date: $(date)"
-echo ""
-
-echo "--- Lint ---"
-npm run lint 2>&1 | grep -E "problem|error|warning" || echo "Clean"
-
-echo ""
-echo "--- TypeScript ---"
-npm run type-check 2>&1 | grep -E "error|Found" || echo "Clean"
-
-echo ""
-echo "--- Tests ---"
-npm test 2>&1 | grep -E "Tests:|passed|failed"
-
-echo ""
-echo "--- Coverage ---"
-npx vitest run --coverage 2>&1 | grep -E "All files|Coverage"
-
-echo ""
-echo "--- Any Types ---"
-echo "Count: $(grep -rn ': any' src --include='*.ts' --include='*.tsx' | grep -v '.test.' | grep -v '__tests__' | wc -l)"
-
-echo ""
-echo "--- Large Files (>500 lines) ---"
-find src -name "*.ts" -o -name "*.tsx" | xargs wc -l 2>/dev/null | awk '$1 > 500 {print}' | grep -v total
-
-echo ""
-echo "--- Duplication ---"
-npx jscpd src --reporters json --silent 2>/dev/null && cat jscpd-report.json 2>/dev/null | grep percentage || echo "Run jscpd manually"
-
-echo ""
-echo "=== End Metrics ==="
-```
+1. **Lint**: `npm run lint`
+2. **Type check**: `npm run type-check`
+3. **Tests**: `npm test`
+4. **Coverage**: `npx vitest run --coverage`
+5. **`any` types**: Use Grep tool — pattern `: any`, glob `*.{ts,tsx}`, path `src/`, output_mode `count`
+6. **Large files**: Use Glob tool — pattern `src/**/*.{ts,tsx}`, then Read each to count lines; flag files >500 lines
+7. **Duplication**: `npx jscpd src --reporters json --output duplication-report`, then Read `duplication-report/jscpd-report.json`
 
 ---
 

@@ -21,14 +21,10 @@ GitHub uses **three different auth mechanisms** depending on the operation. Gett
 
 ### Before Wiki operations
 
-```bash
-# Verify SSH works
-ssh -T git@github.com
-
-# Derive the wiki URL from the current repo
-REPO_URL=$(git remote get-url origin | sed 's/\.git$/.wiki.git/' | sed 's|https://github.com/|git@github.com:|')
-git clone "$REPO_URL" /tmp/$(basename $(git rev-parse --show-toplevel))-wiki
-```
+1. Verify SSH: `ssh -T git@github.com`
+2. Get the repo's remote URL: `git remote get-url origin`
+3. Construct the wiki SSH URL by replacing `.git` with `.wiki.git` and ensuring it starts with `git@github.com:`
+4. Clone into your system's temp directory (e.g., `/tmp/` on Linux/macOS, `%TEMP%` on Windows)
 
 ### Before GitHub Projects operations
 
@@ -41,17 +37,16 @@ The default `gh` OAuth token lacks project scopes. If `gh project list` fails wi
 
 ## Wiki Workflow
 
-1. **Clone** the wiki into `/tmp/<project>-wiki` using SSH URL
-2. **Edit** markdown files
-3. **Validate** — check for broken links, TODO markers, stale content
-4. **Commit and push** from the wiki checkout
-
-```bash
-cd /tmp/<project>-wiki
-git add .
-git commit -m "docs: <description>"
-git push origin master
-```
+1. **Clone** the wiki into a temp directory using the SSH URL:
+   ```bash
+   git clone git@github.com:<owner>/<repo>.wiki.git <scratchpad-or-temp-dir>/<project>-wiki
+   ```
+2. **Edit** markdown files using Read/Write/Edit tools
+3. **Validate** — use Grep to check for broken links, TODO markers, stale content
+4. **Commit and push** from the wiki checkout:
+   ```bash
+   git -C <wiki-dir> add . && git -C <wiki-dir> commit -m "docs: <description>" && git -C <wiki-dir> push origin master
+   ```
 
 Wiki repos have a single `master` branch and no PR workflow — commits push directly.
 

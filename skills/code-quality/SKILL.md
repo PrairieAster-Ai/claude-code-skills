@@ -25,21 +25,21 @@ Run comprehensive code quality checks and establish baseline metrics.
 
 1. **Lint Analysis**
    ```bash
-   npm run lint 2>&1 | tee lint-report.txt
+   npm run lint
    ```
    - Target: 0 errors, 0 warnings
    - Track: Total warnings by category
 
 2. **Type Safety**
    ```bash
-   npm run type-check 2>&1 | tee typecheck-report.txt
+   npm run type-check
    ```
    - Target: 0 TypeScript errors
    - Track: Error count and locations
 
 3. **Test Coverage**
    ```bash
-   npx vitest run --coverage 2>&1 | grep -E "All files|Coverage"
+   npx vitest run --coverage
    ```
    - Target: 80%+ line coverage
    - Track: Coverage by directory
@@ -52,22 +52,18 @@ Run comprehensive code quality checks and establish baseline metrics.
    - Track: Percentage and clone locations
 
 5. **`any` Type Count**
-   ```bash
-   grep -rn ": any" src --include="*.ts" --include="*.tsx" | grep -v ".test." | grep -v "__tests__" | wc -l
-   ```
+   Use the **Grep** tool with pattern `: any` on `src/`, glob `*.{ts,tsx}`, output_mode `count`. Exclude test files by filtering results.
    - Target: <50 `any` types
    - Track: Count by file
 
 6. **Large File Detection**
-   ```bash
-   find src -name "*.ts" -o -name "*.tsx" | xargs wc -l | sort -n | tail -20
-   ```
+   Use the **Glob** tool with pattern `src/**/*.{ts,tsx}`, then **Read** each file to check line count. Sort results by size.
    - Target: No files >500 lines (excluding data files)
    - Track: Files exceeding threshold
 
 7. **Complexity Analysis** (if eslint-plugin-complexity configured)
    ```bash
-   npx eslint src --rule 'complexity: [warn, 15]' 2>&1 | grep -c "complexity"
+   npx eslint src --rule 'complexity: [warn, 15]'
    ```
    - Target: No functions with complexity >15
    - Track: High-complexity function locations
@@ -84,18 +80,11 @@ Prioritize issues using the **Impact/Effort Matrix**:
 | **P3** | Medium | Medium | Missing test coverage for critical paths |
 | **P4** | Low | Any | Minor style inconsistencies |
 
-**Hotspot Detection Commands:**
+**Hotspot Detection:**
 
-```bash
-# Files with most any types
-grep -rn ": any" src --include="*.ts" --include="*.tsx" | grep -v ".test." | cut -d: -f1 | sort | uniq -c | sort -rn | head -10
-
-# Largest non-test files
-find src -name "*.ts" -o -name "*.tsx" | grep -v ".test." | grep -v "__tests__" | xargs wc -l | sort -n | tail -15
-
-# Duplicate code locations
-cat duplication-report/jscpd-report.json | jq '.duplicates[].firstFile.name' | sort | uniq -c | sort -rn | head -10
-```
+- **Files with most `any` types**: Use the **Grep** tool with pattern `: any`, glob `*.{ts,tsx}`, path `src/`, output_mode `count`. Exclude test files. Sort by count descending.
+- **Largest non-test files**: Use the **Glob** tool with pattern `src/**/*.{ts,tsx}`. Skip files matching `.test.` or `__tests__`. Read each to get line count, then rank by size.
+- **Duplicate code locations**: Use the **Read** tool on `duplication-report/jscpd-report.json` and parse the `duplicates` array to find the most-repeated file paths.
 
 ### Phase 3: Sprint Planning
 
@@ -168,11 +157,7 @@ When multiple components share similar structure/styling:
 After each sprint, run full validation:
 
 ```bash
-# Full validation script
-npm run lint && \
-npm run type-check && \
-npm test && \
-echo "✅ All checks pass"
+npm run lint && npm run type-check && npm test
 ```
 
 **Regression Checklist:**
