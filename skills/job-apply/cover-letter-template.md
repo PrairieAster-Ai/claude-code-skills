@@ -269,8 +269,8 @@ Cover letter should:
 ### File Naming
 
 Use consistent naming with resume:
-- `{FirstName}_{LastName}_Cover_Letter_{Role_Keywords}.md`
-- `{FirstName}_{LastName}_Resume_{Role_Keywords}.md`
+- `{FirstName}_{LastName}_Cover_Letter_{Role_Keywords}_{Company}.docx`
+- `{FirstName}_{LastName}_Resume_{Role_Keywords}_{Company}.docx`
 
 ---
 
@@ -282,7 +282,7 @@ Cover letters are less frequently parsed by ATS, but still:
 - [ ] Use standard business letter format
 - [ ] Include key skills from job description naturally
 - [ ] Avoid images, fancy fonts, or complex formatting
-- [ ] Save as PDF with selectable text
+- [ ] Save as .docx (preferred by recruiters and ATS systems)
 - [ ] Keep file size under 1MB
 
 ---

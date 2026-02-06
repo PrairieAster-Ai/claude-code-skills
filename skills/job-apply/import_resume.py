@@ -60,10 +60,13 @@ def extract_text_from_docx(file_path):
             # Read the main document XML
             xml_content = docx.read('word/document.xml').decode('utf-8')
 
-        # Remove XML tags
-        text = re.sub(r'<[^>]+>', ' ', xml_content)
-        # Normalize whitespace
-        text = re.sub(r'\s+', ' ', text).strip()
+        # Preserve paragraph breaks, then remove XML tags
+        text = re.sub(r'</w:p>', '\n', xml_content)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        # Normalize whitespace within lines
+        lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in text.split('\n')]
+        # Remove empty lines but preserve paragraph structure
+        text = '\n'.join(line for line in lines if line)
         return text
     except zipfile.BadZipFile:
         print(f"Error: {file_path} is not a valid .docx file")

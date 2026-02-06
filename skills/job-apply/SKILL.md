@@ -111,7 +111,12 @@ candidate:
   calendar: ""
 
 paths:
-  output_dir: "~/Documents/Job Applications/"
+  resume_locations:
+    - "~/Documents/Job Application Docs/resume/"
+    - "~/Documents/resume/"
+    - "~/Documents/"
+  portfolio_dir: "~/Projects/"
+  output_dir: "~/Documents/Job Application Docs/generated/"
 
 preferences:
   default_style: "{selected_style}"
@@ -143,7 +148,7 @@ Options:
 - Confirm what was imported
 
 **Confirm setup complete:**
-> "Profile created! Your documents will be saved to ~/Documents/Job Applications/. You can edit your full work history anytime by running `/job-apply-setup`."
+> "Profile created! Your documents will be saved to ~/Documents/Job Application Docs/generated/. You can edit your full work history anytime by running `/job-apply-setup`."
 
 ---
 
@@ -195,7 +200,7 @@ See [fit-assessment.md](fit-assessment.md) for complete evaluation framework.
 
 #### Step 1: Categorize Requirements
 
-**Must-Have Signals:** "Required", "Must possess", "Essential", "Minimum qualifications", first 5 listed requirements
+**Must-Have Signals:** "Required", "Must possess", "Essential", "Minimum qualifications", first 3-5 listed requirements
 
 **Nice-to-Have Signals:** "Preferred", "Bonus", "Would be nice", "Ideal candidate", "Plus"
 
@@ -284,6 +289,16 @@ Based on this assessment, would you like to:
 - See detailed gap analysis
 - Skip this opportunity
 ```
+
+**If user chooses "See detailed gap analysis":**
+- For each gap, show the full T-chart row with requirement text, candidate evidence (or lack thereof), and rating
+- Provide specific mitigation strategies from [best-practices.md](best-practices.md) for each gap
+- After showing the analysis, re-ask: "Proceed with application, or skip?"
+
+**If user chooses "Skip this opportunity":**
+- Acknowledge the decision: "Understood — skipping this one."
+- Do not generate documents or log the application
+- Ask: "Would you like to apply to a different job? Paste the next job description."
 
 ---
 

@@ -284,7 +284,7 @@ Bold the most important elements in each bullet:
 - [ ] No images or graphics in content area
 - [ ] Company names clearly stated
 - [ ] Dates for each position
-- [ ] PDF with selectable text (not image)
+- [ ] Output as .docx (preferred by recruiters and ATS systems)
 - [ ] File under 2MB
 
 ---

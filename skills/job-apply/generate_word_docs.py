@@ -150,6 +150,23 @@ def add_section_heading(doc, text, is_first=False):
     return section
 
 
+def _format_cert_detail(cert):
+    """Build certification detail string from either schema.
+
+    Handles both formats:
+    - {name, detail} — used by document generator API
+    - {name, year, issuer} — used by config.yaml and import_resume.py
+    """
+    if cert.get('detail'):
+        return cert['detail']
+    parts = []
+    if cert.get('issuer'):
+        parts.append(cert['issuer'])
+    if cert.get('year'):
+        parts.append(cert['year'])
+    return ', '.join(parts)
+
+
 def sanitize_filename(text, max_length=50):
     """Convert text to a safe filename component.
 
@@ -169,7 +186,7 @@ def sanitize_filename(text, max_length=50):
     safe = re.sub(r'[\x00-\x1f\x7f]', '', safe)
     # Truncate to avoid path length issues (especially on Windows)
     safe = safe.strip('_')[:max_length].rstrip('_')
-    return safe
+    return safe or 'unnamed'
 
 
 # =============================================================================
@@ -294,27 +311,50 @@ def create_cover_letter(candidate, job, content, output_path):
 
 
 def _add_text_with_highlights(paragraph, text, highlights):
-    """Add text to paragraph with certain phrases bolded."""
+    """Add text to paragraph with certain phrases bolded.
+
+    Finds all highlight positions, resolves overlaps (longer match wins),
+    then emits runs in text order.
+    """
     if not highlights:
         paragraph.add_run(text)
         return
 
-    # Sort highlights by length (longest first) to avoid partial matches
-    highlights = sorted(highlights, key=len, reverse=True)
-
-    # Simple approach: just add the text, bold highlights handled separately
-    # For complex highlighting, would need regex splitting
-    remaining = text
+    # Find all occurrences with their positions
+    spans = []
     for highlight in highlights:
-        if highlight in remaining:
-            parts = remaining.split(highlight, 1)
-            if parts[0]:
-                paragraph.add_run(parts[0])
-            paragraph.add_run(highlight).bold = True
-            remaining = parts[1] if len(parts) > 1 else ''
+        start = 0
+        while True:
+            idx = text.find(highlight, start)
+            if idx == -1:
+                break
+            spans.append((idx, idx + len(highlight), highlight))
+            start = idx + 1
 
-    if remaining:
-        paragraph.add_run(remaining)
+    if not spans:
+        paragraph.add_run(text)
+        return
+
+    # Sort by start position, then longest match first for overlap resolution
+    spans.sort(key=lambda s: (s[0], -(s[1] - s[0])))
+
+    # Remove overlapping spans (keep the first/longest at each position)
+    merged = []
+    for span in spans:
+        if merged and span[0] < merged[-1][1]:
+            continue
+        merged.append(span)
+
+    # Emit runs in text order
+    pos = 0
+    for start, end, _ in merged:
+        if start > pos:
+            paragraph.add_run(text[pos:start])
+        paragraph.add_run(text[start:end]).bold = True
+        pos = end
+
+    if pos < len(text):
+        paragraph.add_run(text[pos:])
 
 
 # =============================================================================
@@ -434,7 +474,9 @@ def create_resume(candidate, content, output_path):
             cert_p = doc.add_paragraph(style='List Bullet')
             if isinstance(cert, dict):
                 cert_p.add_run(cert['name']).bold = True
-                cert_p.add_run(f" - {cert.get('detail', '')}")
+                detail = _format_cert_detail(cert)
+                if detail:
+                    cert_p.add_run(f" - {detail}")
             else:
                 cert_p.add_run(cert)
             cert_p.space_after = Pt(2)
@@ -578,7 +620,7 @@ def log_application(company, role, fit_score, output_dir):
 
     log_path = Path(__file__).parent / "applications.log"
 
-    entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M')} | {company} | {role} | {fit_score}% | {output_dir}\n"
+    entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\t{company}\t{role}\t{fit_score}%\t{output_dir}\n"
 
     with open(log_path, 'a', encoding='utf-8') as f:
         f.write(entry)
@@ -598,7 +640,12 @@ def get_application_history():
     history = []
     with open(log_path, 'r', encoding='utf-8') as f:
         for line in f:
-            parts = [p.strip() for p in line.strip().split('|')]
+            line = line.strip()
+            if not line:
+                continue
+            # Support both tab-delimited (new) and pipe-delimited (legacy) formats
+            sep = '\t' if '\t' in line else '|'
+            parts = [p.strip() for p in line.split(sep)]
             if len(parts) >= 4:
                 history.append({
                     'date': parts[0],
@@ -659,6 +706,7 @@ def get_candidate_from_config(config=None):
     candidate_config = config.get('candidate', {})
     return {
         'name': candidate_config.get('name', ''),
+        'title': candidate_config.get('title', ''),
         'phone': candidate_config.get('phone', ''),
         'email': candidate_config.get('email', ''),
         'linkedin': candidate_config.get('linkedin', ''),

@@ -105,7 +105,7 @@ Edit `config.yaml` directly with your:
 - Education
 - Portfolio projects
 
-### 3. Run the Skill
+### 4. Run the Skill
 
 In Claude Code, use the slash command with a job description:
 
@@ -222,7 +222,7 @@ No manual YAML editing required!
 | Modern Professional | Tech, Corporate, Consulting | Navy Blue |
 | Creative | Design, Marketing, Startups | Industry-dependent |
 
-All presets use WCAG AA accessible colors with 7:1+ contrast ratios.
+All presets use WCAG AA accessible colors (4.5:1+ body text, 3:1+ large text). Default colors exceed 7:1.
 
 ## Output Files
 

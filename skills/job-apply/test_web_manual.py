@@ -7,8 +7,10 @@ Run from the skill directory:
 
 Tests:
 1. Document generation with sample data → cover letter + resume .docx
-2. Profile YAML round-trip → generate then load
+2. Profile YAML round-trip (with portfolio projects) → generate then load
 3. Resume .docx parsing → extract text from generated resume
+4. Highlight ordering → both highlights bolded regardless of position/length
+5. Certification schema → both {detail} and {year, issuer} formats render correctly
 
 All output goes to /tmp/job-apply-test/. Inspect the .docx files manually.
 """
@@ -24,6 +26,8 @@ from generate_word_docs_web import (
     generate_profile_yaml,
     load_profile_yaml,
     parse_uploaded_resume,
+    _add_text_with_highlights,
+    _format_cert_detail,
 )
 
 OUTPUT_DIR = "/tmp/job-apply-test/"
@@ -125,23 +129,33 @@ SAMPLE_RESUME = {
             ],
         },
     ],
+    # Use year/issuer format (config.yaml schema) to test _format_cert_detail
     "certifications": [
-        {"name": "AWS Solutions Architect Professional", "detail": "2023"},
-        {"name": "Certified Kubernetes Administrator", "detail": "2022"},
+        {"name": "AWS Solutions Architect Professional", "year": "2023", "issuer": "Amazon"},
+        {"name": "Certified Kubernetes Administrator", "year": "2022"},
     ],
     "education": [
         {"degree": "BS Computer Science", "school": "State University"},
     ],
 }
 
+SAMPLE_PORTFOLIO = [
+    {
+        "name": "AutoDeploy",
+        "description": "CI/CD pipeline automation tool",
+        "technologies": ["Python", "Docker", "GitHub Actions"],
+        "achievements": [
+            {"metric": "60% faster builds", "description": "Reduced CI pipeline time"},
+        ],
+    },
+]
+
+# Qualifications use the same cert format as SAMPLE_RESUME (year/issuer)
 SAMPLE_QUALIFICATIONS = {
     "summary": SAMPLE_RESUME["summary"],
     "skills": SAMPLE_RESUME["skills"],
     "experience": SAMPLE_RESUME["experience"],
-    "certifications": [
-        {"name": "AWS Solutions Architect Professional", "year": "2023"},
-        {"name": "Certified Kubernetes Administrator", "year": "2022"},
-    ],
+    "certifications": SAMPLE_RESUME["certifications"],
     "education": SAMPLE_RESUME["education"],
 }
 
@@ -171,32 +185,46 @@ def test_document_generation():
 
 
 def test_profile_roundtrip():
-    """Test 2: Generate profile.yaml then load it back."""
+    """Test 2: Generate profile.yaml with portfolio, then load it back."""
     print("=" * 60)
-    print("TEST 2: Profile YAML Round-Trip")
+    print("TEST 2: Profile YAML Round-Trip (with portfolio)")
     print("=" * 60)
 
     profile_path = os.path.join(OUTPUT_DIR, "profile.yaml")
-    generate_profile_yaml(SAMPLE_CANDIDATE, SAMPLE_QUALIFICATIONS, output_path=profile_path)
+    generate_profile_yaml(
+        SAMPLE_CANDIDATE, SAMPLE_QUALIFICATIONS,
+        output_path=profile_path, portfolio_projects=SAMPLE_PORTFOLIO,
+    )
 
-    candidate, qualifications = load_profile_yaml(profile_path)
+    candidate, qualifications, portfolio = load_profile_yaml(profile_path)
 
     name_ok = candidate and candidate.get("name") == SAMPLE_CANDIDATE["name"]
     exp_ok = qualifications and len(qualifications.get("experience", [])) == 2
     skills_ok = qualifications and len(qualifications.get("skills", [])) == 3
+    portfolio_ok = portfolio and len(portfolio) == 1 and portfolio[0]["name"] == "AutoDeploy"
+    cert_ok = (qualifications and
+               qualifications["certifications"][0].get("year") == "2023" and
+               qualifications["certifications"][0].get("issuer") == "Amazon")
 
     print(f"  Name match:       {'PASS' if name_ok else 'FAIL'}")
     print(f"  Experience count:  {'PASS' if exp_ok else 'FAIL'}")
     print(f"  Skills count:      {'PASS' if skills_ok else 'FAIL'}")
+    print(f"  Portfolio loaded:  {'PASS' if portfolio_ok else 'FAIL'}")
+    print(f"  Cert year/issuer:  {'PASS' if cert_ok else 'FAIL'}")
     print(f"  Profile at:        {profile_path}")
     print()
-    return name_ok and exp_ok and skills_ok
+    return name_ok and exp_ok and skills_ok and portfolio_ok and cert_ok
 
 
 def test_resume_parsing(resume_path):
-    """Test 3: Parse text from the generated resume .docx."""
+    """Test 3: Parse text from the generated resume .docx.
+
+    Note: This is a circular test (parses our own output, not a real-world
+    resume from Word/Google Docs). It verifies the extraction pipeline works
+    but doesn't guarantee compatibility with all .docx producers.
+    """
     print("=" * 60)
-    print("TEST 3: Resume .docx Parsing")
+    print("TEST 3: Resume .docx Parsing (circular)")
     print("=" * 60)
 
     text = parse_uploaded_resume(resume_path)
@@ -213,6 +241,75 @@ def test_resume_parsing(resume_path):
         print(f"  Preview: {preview}...")
     print()
     return has_text and has_name and has_skill
+
+
+def test_highlight_ordering():
+    """Test 4: _add_text_with_highlights handles out-of-order highlights.
+
+    Regression test for the bug where highlights sorted by length would
+    silently drop shorter highlights that appear earlier in the text.
+    """
+    print("=" * 60)
+    print("TEST 4: Highlight Ordering")
+    print("=" * 60)
+
+    from docx import Document
+    doc = Document()
+    p = doc.add_paragraph()
+
+    text = "We had 99.9% uptime processing 50K requests/second"
+    highlights = ["50K requests/second", "99.9% uptime"]
+    _add_text_with_highlights(p, text, highlights)
+
+    # Collect all runs
+    runs = [(r.text, r.bold) for r in p.runs]
+    bold_texts = [r[0] for r in runs if r[1]]
+
+    uptime_bolded = "99.9% uptime" in bold_texts
+    reqs_bolded = "50K requests/second" in bold_texts
+    full_text = "".join(r[0] for r in runs)
+    text_preserved = full_text == text
+
+    print(f"  '99.9% uptime' bolded:      {'PASS' if uptime_bolded else 'FAIL'}")
+    print(f"  '50K requests/second' bolded: {'PASS' if reqs_bolded else 'FAIL'}")
+    print(f"  Full text preserved:          {'PASS' if text_preserved else 'FAIL'}")
+    print(f"  Runs: {runs}")
+    print()
+    return uptime_bolded and reqs_bolded and text_preserved
+
+
+def test_cert_schema():
+    """Test 5: _format_cert_detail handles both schema formats."""
+    print("=" * 60)
+    print("TEST 5: Certification Schema")
+    print("=" * 60)
+
+    # Old format: {name, detail}
+    detail_cert = {"name": "AWS SAP", "detail": "Amazon, 2023"}
+    detail_result = _format_cert_detail(detail_cert)
+    detail_ok = detail_result == "Amazon, 2023"
+
+    # New format: {name, year, issuer}
+    year_cert = {"name": "AWS SAP", "year": "2023", "issuer": "Amazon"}
+    year_result = _format_cert_detail(year_cert)
+    year_ok = year_result == "Amazon, 2023"
+
+    # Year only (no issuer)
+    year_only_cert = {"name": "CKA", "year": "2022"}
+    year_only_result = _format_cert_detail(year_only_cert)
+    year_only_ok = year_only_result == "2022"
+
+    # Empty cert (neither detail nor year)
+    empty_cert = {"name": "Some Cert"}
+    empty_result = _format_cert_detail(empty_cert)
+    empty_ok = empty_result == ""
+
+    print(f"  {{detail}} format:        {'PASS' if detail_ok else 'FAIL'} → '{detail_result}'")
+    print(f"  {{year, issuer}} format:  {'PASS' if year_ok else 'FAIL'} → '{year_result}'")
+    print(f"  {{year}} only format:     {'PASS' if year_only_ok else 'FAIL'} → '{year_only_result}'")
+    print(f"  Empty cert:              {'PASS' if empty_ok else 'FAIL'} → '{empty_result}'")
+    print()
+    return detail_ok and year_ok and year_only_ok and empty_ok
 
 
 def main():
@@ -233,7 +330,13 @@ def main():
     results.append(("Profile Round-Trip", ok))
 
     ok = test_resume_parsing(resume_path)
-    results.append(("Resume Parsing", ok))
+    results.append(("Resume Parsing (circular)", ok))
+
+    ok = test_highlight_ordering()
+    results.append(("Highlight Ordering", ok))
+
+    ok = test_cert_schema()
+    results.append(("Certification Schema", ok))
 
     # Summary
     print("=" * 60)

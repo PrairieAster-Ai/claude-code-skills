@@ -97,34 +97,77 @@ def add_section_heading(doc, text, is_first=False):
     return section
 
 
+def _format_cert_detail(cert):
+    """Build certification detail string from either schema.
+
+    Handles both formats:
+    - {name, detail} — used by document generator API
+    - {name, year, issuer} — used by config.yaml and import_resume.py
+    """
+    if cert.get('detail'):
+        return cert['detail']
+    parts = []
+    if cert.get('issuer'):
+        parts.append(cert['issuer'])
+    if cert.get('year'):
+        parts.append(cert['year'])
+    return ', '.join(parts)
+
+
 def sanitize_filename(text, max_length=50):
     """Convert text to a safe filename component."""
     safe = re.sub(r'[/\\:*?"<>|]', '', text)
     safe = re.sub(r'[-\s]+', '_', safe)
     safe = re.sub(r'[\x00-\x1f\x7f]', '', safe)
     safe = safe.strip('_')[:max_length].rstrip('_')
-    return safe
+    return safe or 'unnamed'
 
 
 def _add_text_with_highlights(paragraph, text, highlights):
-    """Add text to paragraph with certain phrases bolded."""
+    """Add text to paragraph with certain phrases bolded.
+
+    Finds all highlight positions, resolves overlaps (longer match wins),
+    then emits runs in text order.
+    """
     if not highlights:
         paragraph.add_run(text)
         return
 
-    highlights = sorted(highlights, key=len, reverse=True)
-
-    remaining = text
+    # Find all occurrences with their positions
+    spans = []
     for highlight in highlights:
-        if highlight in remaining:
-            parts = remaining.split(highlight, 1)
-            if parts[0]:
-                paragraph.add_run(parts[0])
-            paragraph.add_run(highlight).bold = True
-            remaining = parts[1] if len(parts) > 1 else ''
+        start = 0
+        while True:
+            idx = text.find(highlight, start)
+            if idx == -1:
+                break
+            spans.append((idx, idx + len(highlight), highlight))
+            start = idx + 1
 
-    if remaining:
-        paragraph.add_run(remaining)
+    if not spans:
+        paragraph.add_run(text)
+        return
+
+    # Sort by start position, then longest match first for overlap resolution
+    spans.sort(key=lambda s: (s[0], -(s[1] - s[0])))
+
+    # Remove overlapping spans (keep the first/longest at each position)
+    merged = []
+    for span in spans:
+        if merged and span[0] < merged[-1][1]:
+            continue
+        merged.append(span)
+
+    # Emit runs in text order
+    pos = 0
+    for start, end, _ in merged:
+        if start > pos:
+            paragraph.add_run(text[pos:start])
+        paragraph.add_run(text[start:end]).bold = True
+        pos = end
+
+    if pos < len(text):
+        paragraph.add_run(text[pos:])
 
 
 # =============================================================================
@@ -346,7 +389,9 @@ def create_resume(candidate, content, output_path):
             cert_p = doc.add_paragraph(style='List Bullet')
             if isinstance(cert, dict):
                 cert_p.add_run(cert['name']).bold = True
-                cert_p.add_run(f" - {cert.get('detail', '')}")
+                detail = _format_cert_detail(cert)
+                if detail:
+                    cert_p.add_run(f" - {detail}")
             else:
                 cert_p.add_run(cert)
             cert_p.space_after = Pt(2)
@@ -448,6 +493,11 @@ def parse_uploaded_resume(file_path):
     Returns:
         str: Extracted text content, or None on error
     """
+    file_path = str(file_path)
+    if not file_path.lower().endswith('.docx'):
+        print(f"Error: {file_path} is not a .docx file. Supported format: .docx")
+        return None
+
     try:
         with zipfile.ZipFile(file_path, 'r') as docx_zip:
             xml_content = docx_zip.read('word/document.xml').decode('utf-8')
@@ -471,7 +521,8 @@ def parse_uploaded_resume(file_path):
         return None
 
 
-def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.yaml"):
+def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.yaml",
+                          portfolio_projects=None):
     """
     Generate a portable profile.yaml that can be reused across sessions.
 
@@ -482,6 +533,7 @@ def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.y
         candidate: dict with name, phone, email, linkedin, calendar
         qualifications: dict with summary, skills, experience,
                        certifications, education
+        portfolio_projects: optional list of project dicts
 
     Returns:
         str: Path to the generated profile.yaml
@@ -504,6 +556,9 @@ def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.y
         'qualifications': qualifications,
     }
 
+    if portfolio_projects:
+        profile['portfolio_projects'] = portfolio_projects
+
     with open(output_path, 'w', encoding='utf-8') as f:
         yaml.dump(profile, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 
@@ -519,7 +574,8 @@ def load_profile_yaml(file_path):
         file_path: Path to the profile.yaml file
 
     Returns:
-        tuple: (candidate_dict, qualifications_dict) or (None, None) on error
+        tuple: (candidate_dict, qualifications_dict, portfolio_projects_list)
+               or (None, None, None) on error
     """
     try:
         import yaml
@@ -533,7 +589,8 @@ def load_profile_yaml(file_path):
 
         candidate = profile.get('candidate', {})
         qualifications = profile.get('qualifications', {})
-        return candidate, qualifications
+        portfolio_projects = profile.get('portfolio_projects', [])
+        return candidate, qualifications, portfolio_projects
     except Exception as e:
         print(f"Error loading profile: {e}")
-        return None, None
+        return None, None, None

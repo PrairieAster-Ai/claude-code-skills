@@ -50,14 +50,10 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - **Graphics:** None
 - **Photos:** Never (in US/UK markets)
 
-### Markdown Template Header
-```markdown
-# {Name}
-
-{Phone} | {Email} | {LinkedIn} | {Location}
-
----
-```
+### Header Layout
+- Name: 22-24pt, accent color, bold
+- Contact: pipe-separated on one line, 10pt secondary color
+- Accent-colored horizontal rule below contact info
 
 ---
 
@@ -101,19 +97,11 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - **Graphics:** None in body; subtle header styling okay
 - **Name styling:** Can include colored accent bar or underline
 
-### Markdown Template Header
-```markdown
-<div style="border-left: 4px solid #2b6cb0; padding-left: 12px;">
-
-# {Name}
-**{Target Title}**
-
-</div>
-
-{Phone} | {Email} | {LinkedIn} | {Portfolio}
-
----
-```
+### Header Layout
+- Name: 22-24pt, accent color, bold
+- Target title: 12pt, bold, below name
+- Contact: pipe-separated on one line, 10pt secondary color
+- Accent-colored horizontal rule below contact info
 
 ### Two-Column Variant (Contact Sidebar)
 ```markdown
@@ -186,17 +174,11 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - Standard bullet points for achievements
 - No graphics interrupting the content flow
 
-### Markdown Template Header
-```markdown
-<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; margin: -20px -20px 20px -20px;">
-
-# {Name}
-### {Target Title} | {Specialty}
-
-{Phone} | {Email} | {Portfolio} | {LinkedIn}
-
-</div>
-```
+### Header Layout
+- Name: 24-32pt, accent color, bold display weight
+- Target title + specialty: below name
+- Contact: pipe-separated, 10pt secondary color
+- Creative elements (color blocks, gradients) limited to header area only
 
 ### Skills Section (Creative)
 ```markdown
@@ -271,36 +253,11 @@ Regardless of visual style, ensure:
 - [ ] No text embedded in images
 - [ ] No tables for main content (contact sidebar tables okay)
 - [ ] Single-column for main content area
-- [ ] PDF exported with selectable text
+- [ ] Output as .docx (preferred by recruiters and ATS systems)
 - [ ] No headers/footers with critical information
 - [ ] Font size minimum 10pt
 - [ ] Margins minimum 0.5 inch
 - [ ] File size under 2MB
-
----
-
-## Rendering Notes
-
-When generating markdown documents:
-
-1. **For immediate use:** Standard markdown renders well in most contexts
-2. **For styled PDF:** Include CSS style block at top or use pandoc with custom CSS
-3. **For Word conversion:** Stick to standard markdown; avoid HTML blocks
-4. **For web portfolio:** HTML/CSS blocks render correctly
-
-### CSS Style Block (Optional)
-```html
-<style>
-:root {
-  --accent-color: #1a5276;  /* WCAG AA accessible navy blue */
-  --text-primary: #1a202c;
-  --text-secondary: #374151;  /* WCAG AA accessible dark gray */
-}
-h1 { color: var(--accent-color); }
-h2 { border-bottom: 2px solid var(--accent-color); padding-bottom: 4px; }
-strong { color: var(--text-primary); }
-</style>
-```
 
 ---
 

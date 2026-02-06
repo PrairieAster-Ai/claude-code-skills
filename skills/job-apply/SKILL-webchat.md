@@ -31,7 +31,7 @@ These files contain guidelines used throughout the workflow. They are uploaded t
 **Goal:** Extract all source data in a single turn. No setup wizard, no config file.
 
 **If user uploaded a `profile.yaml`** (from a previous session):
-- Parse the YAML to load candidate info and qualifications
+- Parse the YAML to load candidate info, qualifications, and portfolio projects
 - Skip resume parsing entirely — this saves a full message
 - Confirm: "Loaded your profile. Proceeding with fit assessment."
 
@@ -93,6 +93,7 @@ Auto-detect industry from job description and select the appropriate preset per 
 
 - Map candidate experience to job requirements, strongest matches first
 - Select quantified achievements for each key requirement
+- Match portfolio projects (if provided in profile.yaml) to technical requirements — use achievement metrics as evidence
 - Identify keywords from JD for ATS optimization
 - Craft gap mitigation language per best-practices.md
 
@@ -134,7 +135,14 @@ Shall I proceed with generating your documents?
 
 #### Document Generation
 
-Use the Analysis tool to run `generate_word_docs_web.py` (uploaded to the Project). Call `generate_application_documents()` with:
+Use the Analysis tool to run `generate_word_docs_web.py` (uploaded to the Project).
+
+**Load the script first:**
+```python
+exec(open("generate_word_docs_web.py").read())
+```
+
+Then call `generate_application_documents()` with:
 
 - `candidate`: Contact info parsed from resume/profile
 - `job`: Title, company, location from JD
@@ -170,6 +178,7 @@ After delivering documents, offer to generate a `profile.yaml` the user can down
 If yes, use `generate_profile_yaml()` from the script to create a downloadable YAML file containing:
 - Candidate contact info
 - Qualifications (summary, skills, experience, certifications, education)
+- Portfolio projects (if any were mentioned in the resume or conversation)
 
 #### Summary
 
@@ -217,9 +226,19 @@ qualifications:
   certifications:
     - name: "Cert Name"
       year: "YYYY"
+      issuer: "Issuing Organization"
   education:
     - degree: "Degree, Major"
       school: "University"
+
+# Optional — include if user has portfolio projects
+portfolio_projects:
+  - name: "Project Name"
+    description: "Brief description"
+    technologies: ["React", "TypeScript"]
+    achievements:
+      - metric: "80% improvement"
+        description: "What was improved"
 ```
 
 ## Message Flow (Typical)
