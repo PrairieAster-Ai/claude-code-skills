@@ -237,19 +237,22 @@ Documents are saved to your configured output directory:
 
 ```
 ~/.claude/skills/job-apply/
-├── SKILL.md              # Main skill definition
-├── README.md             # This file
-├── config.yaml           # Active configuration
-├── config.example.yaml   # Example configuration template
-├── generate_word_docs.py # Word document generator
-├── import_resume.py      # Resume import wizard
-├── profiles.py           # Profile switching utility
-├── profiles/             # Saved user profiles
+├── SKILL.md                  # Skill definition (Claude Code CLI)
+├── SKILL-webchat.md          # Skill definition (claude.ai web chat)
+├── README.md                 # This file
+├── config.yaml               # Active configuration (CLI)
+├── config.example.yaml       # Example configuration template
+├── generate_word_docs.py     # Word document generator (CLI)
+├── generate_word_docs_web.py # Word document generator (web chat sandbox)
+├── import_resume.py          # Resume import wizard
+├── profiles.py               # Profile switching utility
+├── profiles/                 # Saved user profiles
 │   └── *.yaml
-├── style-presets.md      # Visual styling specifications
-├── fit-assessment.md     # Job fit evaluation framework
-├── cover-letter-template.md
-└── resume-template.md
+├── best-practices.md         # Strategic application advice
+├── style-presets.md          # Visual styling specifications
+├── fit-assessment.md         # Job fit evaluation framework
+├── cover-letter-template.md  # Cover letter structure
+└── resume-template.md        # Resume structure
 ```
 
 ## Profile Management
@@ -418,6 +421,47 @@ python -c "import docx; import yaml; print('Dependencies: OK')"
 # Check config exists
 Test-Path ~/.claude/skills/job-apply/config.yaml
 ```
+
+## Web Chat Usage (claude.ai)
+
+This skill also works in Claude's free-tier web chat on claude.ai. Instead of the CLI slash command, you upload files to a Claude Project and interact through conversation.
+
+### Setup
+
+1. Create a new **Project** on claude.ai
+2. Upload these files to the Project's knowledge:
+   - `SKILL-webchat.md` — the web chat workflow (Project instructions)
+   - `generate_word_docs_web.py` — standalone document generator for the Analysis sandbox
+   - `fit-assessment.md` — evaluation framework
+   - `style-presets.md` — visual styling specs
+   - `cover-letter-template.md` — cover letter structure
+   - `resume-template.md` — resume structure
+   - `best-practices.md` — strategic advice
+
+### First Run
+
+1. Start a new conversation in your Project
+2. Upload your resume (.docx) and paste the job description
+3. Claude will parse both, show a fit assessment, and ask to proceed
+4. Confirm, and Claude generates .docx cover letter + resume for download
+
+**Typical message count: 3-4 messages** (user upload, assessment, confirm, delivery).
+
+### Returning Users — Portable Profile
+
+After your first run, Claude will offer to generate a `profile.yaml` file. Download and save it. On future runs:
+
+1. Upload `profile.yaml` + paste a new job description
+2. Claude skips resume parsing (saves a message) and goes straight to fit assessment
+
+The `profile.yaml` contains your contact info and qualifications in a format compatible with both the web chat and CLI versions of this skill.
+
+### Tips for Free Tier
+
+- **Upload your resume as .docx** — PDF parsing isn't supported
+- **Save your `profile.yaml`** after the first run to reduce message count on future applications
+- **Paste the full job description** directly into chat rather than describing it
+- **Say "Yes" or "Proceed"** to the fit assessment to avoid spending a message on elaboration
 
 ## Known Limitations
 
