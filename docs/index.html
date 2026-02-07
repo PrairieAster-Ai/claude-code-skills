@@ -51,15 +51,25 @@
       margin: 0 auto 36px;
     }
 
-    /* Download button */
+    /* Download buttons */
+    .download-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
     .download-btn {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
       background: var(--accent);
       color: #fff;
       text-decoration: none;
-      font-size: 1.15rem;
+      font-size: 1.05rem;
       font-weight: 600;
-      padding: 16px 40px;
+      padding: 14px 28px;
       border-radius: 8px;
       transition: background 0.2s, transform 0.1s;
     }
@@ -67,6 +77,10 @@
     .download-btn:hover {
       background: var(--accent-hover);
       transform: translateY(-1px);
+    }
+
+    .download-btn .icon {
+      font-size: 1.2em;
     }
 
     .download-note {
@@ -255,11 +269,17 @@
       Generate tailored cover letters and resumes using Claude's free web chat.
       No install required.
     </p>
-    <a class="download-btn"
-       href="https://github.com/PrairieAster-Ai/claude-code-skills/releases/tag/v1.0.0">
-      Download Files
-    </a>
-    <p class="download-note">2 small files &mdash; SKILL-webchat.md + generate_word_docs_web.py</p>
+    <div class="download-buttons">
+      <a class="download-btn"
+         href="https://github.com/PrairieAster-Ai/claude-code-skills/releases/download/v1.0.0/SKILL-webchat.md">
+        <span class="icon">&#11015;</span> SKILL-webchat.md
+      </a>
+      <a class="download-btn"
+         href="https://github.com/PrairieAster-Ai/claude-code-skills/releases/download/v1.0.0/generate_word_docs_web.py">
+        <span class="icon">&#11015;</span> generate_word_docs_web.py
+      </a>
+    </div>
+    <p class="download-note">Download both files to get started</p>
   </header>
 
   <!-- Setup Steps -->
@@ -269,7 +289,7 @@
       <ol class="steps">
         <li>
           <span class="step-text">
-            <strong>Download the 2 files</strong> using the button above
+            <strong>Download both files</strong> using the buttons above
           </span>
         </li>
         <li>
