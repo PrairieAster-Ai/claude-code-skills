@@ -380,12 +380,12 @@
   <header class="hero">
     <h1>Artifact Edition</h1>
     <p class="tagline">
-      A self-contained job application tool that runs entirely in your browser.
-      No server, no API keys, no install.
+      A job application tool that runs in your browser &mdash; with optional AI analysis
+      when used inside Claude.ai.
     </p>
     <div class="hero-badges">
-      <span class="hero-badge"><span class="icon">&#9889;</span> Zero dependencies</span>
-      <span class="hero-badge"><span class="icon">&#128274;</span> Runs offline</span>
+      <span class="hero-badge"><span class="icon">&#129504;</span> AI analysis in Claude.ai</span>
+      <span class="hero-badge"><span class="icon">&#9889;</span> Works standalone too</span>
       <span class="hero-badge"><span class="icon">&#128196;</span> .doc export</span>
       <span class="hero-badge"><span class="icon">&#127912;</span> 7 style presets</span>
     </div>
@@ -393,32 +393,51 @@
        href="https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/job-apply-artifact.html">
       <span class="icon">&#128196;</span> Download Artifact
     </a>
-    <p class="download-note">Single HTML file &mdash; just open in your browser</p>
+    <p class="download-note">Single HTML file &mdash; open in your browser or use as a Claude.ai artifact</p>
   </header>
 
   <!-- How to Use -->
   <section>
     <div class="container">
       <h2>How to Use</h2>
+      <h3>Option A: Inside Claude.ai (recommended)</h3>
       <ol class="steps">
         <li>
           <span class="step-text">
-            <strong>Open the HTML file</strong> in any modern browser (Chrome, Firefox, Safari, Edge)
+            <strong>Open a conversation</strong> on <a href="https://claude.ai" style="color:var(--accent)">Claude.ai</a> and ask Claude to create an artifact with the HTML file contents
           </span>
         </li>
         <li>
           <span class="step-text">
-            <strong>Paste a job description</strong> into the left textarea and your <strong>resume</strong> into the right textarea
+            <strong>Paste a job description</strong> and your <strong>resume</strong> into the artifact&rsquo;s input fields
           </span>
         </li>
         <li>
           <span class="step-text">
-            Click <strong>Analyze Fit</strong> to see your score, strengths, gaps, and recommendation
+            Click <strong>Analyze Fit</strong>, then click <strong>Get AI Analysis</strong> for personalized gap strategies, interview prep, and cover letter tips
           </span>
         </li>
         <li>
           <span class="step-text">
             Review your <strong>tailored cover letter and resume</strong>, pick a style, and download as .doc
+          </span>
+        </li>
+      </ol>
+      <h3>Option B: Standalone Browser</h3>
+      <ol class="steps">
+        <li>
+          <span class="step-text">
+            <strong>Download and open the HTML file</strong> in any modern browser (Chrome, Firefox, Safari, Edge)
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Paste a job description</strong> and your <strong>resume</strong>, click <strong>Analyze Fit</strong>
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            Use <strong>interactive overrides</strong> to refine the heuristic scoring, then review and download your documents
           </span>
         </li>
       </ol>
@@ -436,9 +455,14 @@
       <h2>Features</h2>
       <div class="feature-grid">
         <div class="feature-card">
+          <span class="feature-icon">&#129504;</span>
+          <strong>AI Analysis</strong>
+          <p>Inside Claude.ai: gap evaluation, framing strategies, interview prep, and cover letter tips from Claude</p>
+        </div>
+        <div class="feature-card">
           <span class="feature-icon">&#128202;</span>
-          <strong>Fit Assessment</strong>
-          <p>Scores must-haves (70%) and nice-to-haves (30%) with a clear recommendation tier</p>
+          <strong>Heuristic Fit Scoring</strong>
+          <p>Scores must-haves (70%) and nice-to-haves (30%) with a clear recommendation tier &mdash; no API needed</p>
         </div>
         <div class="feature-card">
           <span class="feature-icon">&#9998;</span>
@@ -536,9 +560,10 @@
     <div class="container">
       <h2>How the Assessment Works</h2>
       <p>
-        The fit assessment uses heuristic NLP &mdash; no AI model needed.
+        The fit scoring uses heuristic NLP &mdash; it works instantly with no API calls.
         It extracts requirements from the job description, matches them against your resume,
-        and calculates a weighted score.
+        and calculates a weighted score. When running inside Claude.ai, you can also click
+        <strong>Get AI Analysis</strong> for deeper, AI-powered feedback on your gaps and strengths.
       </p>
       <h3>Scoring</h3>
       <table class="comparison-table">
@@ -697,7 +722,7 @@
         <tbody>
           <tr>
             <td>Requirements</td>
-            <td>Any browser</td>
+            <td>Any browser (Claude.ai for AI features)</td>
             <td>Claude.ai account</td>
             <td>Claude Code + Python</td>
           </tr>
@@ -745,13 +770,13 @@
           </tr>
           <tr>
             <td>Works offline</td>
-            <td>Yes</td>
+            <td>Standalone mode only</td>
             <td>&mdash;</td>
             <td>&mdash;</td>
           </tr>
           <tr>
             <td>Best for</td>
-            <td>Quick, visual, fun</td>
+            <td>Visual, interactive, AI-enhanced</td>
             <td>Free users</td>
             <td>Power users</td>
           </tr>
@@ -768,8 +793,11 @@
       <details class="faq-item">
         <summary>Does this send my data anywhere?</summary>
         <div class="faq-answer">
-          No. Everything runs locally in your browser. No network requests are made.
-          Your job descriptions and resume text never leave your machine.
+          <strong>Standalone mode:</strong> No. Everything runs locally in your browser. No network requests are made.<br>
+          <strong>Inside Claude.ai:</strong> When you click <em>Get AI Analysis</em>, your assessment data is sent to Claude
+          through the artifact API. This uses your Claude.ai subscription and is subject to
+          <a href="https://www.anthropic.com/policies/privacy" style="color:var(--accent)">Anthropic&rsquo;s privacy policy</a>.
+          Scoring, overrides, and document generation still run entirely locally.
         </div>
       </details>
 
@@ -794,9 +822,11 @@
       <details class="faq-item">
         <summary>How accurate is the fit scoring?</summary>
         <div class="faq-answer">
-          The scoring uses keyword matching, synonym lookup, and Jaccard similarity &mdash; not an AI model.
-          It&rsquo;s a fast, deterministic approximation. If something looks wrong,
-          use the interactive overrides to correct it and the scores will recalculate instantly.
+          The heuristic scoring uses keyword matching, synonym lookup, and Jaccard similarity &mdash;
+          it&rsquo;s a fast, deterministic approximation that works without any API.
+          If something looks wrong, use the interactive overrides to correct it and the scores will recalculate instantly.
+          For deeper analysis, use the <em>Get AI Analysis</em> button inside Claude.ai &mdash;
+          Claude can recognize semantic matches the heuristic engine misses.
         </div>
       </details>
 
