@@ -124,19 +124,6 @@
       color: var(--muted);
     }
 
-    .prompt-box {
-      background: var(--code-bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 18px;
-      margin-top: 12px;
-      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-      font-size: 0.9rem;
-      color: var(--text);
-      user-select: all;
-      cursor: text;
-      line-height: 1.5;
-    }
 
     /* ---- Sections ---- */
     section { padding: 48px 0; }
@@ -397,20 +384,21 @@
   <header class="hero">
     <h1>Artifact Edition</h1>
     <p class="tagline">
-      A job application tool that runs in your browser &mdash; with optional AI analysis
-      when used inside Claude.ai.
+      An AI-powered job application tool that runs inside Claude.ai.
+      Fit scoring, gap analysis, interview prep, and tailored documents.
     </p>
     <div class="hero-badges">
-      <span class="hero-badge"><span class="icon">&#129504;</span> AI analysis in Claude.ai</span>
-      <span class="hero-badge"><span class="icon">&#9889;</span> Works standalone too</span>
+      <span class="hero-badge"><span class="icon">&#129504;</span> AI-powered analysis</span>
+      <span class="hero-badge"><span class="icon">&#128274;</span> Free accounts work</span>
       <span class="hero-badge"><span class="icon">&#128196;</span> .doc export</span>
       <span class="hero-badge"><span class="icon">&#127912;</span> 7 style presets</span>
     </div>
-    <a class="download-btn" id="downloadBtn"
-       href="https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/job-apply-artifact.html">
-      <span class="icon">&#128229;</span> Download Artifact
+    <a class="download-btn"
+       href="https://claude.ai/public/artifacts/f5d72569-9e1e-4dba-827d-6b7d5372f717"
+       target="_blank" rel="noopener">
+      <span class="icon">&#9889;</span> Open in Claude.ai
     </a>
-    <p class="download-note">Download the HTML file, then upload it to Claude.ai &mdash; see instructions below</p>
+    <p class="download-note">Opens the artifact directly in Claude.ai &mdash; sign in with any Claude account (including free)</p>
   </header>
 
   <!-- How to Use -->
@@ -420,22 +408,14 @@
       <ol class="steps">
         <li>
           <span class="step-text">
-            <strong>Download the artifact.</strong> Click the <em>Download Artifact</em> button above
-            to save the HTML file to your computer.
+            <strong>Open the artifact.</strong> Click
+            <a href="https://claude.ai/public/artifacts/f5d72569-9e1e-4dba-827d-6b7d5372f717" style="color:var(--accent)" target="_blank" rel="noopener">Open in Claude.ai</a>
+            above and sign in with your Claude account (free accounts work).
           </span>
         </li>
         <li>
           <span class="step-text">
-            <strong>Open <a href="https://claude.ai" style="color:var(--accent)">Claude.ai</a></strong> and start a new conversation.
-            Click the <strong>attachment icon</strong> (paperclip) in the message box, select the downloaded
-            <code>job-apply-artifact.html</code> file, and send this message:
-            <div class="prompt-box">Create an artifact from this HTML file</div>
-            Claude will respond with a clickable artifact preview. Click it to open the app.
-          </span>
-        </li>
-        <li>
-          <span class="step-text">
-            <strong>Paste a job description</strong> and your <strong>resume</strong> into the artifact&rsquo;s input fields, then click <strong>Analyze Fit</strong>.
+            <strong>Paste a job description</strong> and your <strong>resume</strong> into the input fields, then click <strong>Analyze Fit</strong>.
           </span>
         </li>
         <li>
@@ -671,14 +651,8 @@
     <div class="container">
       <h2>AI-Powered Features</h2>
       <p>
-        When the artifact runs inside a <a href="https://claude.ai" style="color:var(--accent)">Claude.ai</a> conversation,
-        it can call Claude directly for personalized analysis. When opened standalone in a browser, it shows a friendly notice
-        explaining how to access the AI features.
-      </p>
-      <h3>Inside Claude.ai</h3>
-      <p>
         Click <strong>Get AI Analysis</strong> on the assessment step. Claude reads your scores, gaps, and skills,
-        then provides:
+        then provides personalized feedback:
       </p>
       <div class="feature-grid" style="margin-bottom:20px">
         <div class="feature-card">
@@ -704,13 +678,7 @@
       </div>
       <p>
         After making overrides, click <strong>Get AI Analysis</strong> again to get updated feedback reflecting your changes.
-      </p>
-
-      <h3>Standalone Browser</h3>
-      <p>
-        When opened directly in a browser (not inside Claude.ai), the AI button is replaced with a notice
-        explaining how to access the feature. All heuristic features &mdash; scoring, overrides, documents &mdash;
-        work identically in both modes.
+        Each analysis uses one message from your Claude account.
       </p>
     </div>
   </section>
@@ -731,7 +699,7 @@
         <tbody>
           <tr>
             <td>Requirements</td>
-            <td>Any browser (Claude.ai for AI features)</td>
+            <td>Claude.ai account (free or paid)</td>
             <td>Claude.ai account</td>
             <td>Claude Code + Python</td>
           </tr>
@@ -779,7 +747,7 @@
           </tr>
           <tr>
             <td>Works offline</td>
-            <td>Standalone mode only</td>
+            <td>&mdash;</td>
             <td>&mdash;</td>
             <td>&mdash;</td>
           </tr>
@@ -802,11 +770,10 @@
       <details class="faq-item">
         <summary>Does this send my data anywhere?</summary>
         <div class="faq-answer">
-          <strong>Standalone mode:</strong> No. Everything runs locally in your browser. No network requests are made.<br>
-          <strong>Inside Claude.ai:</strong> When you click <em>Get AI Analysis</em>, your assessment data is sent to Claude
-          through the artifact API. This uses your Claude.ai subscription and is subject to
+          Scoring, overrides, and document generation all run locally in your browser.
+          When you click <em>Get AI Analysis</em>, your assessment summary is sent to Claude
+          for analysis. This uses your Claude.ai subscription and is subject to
           <a href="https://www.anthropic.com/policies/privacy" style="color:var(--accent)">Anthropic&rsquo;s privacy policy</a>.
-          Scoring, overrides, and document generation still run entirely locally.
         </div>
       </details>
 
@@ -849,12 +816,11 @@
       </details>
 
       <details class="faq-item">
-        <summary>Can I use this as a Claude web artifact?</summary>
+        <summary>Do I need a paid Claude account?</summary>
         <div class="faq-answer">
-          Yes. The HTML file was designed to work both as a standalone page and as a Claude web chat artifact.
-          Ask Claude to create an artifact, then paste the HTML content. When running inside Claude.ai,
-          you also get access to AI-powered analysis &mdash; click <em>Get AI Analysis</em> on the assessment step
-          for personalized gap strategies, interview prep, and cover letter tips.
+          No. The artifact works with free Claude accounts. Free tier users have tighter message limits
+          (~10&ndash;25 per 5-hour window), so each <em>Get AI Analysis</em> click counts against that cap,
+          but all heuristic features (scoring, overrides, documents) are unlimited.
         </div>
       </details>
     </div>
@@ -872,31 +838,5 @@
     </div>
   </footer>
 
-<script>
-  // Cross-origin download: fetch as blob and trigger via object URL
-  document.getElementById('downloadBtn').addEventListener('click', function(e) {
-    e.preventDefault();
-    var btn = this;
-    var origText = btn.innerHTML;
-    btn.innerHTML = '<span class="icon">&#8987;</span> Downloading...';
-    fetch(btn.href)
-      .then(function(r) { return r.blob(); })
-      .then(function(blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = 'job-apply-artifact.html';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        btn.innerHTML = origText;
-      })
-      .catch(function() {
-        window.open(btn.href, '_blank');
-        btn.innerHTML = origText;
-      });
-  });
-</script>
 </body>
 </html>
