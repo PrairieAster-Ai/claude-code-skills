@@ -2,32 +2,13 @@
 
 Generate tailored cover letters and resumes optimized for ATS parsing and human scanning, with job fit assessment and style customization.
 
-## Two Ways to Use This Skill
+## Requirements
 
-| | **Web Chat** (claude.ai) | **Claude Code CLI** |
-|---|---|---|
-| **Setup** | Create a Project, upload files | Install Python packages, configure YAML |
-| **Cost** | Free tier works | Requires Claude Code subscription |
-| **Invoke** | Start a conversation | `/job-apply [job description]` |
-| **Output** | .docx download from chat | .docx saved to output directory |
-| **Messages** | 3–4 per application | Single slash command |
-| **Best for** | Quick start, occasional use | Power users, batch workflows |
+- **Python 3.8+** (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
+- **python-docx** >= 0.8.11
+- **pyyaml** >= 5.0
 
----
-
-## Web Chat Quick Start
-
-This skill also works entirely in your browser — no install, no CLI, no Python required. Works on Claude's free tier. Only **2 files** to upload.
-
-See the [web chat setup guide](webchat/README.md) for instructions.
-
----
-
-## CLI Quick Start
-
-For full automation with Claude Code's slash command interface.
-
-### Features
+## Features
 
 - **Guided Setup**: First-time users are walked through configuration with simple questions
 - **Auto-Install Dependencies**: Detects missing packages and offers to install them
@@ -39,11 +20,36 @@ For full automation with Claude Code's slash command interface.
 - **Auto-Open Output**: Opens the folder with your documents after generation
 - **Application History**: Tracks what jobs you've applied to
 
-### Requirements
+## Editions
 
-- **Python 3.8+** (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
-- **python-docx** >= 0.8.11
-- **pyyaml** >= 5.0
+This skill is available in three editions:
+
+| Edition | Best For | Requirements |
+|---------|----------|-------------|
+| **CLI** (this directory) | Power users with Claude Code | Python 3.8+, python-docx, pyyaml |
+| **Web Chat** (`webchat/`) | Claude.ai free/pro users | No install — attach files to chat |
+| **Artifact** (`job-apply-artifact.html`) | Standalone browser tool | None — open HTML file in any browser |
+
+### Artifact Edition
+
+The **Artifact Edition** is a self-contained HTML file (~3,100 lines) that runs entirely in the browser with no server, no API calls, and no dependencies. It includes:
+
+- **4-step wizard**: Input → Fit Assessment → Document Preview → Output
+- **Interactive assessment**: Click match icons to cycle strong/partial/gap, toggle skills between matched and missing
+- **Live style switching**: Change presets on the Documents step and see results instantly
+- **7 style presets**: 3 professional + 4 fun/novelty (see Style Presets below)
+- **Word download**: Export cover letter and resume as `.doc` files
+- **Copy to clipboard**: One-click copy of document HTML
+- **localStorage persistence**: Your inputs are auto-saved between sessions
+- **PrairieAster.Ai branding**: Purple theme with flower logo
+
+**Usage:** Open `job-apply-artifact.html` in any modern browser, or paste it as a Claude web artifact.
+
+**Documentation:** [prairieaster-ai.github.io/claude-code-skills/artifact.html](https://prairieaster-ai.github.io/claude-code-skills/artifact.html)
+
+---
+
+## Quick Start (CLI Edition)
 
 ### 1. Install Prerequisites
 
@@ -128,7 +134,7 @@ Edit `config.yaml` directly with your:
 - Education
 - Portfolio projects
 
-### 4. Run the Skill
+### 3. Run the Skill
 
 In Claude Code, use the slash command with a job description:
 
@@ -156,11 +162,9 @@ candidate:
 
 paths:
   resume_locations:
-    - "~/Documents/Job Application Docs/resume/"
     - "~/Documents/resume/"
-    - "~/Documents/"
   portfolio_dir: "~/Projects/"
-  output_dir: "~/Documents/Job Application Docs/generated/"
+  output_dir: "~/Documents/Job Applications/generated/"
 
 preferences:
   default_style: "modern_professional"  # classic, modern_professional, creative
@@ -241,13 +245,26 @@ No manual YAML editing required!
 
 ## Style Presets
 
+### Professional Presets
+
 | Preset | Best For | Accent Color |
 |--------|----------|--------------|
 | Classic | Finance, Law, Healthcare, Government | Navy Blue |
 | Modern Professional | Tech, Corporate, Consulting | Navy Blue |
 | Creative | Design, Marketing, Startups | Industry-dependent |
 
-All presets use WCAG AA accessible colors (4.5:1+ body text, 3:1+ large text). Default colors exceed 7:1.
+All professional presets use WCAG AA accessible colors with 7:1+ contrast ratios.
+
+### Fun & Novelty Presets (Artifact Edition only)
+
+| Preset | Archetype | Visual Style |
+|--------|-----------|-------------|
+| Rogue Buccaneer | Pirate captain | Parchment, navy/gold, Georgia serif |
+| Sorority Scholar | Pink powerhouse | Hot pink accents, enthusiastic tone |
+| Classified Operative | Secret agent | Courier monospace, CLASSIFIED stamps |
+| Renaissance Bard | Shakespearean player | Palatino serif, iambic pentameter, gold flourishes |
+
+See [style-presets.md](style-presets.md) for full specifications.
 
 ## Output Files
 
@@ -262,24 +279,24 @@ Documents are saved to your configured output directory:
 
 ```
 ~/.claude/skills/job-apply/
-├── SKILL.md                  # Skill definition (Claude Code CLI)
-├── README.md                 # This file
-├── config.yaml               # Active configuration (CLI)
-├── config.example.yaml       # Example configuration template
-├── generate_word_docs.py     # Word document generator (CLI)
-├── import_resume.py          # Resume import wizard
-├── profiles.py               # Profile switching utility
-├── profiles/                 # Saved user profiles
+├── SKILL.md                   # Main skill definition (CLI edition)
+├── README.md                  # This file
+├── job-apply-artifact.html    # Artifact edition (standalone browser tool)
+├── config.yaml                # Active configuration
+├── config.example.yaml        # Example configuration template
+├── generate_word_docs.py      # Word document generator
+├── import_resume.py           # Resume import wizard
+├── profiles.py                # Profile switching utility
+├── profiles/                  # Saved user profiles
 │   └── *.yaml
-├── best-practices.md         # Strategic application advice
-├── style-presets.md          # Visual styling specifications
-├── fit-assessment.md         # Job fit evaluation framework
-├── cover-letter-template.md  # Cover letter structure
-├── resume-template.md        # Resume structure
-└── webchat/                  # Web chat edition (claude.ai)
-    ├── SKILL-webchat.md      # Self-contained project instructions
-    ├── generate_word_docs_web.py  # Document generator for Analysis sandbox
-    └── README.md             # Setup guide for web chat users
+├── webchat/                   # Web chat edition
+│   ├── SKILL-webchat.md
+│   ├── generate_word_docs_web.py
+│   └── README.md
+├── style-presets.md           # Visual styling specifications (all 7 presets)
+├── fit-assessment.md          # Job fit evaluation framework
+├── cover-letter-template.md
+└── resume-template.md
 ```
 
 ## Profile Management
@@ -451,7 +468,7 @@ Test-Path ~/.claude/skills/job-apply/config.yaml
 
 ## Known Limitations
 
-- **PDF resumes (CLI only)**: Not supported for automatic parsing in Claude Code CLI. Convert to .docx or .txt first. (Web chat handles PDFs natively.)
+- **PDF resumes**: Not currently supported for automatic parsing. Convert to .docx or .txt first.
 - **Clipboard input**: Not implemented. Paste job description directly or save to a file.
 - **Non-Latin scripts**: Filenames support Unicode, but some special characters may be removed for cross-platform compatibility.
 

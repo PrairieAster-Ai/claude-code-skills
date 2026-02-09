@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Apply Artifact Edition &mdash; PrairieAster.Ai</title>
+  <style>
+    :root {
+      --accent: #7d60a6;
+      --accent-hover: #6b4f94;
+      --accent-light: #856da6;
+      --secondary: #7fa4cf;
+      --bg: #fafafa;
+      --card: #ffffff;
+      --text: #2d3436;
+      --muted: #636e72;
+      --border: #dfe6e9;
+      --code-bg: #f3eff8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+        Ubuntu, Cantarell, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* Nav */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+
+    .nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .nav a:hover { text-decoration: underline; }
+
+    .nav .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav .nav-brand img {
+      height: 24px;
+    }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 64px 24px 40px;
+    }
+
+    .hero h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .hero .tagline {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 560px;
+      margin: 0 auto 32px;
+    }
+
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    .hero-badge .icon { font-size: 1rem; }
+
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 8px;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .download-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+
+    .download-btn .icon { font-size: 1.2em; }
+
+    .download-note {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* Sections */
+    section {
+      padding: 48px 0;
+    }
+
+    section + section {
+      border-top: 1px solid var(--border);
+    }
+
+    section h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+
+    section h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 28px;
+    }
+
+    section p {
+      margin-bottom: 12px;
+    }
+
+    /* Steps */
+    .steps {
+      list-style: none;
+      counter-reset: step;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .steps li .step-text {
+      padding-top: 5px;
+    }
+
+    /* Feature grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .feature-card .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .feature-card strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .feature-card p {
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin: 0;
+    }
+
+    /* Preset gallery */
+    .preset-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .preset-card {
+      border-radius: 8px;
+      padding: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .preset-card .preset-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 8px;
+      opacity: 0.7;
+    }
+
+    .preset-card h4 {
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+    }
+
+    .preset-card p {
+      font-size: 0.88rem;
+      margin: 0;
+      opacity: 0.8;
+    }
+
+    .preset-card .preset-font {
+      font-size: 0.8rem;
+      margin-top: 8px;
+      opacity: 0.6;
+    }
+
+    /* Professional presets */
+    .preset-modern {
+      background: #f7fafc;
+      border-color: #1a5276;
+    }
+    .preset-modern h4 { color: #1a5276; }
+
+    .preset-classic {
+      background: #f8f9fa;
+      border-color: #1a365d;
+    }
+    .preset-classic h4 { color: #1a365d; }
+
+    .preset-creative {
+      background: #faf5ff;
+      border-color: #805ad5;
+    }
+    .preset-creative h4 { color: #805ad5; }
+
+    /* Fun presets */
+    .preset-buccaneer {
+      background: #f4e8c1;
+      border-color: #c9b037;
+      color: #2c1810;
+    }
+    .preset-buccaneer h4 { color: #1c2841; }
+
+    .preset-scholar {
+      background: #fff0f5;
+      border-color: #ff69b4;
+    }
+    .preset-scholar h4 { color: #d63384; }
+
+    .preset-operative {
+      background: #fafafa;
+      border-color: #333;
+      font-family: 'Courier New', monospace;
+    }
+    .preset-operative h4 { color: #000; letter-spacing: 1px; text-transform: uppercase; }
+    .preset-operative .preset-label { color: #c0392b; }
+
+    .preset-bard {
+      background: #fdf6e3;
+      border-color: #c9b037;
+      font-family: 'Palatino Linotype', Palatino, Georgia, serif;
+    }
+    .preset-bard h4 { color: #4b0082; text-align: center; }
+
+    /* Tip */
+    .tip {
+      background: var(--code-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+
+    .tip code, .steps code {
+      background: var(--card);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* Comparison table */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+
+    .comparison-table th,
+    .comparison-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .comparison-table th {
+      background: var(--code-bg);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .comparison-table td:first-child {
+      font-weight: 500;
+    }
+
+    /* FAQ */
+    .faq-item {
+      margin-bottom: 20px;
+    }
+
+    .faq-item summary {
+      cursor: pointer;
+      font-weight: 600;
+      padding: 12px 0;
+      list-style: none;
+    }
+
+    .faq-item summary::before {
+      content: '+';
+      display: inline-block;
+      width: 24px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .faq-item[open] summary::before {
+      content: '\2212';
+    }
+
+    .faq-item .faq-answer {
+      padding: 0 0 8px 24px;
+      color: var(--muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    footer .links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* Mobile */
+    @media (max-width: 600px) {
+      .hero { padding: 40px 16px 28px; }
+      .hero h1 { font-size: 1.7rem; }
+      .hero .tagline { font-size: 1rem; }
+      section { padding: 32px 0; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .preset-grid { grid-template-columns: 1fr; }
+      .comparison-table { font-size: 0.85rem; }
+      .comparison-table th,
+      .comparison-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <a class="nav-brand" href="index.html">
+      <img src="logo.svg" alt="PrairieAster.Ai">
+      <span>Job Apply Skill</span>
+    </a>
+    <a href="https://github.com/PrairieAster-Ai/claude-code-skills">GitHub</a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <h1>Artifact Edition</h1>
+    <p class="tagline">
+      A self-contained job application tool that runs entirely in your browser.
+      No server, no API keys, no install.
+    </p>
+    <div class="hero-badges">
+      <span class="hero-badge"><span class="icon">&#9889;</span> Zero dependencies</span>
+      <span class="hero-badge"><span class="icon">&#128274;</span> Runs offline</span>
+      <span class="hero-badge"><span class="icon">&#128196;</span> .doc export</span>
+      <span class="hero-badge"><span class="icon">&#127912;</span> 7 style presets</span>
+    </div>
+    <a class="download-btn"
+       href="https://github.com/PrairieAster-Ai/claude-code-skills/releases/latest/download/job-apply-artifact.html">
+      <span class="icon">&#11015;</span> Download Artifact
+    </a>
+    <p class="download-note">Single HTML file &mdash; just open in your browser</p>
+  </header>
+
+  <!-- How to Use -->
+  <section>
+    <div class="container">
+      <h2>How to Use</h2>
+      <ol class="steps">
+        <li>
+          <span class="step-text">
+            <strong>Open the HTML file</strong> in any modern browser (Chrome, Firefox, Safari, Edge)
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Paste a job description</strong> into the left textarea and your <strong>resume</strong> into the right textarea
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            Click <strong>Analyze Fit</strong> to see your score, strengths, gaps, and recommendation
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            Review your <strong>tailored cover letter and resume</strong>, pick a style, and download as .doc
+          </span>
+        </li>
+      </ol>
+      <div class="tip">
+        Your inputs are <strong>auto-saved</strong> to browser localStorage.
+        Close the tab, come back later, and your work is still there.
+        Click <em>Clear Saved Data</em> to start fresh.
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section>
+    <div class="container">
+      <h2>Features</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="feature-icon">&#128202;</span>
+          <strong>Fit Assessment</strong>
+          <p>Scores must-haves (70%) and nice-to-haves (30%) with a clear recommendation tier</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9998;</span>
+          <strong>Interactive Overrides</strong>
+          <p>Click match icons to cycle strong/partial/gap. Toggle skills between matched and missing.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128196;</span>
+          <strong>Tailored Documents</strong>
+          <p>Cover letter and resume generated from your data, prioritized by JD relevance</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#127912;</span>
+          <strong>7 Style Presets</strong>
+          <p>3 professional + 4 fun presets. Switch instantly on the Documents step.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128230;</span>
+          <strong>Word Download</strong>
+          <p>Export cover letter and resume as .doc files that open in Microsoft Word</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128203;</span>
+          <strong>Copy to Clipboard</strong>
+          <p>One-click copy of document HTML for pasting into emails or editors</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Style Presets -->
+  <section>
+    <div class="container">
+      <h2>Style Presets</h2>
+      <p>Choose the right tone for the job &mdash; or have some fun with a novelty preset.</p>
+
+      <h3>Professional</h3>
+      <div class="preset-grid">
+        <div class="preset-card preset-modern">
+          <div class="preset-label">Tech &bull; Corporate &bull; Consulting</div>
+          <h4>Modern Professional</h4>
+          <p>Clean, contemporary layout with navy accents. The safe default.</p>
+          <div class="preset-font">Segoe UI / Calibri</div>
+        </div>
+        <div class="preset-card preset-classic">
+          <div class="preset-label">Finance &bull; Law &bull; Healthcare</div>
+          <h4>Classic</h4>
+          <p>Conservative serif styling with uppercase headers. Signals tradition.</p>
+          <div class="preset-font">Georgia / Calibri</div>
+        </div>
+        <div class="preset-card preset-creative">
+          <div class="preset-label">Design &bull; Marketing &bull; Startups</div>
+          <h4>Creative</h4>
+          <p>Personality-forward with industry-adaptive accent colors and tag clouds.</p>
+          <div class="preset-font">Segoe UI / Helvetica Neue</div>
+        </div>
+      </div>
+
+      <h3>Fun &amp; Novelty</h3>
+      <p style="color: var(--muted); margin-bottom: 12px;">
+        Real, functional documents &mdash; just with personality.
+        Great for internal applications, creative teams, or making your friends laugh.
+      </p>
+      <div class="preset-grid">
+        <div class="preset-card preset-buccaneer">
+          <div class="preset-label">Nautical Adventurer</div>
+          <h4>Rogue Buccaneer</h4>
+          <p>Parchment background, gold borders, nautical metaphors. Jobs are "voyages," skills are your "arsenal."</p>
+          <div class="preset-font">Georgia / Times New Roman</div>
+        </div>
+        <div class="preset-card preset-scholar">
+          <div class="preset-label">Pink Powerhouse</div>
+          <h4>Sorority Scholar</h4>
+          <p>Hot pink accents, enthusiastic tone. "Yes, I'm THAT Candidate." Confident and unstoppable.</p>
+          <div class="preset-font">Georgia / Playfair Display</div>
+        </div>
+        <div class="preset-card preset-operative">
+          <div class="preset-label">Secret Agent</div>
+          <h4>CLASSIFIED OPERATIVE</h4>
+          <p>Monospace font, CLASSIFIED stamps, mission briefing format. Experience is [REDACTED].</p>
+          <div class="preset-font">Courier New</div>
+        </div>
+        <div class="preset-card preset-bard">
+          <div class="preset-label">Shakespearean</div>
+          <h4>Renaissance Bard</h4>
+          <p>Iambic pentameter, gold flourishes, Early Modern English. "To apply or not &mdash; there is no question here."</p>
+          <div class="preset-font">Palatino / Georgia</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How the Assessment Works -->
+  <section>
+    <div class="container">
+      <h2>How the Assessment Works</h2>
+      <p>
+        The fit assessment uses heuristic NLP &mdash; no AI model needed.
+        It extracts requirements from the job description, matches them against your resume,
+        and calculates a weighted score.
+      </p>
+      <h3>Scoring</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>Weight</th>
+            <th>How It&rsquo;s Measured</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Must-Have Requirements</td>
+            <td>70%</td>
+            <td>Keyword overlap, synonym matching, Jaccard similarity per bullet</td>
+          </tr>
+          <tr>
+            <td>Nice-to-Have Requirements</td>
+            <td>30%</td>
+            <td>Same matching engine, lower weight</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Recommendation Tiers</h3>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>Overall</th>
+            <th>Must-Haves</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:#2e7d32">Strong Fit</strong></td>
+            <td>80%+</td>
+            <td>80%+</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#1976d2">Good Fit</strong></td>
+            <td>60&ndash;79%</td>
+            <td>70%+</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#ed6c02">Stretch Fit</strong></td>
+            <td>50&ndash;59%</td>
+            <td>60%+</td>
+          </tr>
+          <tr>
+            <td><strong style="color:#d32f2f">Poor Fit</strong></td>
+            <td>&lt; 50%</td>
+            <td>&lt; 60%</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="tip">
+        Disagree with the assessment? Click any match icon to cycle between
+        <strong>Strong</strong>, <strong>Partial</strong>, and <strong>Gap</strong>.
+        Click skill chips to move them between matched and missing.
+        Then click <em>Update Scores &amp; Documents</em> to recalculate.
+      </div>
+    </div>
+  </section>
+
+  <!-- Edition Comparison -->
+  <section>
+    <div class="container">
+      <h2>Which Edition Should I Use?</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Artifact</th>
+            <th>Web Chat</th>
+            <th>CLI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Requirements</td>
+            <td>Any browser</td>
+            <td>Claude.ai account</td>
+            <td>Claude Code + Python</td>
+          </tr>
+          <tr>
+            <td>AI-powered analysis</td>
+            <td>&mdash;</td>
+            <td>Yes</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td>Heuristic fit scoring</td>
+            <td>Yes</td>
+            <td>Yes</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td>Interactive overrides</td>
+            <td>Yes</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td>Live style switching</td>
+            <td>Yes</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td>Fun presets</td>
+            <td>7 presets</td>
+            <td>3 presets</td>
+            <td>3 presets</td>
+          </tr>
+          <tr>
+            <td>Output format</td>
+            <td>.doc + clipboard</td>
+            <td>.docx</td>
+            <td>.docx</td>
+          </tr>
+          <tr>
+            <td>Portfolio integration</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td>Yes</td>
+          </tr>
+          <tr>
+            <td>Works offline</td>
+            <td>Yes</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td>Best for</td>
+            <td>Quick, visual, fun</td>
+            <td>Free users</td>
+            <td>Power users</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="container">
+      <h2>Frequently Asked Questions</h2>
+
+      <details class="faq-item">
+        <summary>Does this send my data anywhere?</summary>
+        <div class="faq-answer">
+          No. Everything runs locally in your browser. No network requests are made.
+          Your job descriptions and resume text never leave your machine.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>What&rsquo;s the difference between .doc and .docx?</summary>
+        <div class="faq-answer">
+          The artifact exports <code>.doc</code> files using an MHTML format that Word can open.
+          They work in Microsoft Word and LibreOffice but may look slightly different than native <code>.docx</code>.
+          For pixel-perfect Word documents, use the CLI or Web Chat edition.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Can I use a fun preset for a real application?</summary>
+        <div class="faq-answer">
+          The fun presets produce complete, functional documents with all the right sections.
+          Whether to actually submit one is between you and your risk tolerance.
+          They work great for internal transfers, creative industry roles, or just brightening someone&rsquo;s day.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>How accurate is the fit scoring?</summary>
+        <div class="faq-answer">
+          The scoring uses keyword matching, synonym lookup, and Jaccard similarity &mdash; not an AI model.
+          It&rsquo;s a fast, deterministic approximation. If something looks wrong,
+          use the interactive overrides to correct it and the scores will recalculate instantly.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>My data disappeared &mdash; what happened?</summary>
+        <div class="faq-answer">
+          Your inputs are saved to <code>localStorage</code>, which is per-browser and per-origin.
+          Clearing browser data, using incognito mode, or opening the file from a different location will start fresh.
+          Click <em>Clear Saved Data</em> intentionally to reset.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>Can I use this as a Claude web artifact?</summary>
+        <div class="faq-answer">
+          Yes. The HTML file was designed to work both as a standalone page and as a Claude web chat artifact.
+          Ask Claude to create an artifact, then paste the HTML content.
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="links">
+        <a href="index.html">Web Chat Edition</a>
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills/tree/main/skills/job-apply">CLI Edition</a>
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills">Full Repo</a>
+      </div>
+      <p style="margin-top: 12px;">Built by <a href="https://www.prairieaster.ai/">PrairieAster.Ai</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -2,8 +2,6 @@
 
 Visual styling specifications for resume and cover letter generation. All presets maintain ATS compatibility while optimizing for human reviewers.
 
-> **Implementation note:** The document generator (`generate_word_docs.py`) currently implements the **Modern Professional** style only. Classic and Creative presets are defined here as reference specifications for future implementation. When Claude selects a style, the content strategy (tone, structure, keyword emphasis) should match the selected preset, but the visual output (colors, fonts, spacing) will use Modern Professional styling.
-
 ## The 6-Second Rule
 
 Hiring managers spend **6-10 seconds** scanning a resume before deciding to read further. Design elements should:
@@ -27,7 +25,7 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - **Section spacing:** 16-20pt between sections
 
 ### Typography
-- **Name:** 22pt, bold (accent color)
+- **Name:** 18-20pt, bold
 - **Section headers:** 12-14pt, bold, UPPERCASE or Title Case
 - **Body text:** 11pt
 - **Font family:** Calibri, Arial, Garamond, or Georgia
@@ -52,10 +50,14 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - **Graphics:** None
 - **Photos:** Never (in US/UK markets)
 
-### Header Layout
-- Name: 22-24pt, accent color, bold
-- Contact: pipe-separated on one line, 10pt secondary color
-- Accent-colored horizontal rule below contact info
+### Markdown Template Header
+```markdown
+# {Name}
+
+{Phone} | {Email} | {LinkedIn} | {Location}
+
+---
+```
 
 ---
 
@@ -99,11 +101,19 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 - **Graphics:** None in body; subtle header styling okay
 - **Name styling:** Can include colored accent bar or underline
 
-### Header Layout
-- Name: 22-24pt, accent color, bold
-- Target title: 12pt, bold, below name
-- Contact: pipe-separated on one line, 10pt secondary color
-- Accent-colored horizontal rule below contact info
+### Markdown Template Header
+```markdown
+<div style="border-left: 4px solid #2b6cb0; padding-left: 12px;">
+
+# {Name}
+**{Target Title}**
+
+</div>
+
+{Phone} | {Email} | {LinkedIn} | {Portfolio}
+
+---
+```
 
 ### Two-Column Variant (Contact Sidebar)
 ```markdown
@@ -154,14 +164,12 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 | Accent secondary | Lighter tint of primary | - |
 | Background accent | Very light tint | 5-10% opacity of primary |
 
-**Accent colors by creative sub-industry** (use only for large text 18pt+ bold or decorative elements — many do not meet WCAG AA 4.5:1 for body text on white):
+**Accent colors by creative sub-industry:**
 - Design/UX: Coral `#f56565` or Purple `#805ad5`
 - Marketing: Orange `#dd6b20` or Magenta `#d53f8c`
 - Advertising: Bold Blue `#3182ce` or Yellow `#d69e2e`
 - Startups: Teal `#319795` or Green `#38a169`
 - Media: Red `#c53030` or Deep Purple `#6b46c1`
-
-Body text should always use `#2d3748` (Dark Gray, 10:1 contrast) regardless of accent choice.
 
 ### Visual Elements
 - **Dividers:** Can use colored blocks, geometric shapes
@@ -178,11 +186,17 @@ Body text should always use `#2d3748` (Dark Gray, 10:1 contrast) regardless of a
 - Standard bullet points for achievements
 - No graphics interrupting the content flow
 
-### Header Layout
-- Name: 24-32pt, accent color, bold display weight
-- Target title + specialty: below name
-- Contact: pipe-separated, 10pt secondary color
-- Creative elements (color blocks, gradients) limited to header area only
+### Markdown Template Header
+```markdown
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 24px; margin: -20px -20px 20px -20px;">
+
+# {Name}
+### {Target Title} | {Specialty}
+
+{Phone} | {Email} | {Portfolio} | {LinkedIn}
+
+</div>
+```
 
 ### Skills Section (Creative)
 ```markdown
@@ -194,6 +208,89 @@ Body text should always use `#2d3748` (Dark Gray, 10:1 contrast) regardless of a
 
 **Strategy:** User Research | A/B Testing | Analytics | Brand Development
 ```
+
+---
+
+## Fun & Novelty Presets
+
+These presets are available in the **Artifact Edition** (self-contained HTML tool). They produce real, functional resumes and cover letters — just with personality. Great for internal applications, creative industries, or making your friends laugh.
+
+> **Note:** Fun presets are for the artifact only. The CLI edition generates .docx files using the three professional presets above.
+
+### Preset 4: Rogue Buccaneer
+
+**Archetype:** Seafaring adventurer, pirate captain
+
+**Tone:** Nautical metaphor throughout — jobs are "voyages," skills are an "arsenal," experience entries are "exploits." Formal but swashbuckling.
+
+| Element | Value |
+|---------|-------|
+| Font | Georgia, Times New Roman (serif) |
+| Background | Parchment `#f4e8c1` |
+| Headings | Navy `#1c2841` |
+| Subheadings | Brown `#8b4513` |
+| Accent/borders | Gold `#c9b037` |
+
+**Cover letter sections:** Notable Exploits, Arsenal of Talents, Why This Voyage
+**Resume sections:** Captain's Summary, Arsenal of Talents, Voyages & Exploits, Charts & Credentials, Letters of Marque
+
+---
+
+### Preset 5: Sorority Scholar
+
+**Archetype:** Ambitious pink powerhouse, legally unstoppable
+
+**Tone:** Enthusiastic, confident, exclamation marks and bold claims — but backed by real evidence. "Yes, I'm THAT Candidate."
+
+| Element | Value |
+|---------|-------|
+| Font | Georgia, Playfair Display (serif) |
+| Headings | Hot pink `#d63384` |
+| Borders | Pink `#ff69b4` / `#ffb6c1` |
+| Strong text | Pink `#d63384` |
+
+**Cover letter sections:** What I Bring to the Table, Why Me? Why Now?
+**Resume sections:** About Me, Superpowers, Experience (a.k.a. How I Conquered the World), Gold Stars & Certifications
+
+---
+
+### Preset 6: Classified Operative
+
+**Archetype:** Secret agent, intelligence operative
+
+**Tone:** Military brevity, uppercase headings, monospace font. Uses "CLASSIFIED" stamp, [REDACTED] placeholders, and mission terminology.
+
+| Element | Value |
+|---------|-------|
+| Font | Courier New (monospace) |
+| Background | Light gray `#fafafa` |
+| Headings | Black `#000000` (uppercase, letter-spaced) |
+| Subheadings | Red `#c0392b` |
+| Border | Heavy `2px solid #333` |
+| Special | Rotated "CLASSIFIED" stamp element |
+
+**Cover letter sections:** MISSION RECORD, OPERATIONAL CAPABILITIES, CLOSING BRIEF
+**Resume sections:** AGENT PROFILE, OPERATIONAL CAPABILITIES, MISSION HISTORY, TRAINING & CREDENTIALS, CLEARANCES & CERTIFICATIONS
+
+---
+
+### Preset 7: Renaissance Bard
+
+**Archetype:** Shakespearean player, theatrical performer
+
+**Tone:** Iambic pentameter in fixed template text. Early Modern English flavor — "forsooth," "prithee," "thy court." Decorative flourishes between sections.
+
+| Element | Value |
+|---------|-------|
+| Font | Palatino Linotype, Palatino, Georgia (serif) |
+| Background | Cream `#fdf6e3` |
+| Headings | Purple `#4b0082` (centered) |
+| Subheadings | Burgundy `#800020` (italic) |
+| Accent/borders | Gold `#c9b037` |
+| Special | Decorative flourish dividers |
+
+**Cover letter sections:** Of Deeds Most Worthy, Acts of Valor True; The Player's Repertoire; The Final Soliloquy
+**Resume sections:** The Prologue, Wherein Our Player Speaks; The Player's Repertoire of Worthy Arts; Of Deeds Most Worthy, Acts of Valor True; Of Scholarly Pursuits and Letters Earned
 
 ---
 
@@ -239,7 +336,7 @@ Body text should always use `#2d3748` (Dark Gray, 10:1 contrast) regardless of a
 
 | Element | Classic | Modern | Creative |
 |---------|---------|--------|----------|
-| Name | 22pt | 20-24pt | 24-32pt |
+| Name | 18-20pt | 20-24pt | 24-32pt |
 | Title/Tagline | 12pt | 12-14pt | 14-16pt |
 | Section headers | 12-14pt | 13-14pt | 12-14pt |
 | Job titles | 11pt bold | 11pt bold | 11pt bold |
@@ -257,11 +354,36 @@ Regardless of visual style, ensure:
 - [ ] No text embedded in images
 - [ ] No tables for main content (contact sidebar tables okay)
 - [ ] Single-column for main content area
-- [ ] Output as .docx (preferred by recruiters and ATS systems)
+- [ ] PDF exported with selectable text
 - [ ] No headers/footers with critical information
 - [ ] Font size minimum 10pt
 - [ ] Margins minimum 0.5 inch
 - [ ] File size under 2MB
+
+---
+
+## Rendering Notes
+
+When generating markdown documents:
+
+1. **For immediate use:** Standard markdown renders well in most contexts
+2. **For styled PDF:** Include CSS style block at top or use pandoc with custom CSS
+3. **For Word conversion:** Stick to standard markdown; avoid HTML blocks
+4. **For web portfolio:** HTML/CSS blocks render correctly
+
+### CSS Style Block (Optional)
+```html
+<style>
+:root {
+  --accent-color: #1a5276;  /* WCAG AA accessible navy blue */
+  --text-primary: #1a202c;
+  --text-secondary: #374151;  /* WCAG AA accessible dark gray */
+}
+h1 { color: var(--accent-color); }
+h2 { border-bottom: 2px solid var(--accent-color); padding-bottom: 4px; }
+strong { color: var(--text-primary); }
+</style>
+```
 
 ---
 
