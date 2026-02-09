@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code Edition &mdash; Job Apply Skill</title>
+  <style>
+    :root {
+      --accent: #7d60a6;
+      --accent-hover: #6b4f94;
+      --accent-light: #856da6;
+      --secondary: #7fa4cf;
+      --bg: #fafafa;
+      --card: #ffffff;
+      --text: #2d3436;
+      --muted: #636e72;
+      --border: #dfe6e9;
+      --code-bg: #f3eff8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---- Shared Nav ---- */
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      flex-wrap: wrap;
+    }
+    .site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .site-nav a:hover { color: var(--accent); background: var(--code-bg); }
+    .site-nav a.active { color: var(--accent); font-weight: 600; }
+    .site-nav .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: auto;
+      color: var(--text);
+      font-weight: 600;
+      padding: 4px 0;
+    }
+    .site-nav .nav-brand:hover { color: var(--accent); background: none; }
+    .site-nav .nav-brand img { height: 22px; }
+    .site-nav .nav-sep { color: var(--border); font-size: 1.1rem; user-select: none; padding: 0; }
+    .site-nav .nav-home { font-size: 1.1rem; padding: 4px 6px; }
+
+    /* ---- Hero ---- */
+    .hero {
+      text-align: center;
+      padding: 72px 24px 40px;
+    }
+    .hero .logo { display: block; height: 56px; margin: 0 auto 28px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 12px; }
+    .hero .tagline { font-size: 1.15rem; color: var(--muted); max-width: 540px; margin: 0 auto 36px; }
+
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .hero-badge {
+      background: var(--code-bg);
+      color: var(--accent);
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    /* ---- Sections ---- */
+    section { padding: 48px 0; }
+    section + section { border-top: 1px solid var(--border); }
+    section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 24px; }
+    section p { margin-bottom: 12px; }
+
+    /* ---- Code ---- */
+    code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* ---- Feature grid ---- */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .feature-card .feature-icon { font-size: 1.6rem; margin-bottom: 8px; display: block; }
+    .feature-card strong { display: block; margin-bottom: 4px; }
+    .feature-card p { font-size: 0.95rem; color: var(--muted); margin: 0; }
+
+    /* ---- Steps ---- */
+    .steps {
+      counter-reset: step-counter;
+      list-style: none;
+      margin-top: 12px;
+    }
+    .steps li {
+      counter-increment: step-counter;
+      position: relative;
+      padding: 16px 20px 16px 56px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .steps li::before {
+      content: counter(step-counter);
+      position: absolute;
+      left: 18px;
+      top: 16px;
+      width: 28px;
+      height: 28px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ---- Tip block ---- */
+    .tip {
+      background: var(--code-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+    .tip strong { display: block; margin-bottom: 4px; }
+    .tip a { color: var(--accent); text-decoration: none; }
+    .tip a:hover { text-decoration: underline; }
+
+    /* ---- FAQ items ---- */
+    .faq-item {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .faq-item summary {
+      padding: 14px 20px;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::before {
+      content: "\25B6";
+      display: inline-block;
+      margin-right: 10px;
+      font-size: 0.7rem;
+      transition: transform 0.2s;
+    }
+    .faq-item[open] summary::before { transform: rotate(90deg); }
+    .faq-item .faq-body {
+      padding: 0 20px 16px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    /* ---- Footer ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    footer .links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+
+    /* ---- Mobile ---- */
+    @media (max-width: 600px) {
+      .hero { padding: 48px 16px 28px; }
+      .hero h1 { font-size: 1.8rem; }
+      .hero .tagline { font-size: 1rem; }
+      section { padding: 32px 0; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .site-nav { padding: 8px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a class="nav-brand" href="https://www.prairieaster.ai/">
+      <img src="logo.svg" alt="PrairieAster.Ai">
+    </a>
+    <a href="index.html" class="nav-home" title="Home">&#127968;</a>
+    <a href="webchat.html">Web Chat</a>
+    <a href="artifact.html">Artifact</a>
+    <a href="claude-code.html" class="active">Claude Code</a>
+    <span class="nav-sep">|</span>
+    <a href="https://github.com/PrairieAster-Ai/claude-code-skills/tree/main/skills/job-apply">Docs</a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <h1>Claude Code Edition</h1>
+    <p class="tagline">
+      The full-featured CLI workflow. Portfolio integration, profile management, and polished Word documents &mdash; all from your terminal.
+    </p>
+    <div class="hero-badges">
+      <span class="hero-badge">&#128187; CLI workflow</span>
+      <span class="hero-badge">&#128196; .docx output</span>
+      <span class="hero-badge">&#128188; Portfolio integration</span>
+      <span class="hero-badge">&#128100; Profile management</span>
+    </div>
+  </header>
+
+  <!-- Quick Start -->
+  <section>
+    <div class="container">
+      <h2>Quick Start</h2>
+      <ol class="steps">
+        <li>Install Python dependencies: <code>pip3 install python-docx pyyaml --user</code></li>
+        <li>Clone the skill: <code>git clone https://github.com/PrairieAster-Ai/claude-code-skills.git</code> then <code>cp -r claude-code-skills/skills/job-apply ~/.claude/skills/</code></li>
+        <li>Import your resume: <code>python3 ~/.claude/skills/job-apply/import_resume.py</code></li>
+        <li>In Claude Code, run: <code>/job-apply [paste job description]</code></li>
+        <li>Review fit assessment, confirm, and get your documents</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section>
+    <div class="container">
+      <h2>Features</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="feature-icon">&#128202;</span>
+          <strong>Fit Assessment</strong>
+          <p>T-chart evaluation with must-have/nice-to-have scoring, gap analysis, and recommendation tiers</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128196;</span>
+          <strong>Word Documents</strong>
+          <p>Professional .docx output with industry-matched styling, ATS-optimized and human-scannable</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128188;</span>
+          <strong>Portfolio Integration</strong>
+          <p>Automatically matches your coding projects to job requirements with achievement metrics</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128100;</span>
+          <strong>Profile Management</strong>
+          <p>Save multiple profiles, switch between them, test new user onboarding</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#127912;</span>
+          <strong>Style Presets</strong>
+          <p>Classic, Modern Professional, and Creative styling with WCAG AA accessible colors</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128269;</span>
+          <strong>Gap Analysis</strong>
+          <p>Identifies gaps in your qualifications and generates mitigation language for your cover letter</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- What Claude Code Does -->
+  <section>
+    <div class="container">
+      <h2>What Claude Code Does</h2>
+      <ol class="steps">
+        <li>Checks dependencies and loads your profile</li>
+        <li>Parses the job description for requirements, skills, and industry</li>
+        <li>Scores your fit with a detailed T-chart</li>
+        <li>Asks you to review and confirm</li>
+        <li>Generates tailored cover letter and resume as .docx</li>
+        <li>Opens the output folder and logs the application</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Configuration -->
+  <section>
+    <div class="container">
+      <h2>Configuration</h2>
+      <div class="tip">
+        <strong>Tip</strong>
+        Your <code>config.yaml</code> holds contact info, qualifications, skills, experience, and portfolio projects. See the <a href="https://github.com/PrairieAster-Ai/claude-code-skills/blob/main/skills/job-apply/config.example.yaml">full config reference</a> for all available options.
+      </div>
+    </div>
+  </section>
+
+  <!-- Troubleshooting -->
+  <section>
+    <div class="container">
+      <h2>Troubleshooting</h2>
+      <details class="faq-item">
+        <summary>python-docx not found</summary>
+        <div class="faq-body">
+          Run <code>pip3 install python-docx pyyaml --user</code> to install the required packages. On macOS, you may need to use a virtual environment instead of the <code>--user</code> flag.
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>No config.yaml found</summary>
+        <div class="faq-body">
+          Copy the example config with <code>cp config.example.yaml config.yaml</code> or run the import wizard with <code>python3 ~/.claude/skills/job-apply/import_resume.py</code> to generate one from your resume.
+        </div>
+      </details>
+      <details class="faq-item">
+        <summary>Documents look different</summary>
+        <div class="faq-body">
+          Make sure you are opening the <code>.docx</code> files in Microsoft Word or a compatible word processor. Basic text viewers and some lightweight editors may not render the formatting correctly.
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="links">
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills">GitHub</a>
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills/tree/main/skills/job-apply">Full Docs</a>
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills#contributing">Contributing</a>
+      </div>
+      <p style="margin-top: 12px;">Built by <a href="https://www.prairieaster.ai/">PrairieAster.Ai</a></p>
+    </div>
+  </footer>
+
+</body>
+</html>

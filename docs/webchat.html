@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Chat Edition &mdash; Job Apply Skill</title>
+  <style>
+    :root {
+      --accent: #7d60a6;
+      --accent-hover: #6b4f94;
+      --accent-light: #856da6;
+      --secondary: #7fa4cf;
+      --bg: #fafafa;
+      --card: #ffffff;
+      --text: #2d3436;
+      --muted: #636e72;
+      --border: #dfe6e9;
+      --code-bg: #f3eff8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.6;
+    }
+
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    /* ---- Shared Nav ---- */
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      flex-wrap: wrap;
+    }
+    .site-nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .site-nav a:hover { color: var(--accent); background: var(--code-bg); }
+    .site-nav a.active { color: var(--accent); font-weight: 600; }
+    .site-nav .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-right: auto;
+      color: var(--text);
+      font-weight: 600;
+      padding: 4px 0;
+    }
+    .site-nav .nav-brand:hover { color: var(--accent); background: none; }
+    .site-nav .nav-brand img { height: 22px; }
+    .site-nav .nav-sep { color: var(--border); font-size: 1.1rem; user-select: none; padding: 0; }
+    .site-nav .nav-home { font-size: 1.1rem; padding: 4px 6px; }
+
+    /* ---- Hero ---- */
+    .hero {
+      text-align: center;
+      padding: 72px 24px 40px;
+    }
+    .hero .logo { display: block; height: 56px; margin: 0 auto 28px; }
+    .hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 12px; }
+    .hero .tagline { font-size: 1.15rem; color: var(--muted); max-width: 540px; margin: 0 auto 36px; }
+
+    .hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    .hero-badge .icon { font-size: 1rem; }
+
+    .download-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .download-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      font-size: 1.05rem;
+      font-weight: 600;
+      padding: 14px 28px;
+      border-radius: 8px;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .download-btn:hover {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+    }
+    .download-btn .icon { font-size: 1.2em; }
+    .download-note {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    /* ---- Sections ---- */
+    section { padding: 48px 0; }
+    section + section { border-top: 1px solid var(--border); }
+    section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 24px; }
+    section h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      margin-top: 28px;
+    }
+    section p { margin-bottom: 12px; }
+
+    /* ---- Badge ---- */
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 4px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+    .badge-free { background: #d4edda; color: #155724; }
+    .badge-pro { background: #cce5ff; color: #004085; }
+
+    /* ---- Steps ---- */
+    .steps {
+      list-style: none;
+      counter-reset: step;
+    }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .steps li::before {
+      content: counter(step);
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .steps li .step-text {
+      padding-top: 5px;
+    }
+    .steps code {
+      background: var(--card);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* ---- Prompt Block ---- */
+    .prompt-block {
+      position: relative;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-top: 12px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .copy-btn:hover { background: var(--accent-hover); }
+
+    /* ---- Feature grid ---- */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 12px;
+    }
+    .feature-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .feature-card .feature-icon { font-size: 1.6rem; margin-bottom: 8px; display: block; }
+    .feature-card strong { display: block; margin-bottom: 4px; }
+    .feature-card p { font-size: 0.95rem; color: var(--muted); margin: 0; }
+
+    /* ---- Flow List ---- */
+    .flow-list {
+      list-style: none;
+      counter-reset: flow;
+      margin-top: 12px;
+    }
+    .flow-list li {
+      counter-increment: flow;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .flow-list li::before {
+      content: counter(flow);
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .flow-list li .flow-text {
+      padding-top: 6px;
+    }
+    .flow-list li .flow-text strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+    .flow-list li .flow-text p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    /* ---- Tip ---- */
+    .tip {
+      background: var(--code-bg);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 8px 8px 0;
+      padding: 20px 24px;
+      margin-top: 16px;
+    }
+    .tip code {
+      background: var(--card);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+
+    /* ---- Troubleshooting List ---- */
+    .troubleshooting-list {
+      list-style: none;
+      padding: 0;
+    }
+    .troubleshooting-list li {
+      margin-bottom: 16px;
+      padding-left: 24px;
+      position: relative;
+    }
+    .troubleshooting-list li::before {
+      content: '\26A0';
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+    .troubleshooting-list li strong {
+      display: block;
+      margin-bottom: 2px;
+    }
+    .troubleshooting-list li p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0;
+    }
+
+    /* ---- Comparison table ---- */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.95rem;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th {
+      background: var(--code-bg);
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .comparison-table td:first-child { font-weight: 500; }
+
+    /* ---- Footer ---- */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 36px 0;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    footer .links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+
+    /* ---- Mobile ---- */
+    @media (max-width: 600px) {
+      .hero { padding: 48px 16px 28px; }
+      .hero h1 { font-size: 1.8rem; }
+      .hero .tagline { font-size: 1rem; }
+      section { padding: 32px 0; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .comparison-table { font-size: 0.85rem; }
+      .comparison-table th, .comparison-table td { padding: 8px 10px; }
+      .site-nav { padding: 8px 16px; }
+      .download-buttons { flex-direction: column; align-items: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="site-nav">
+    <a class="nav-brand" href="https://www.prairieaster.ai/">
+      <img src="logo.svg" alt="PrairieAster.Ai">
+    </a>
+    <a href="index.html" class="nav-home" title="Home">&#127968;</a>
+    <a href="webchat.html" class="active">Web Chat</a>
+    <a href="artifact.html">Artifact</a>
+    <a href="claude-code.html">Claude Code</a>
+    <span class="nav-sep">|</span>
+    <a href="https://github.com/PrairieAster-Ai/claude-code-skills/tree/main/skills/job-apply">Docs</a>
+  </nav>
+
+  <!-- Hero -->
+  <header class="hero">
+    <h1>Web Chat Edition</h1>
+    <p class="tagline">
+      Generate tailored cover letters and resumes using Claude's free web chat. No install required.
+    </p>
+    <div class="hero-badges">
+      <span class="hero-badge"><span class="icon">&#128172;</span> Claude.ai</span>
+      <span class="hero-badge"><span class="icon">&#128196;</span> .docx output</span>
+      <span class="hero-badge"><span class="icon">&#9889;</span> 3-4 messages</span>
+    </div>
+    <div class="download-buttons">
+      <a class="download-btn"
+         href="https://github.com/PrairieAster-Ai/claude-code-skills/releases/download/v1.0.0/SKILL-webchat.md"
+         download="SKILL-webchat.md">
+        <span class="icon">&#11015;</span> SKILL-webchat.md
+      </a>
+      <a class="download-btn"
+         href="https://github.com/PrairieAster-Ai/claude-code-skills/releases/download/v1.0.0/generate_word_docs_web.py"
+         download="generate_word_docs_web.py">
+        <span class="icon">&#11015;</span> generate_word_docs_web.py
+      </a>
+    </div>
+    <p class="download-note">Download both files to get started</p>
+  </header>
+
+  <!-- Quick Start -->
+  <section>
+    <div class="container">
+      <h2>Quick Start</h2>
+
+      <h3>Free Tier <span class="badge badge-free">Free</span></h3>
+      <ol class="steps">
+        <li>
+          <span class="step-text">
+            <strong>Download</strong> <code>SKILL-webchat.md</code> and <code>generate_word_docs_web.py</code> from above
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Open</strong> <a href="https://claude.ai/" style="color: var(--accent);">claude.ai</a> and start a new conversation
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Attach</strong> <code>SKILL-webchat.md</code>, your resume (PDF or text), and the job description
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Send the prompt</strong> below &mdash; Claude will generate the fit assessment and documents
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Copy the Python output</strong> into <code>generate_word_docs_web.py</code> and run it to create .docx files
+          </span>
+        </li>
+      </ol>
+
+      <h3>Pro Tier <span class="badge badge-pro">Pro</span></h3>
+      <ol class="steps">
+        <li>
+          <span class="step-text">
+            <strong>Download</strong> <code>SKILL-webchat.md</code> and <code>generate_word_docs_web.py</code> from above
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Open</strong> <a href="https://claude.ai/" style="color: var(--accent);">claude.ai</a> and start a new project or conversation
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Add</strong> <code>SKILL-webchat.md</code> to your project knowledge, then attach your resume and job description
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Send the prompt</strong> below &mdash; Claude will generate the fit assessment and documents
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            <strong>Copy the Python output</strong> into <code>generate_word_docs_web.py</code> and run it to create .docx files
+          </span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Your First Prompt -->
+  <section>
+    <div class="container">
+      <h2>Your First Prompt</h2>
+      <p>Paste this into your Claude conversation after attaching your files:</p>
+      <div class="prompt-block" id="prompt-text">Follow the instructions in SKILL-webchat.md. Analyze the attached resume against the job description. Produce the fit assessment, then generate a tailored cover letter and resume. Output the Python code block I can paste into generate_word_docs_web.py to create the .docx files.<button class="copy-btn" onclick="copyPrompt()">Copy</button></div>
+    </div>
+  </section>
+
+  <!-- What You Get -->
+  <section>
+    <div class="container">
+      <h2>What You Get</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <span class="feature-icon">&#128202;</span>
+          <strong>Fit Score</strong>
+          <p>Must-have and nice-to-have scoring with a clear recommendation tier</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128196;</span>
+          <strong>Tailored Resume</strong>
+          <p>Skills prioritized and bullets reordered to match the job description</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9993;</span>
+          <strong>Cover Letter</strong>
+          <p>Evidence-backed paragraphs with gap mitigation language built in</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128218;</span>
+          <strong>Interview Prep</strong>
+          <p>Key talking points and anticipated questions based on your fit analysis</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works -->
+  <section>
+    <div class="container">
+      <h2>How It Works</h2>
+      <ol class="flow-list">
+        <li>
+          <span class="flow-text">
+            <strong>Attach &amp; Prompt</strong>
+            <p>Upload your resume and job description to Claude with the skill file. One prompt kicks off the analysis.</p>
+          </span>
+        </li>
+        <li>
+          <span class="flow-text">
+            <strong>AI Analysis</strong>
+            <p>Claude reads both documents, scores must-have and nice-to-have requirements, and identifies strengths and gaps.</p>
+          </span>
+        </li>
+        <li>
+          <span class="flow-text">
+            <strong>Document Generation</strong>
+            <p>A tailored cover letter and resume are generated with skills reordered and bullets prioritized for the role.</p>
+          </span>
+        </li>
+        <li>
+          <span class="flow-text">
+            <strong>Export to .docx</strong>
+            <p>Copy the Python output into the helper script and run it. Polished Word documents land in your working directory.</p>
+          </span>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- Returning Users -->
+  <section>
+    <div class="container">
+      <h2>Returning Users</h2>
+      <div class="tip">
+        <strong>Save time with profile.yaml</strong> &mdash; If you use this skill regularly,
+        create a <code>profile.yaml</code> with your name, contact info, and key skills.
+        Attach it alongside your resume so Claude can pre-fill your details without re-reading
+        the full document every time. This speeds up analysis and keeps your output consistent across applications.
+      </div>
+    </div>
+  </section>
+
+  <!-- Troubleshooting -->
+  <section>
+    <div class="container">
+      <h2>Troubleshooting</h2>
+      <ul class="troubleshooting-list">
+        <li>
+          <strong>Claude doesn't follow the skill instructions</strong>
+          <p>Make sure <code>SKILL-webchat.md</code> is attached as a file, not pasted inline. Claude reads attached files as structured instructions. If using a Project, add it to project knowledge instead.</p>
+        </li>
+        <li>
+          <strong>The Python script fails or produces empty files</strong>
+          <p>Ensure you have the <code>python-docx</code> package installed (<code>pip install python-docx</code>). Copy the entire code block from Claude's output &mdash; partial copies may be missing closing statements or data definitions.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="links">
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills">GitHub</a>
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills/tree/main/skills/job-apply">Full Docs</a>
+        <a href="https://github.com/PrairieAster-Ai/claude-code-skills#contributing">Contributing</a>
+      </div>
+      <p style="margin-top: 12px;">Built by <a href="https://www.prairieaster.ai/">PrairieAster.Ai</a></p>
+    </div>
+  </footer>
+
+  <script>
+    function copyPrompt() {
+      const text = document.getElementById('prompt-text').innerText.replace('Copy', '').trim();
+      navigator.clipboard.writeText(text).then(function() {
+        const btn = document.querySelector('.copy-btn');
+        btn.textContent = 'Copied!';
+        setTimeout(function() { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+
+</body>
+</html>
