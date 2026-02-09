@@ -94,31 +94,68 @@
 
     .hero-badge .icon { font-size: 1rem; }
 
-    .download-btn {
+    .hero-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .download-btn, .copy-btn {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: var(--accent);
       color: #fff;
       text-decoration: none;
       font-size: 1.05rem;
       font-weight: 600;
       padding: 14px 28px;
       border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
       transition: background 0.2s, transform 0.1s;
     }
 
-    .download-btn:hover {
+    .copy-btn {
+      background: var(--accent);
+    }
+    .copy-btn:hover {
       background: var(--accent-hover);
       transform: translateY(-1px);
     }
 
-    .download-btn .icon { font-size: 1.2em; }
+    .download-btn {
+      background: transparent;
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      padding: 12px 26px;
+    }
+    .download-btn:hover {
+      background: var(--code-bg);
+      transform: translateY(-1px);
+    }
+
+    .download-btn .icon, .copy-btn .icon { font-size: 1.2em; }
 
     .download-note {
       margin-top: 12px;
       font-size: 0.9rem;
       color: var(--muted);
+    }
+
+    .prompt-box {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-top: 12px;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.9rem;
+      color: var(--text);
+      user-select: all;
+      cursor: text;
+      line-height: 1.5;
     }
 
     /* ---- Sections ---- */
@@ -389,11 +426,16 @@
       <span class="hero-badge"><span class="icon">&#128196;</span> .doc export</span>
       <span class="hero-badge"><span class="icon">&#127912;</span> 7 style presets</span>
     </div>
-    <a class="download-btn" id="downloadBtn"
-       href="https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/job-apply-artifact.html">
-      <span class="icon">&#128196;</span> Download Artifact
-    </a>
-    <p class="download-note">Single HTML file &mdash; open in your browser or use as a Claude.ai artifact</p>
+    <div class="hero-actions">
+      <button class="copy-btn" id="copyBtn">
+        <span class="icon">&#128203;</span> Copy HTML to Clipboard
+      </button>
+      <a class="download-btn" id="downloadBtn"
+         href="https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/job-apply-artifact.html">
+        <span class="icon">&#128196;</span> Download File
+      </a>
+    </div>
+    <p class="download-note">Copy the HTML, then paste it into Claude.ai &mdash; see instructions below</p>
   </header>
 
   <!-- How to Use -->
@@ -403,22 +445,32 @@
       <ol class="steps">
         <li>
           <span class="step-text">
-            <strong>Open a conversation</strong> on <a href="https://claude.ai" style="color:var(--accent)">Claude.ai</a> and ask Claude to create an artifact with the HTML file contents
+            <strong>Copy the artifact HTML.</strong> Click the <em>Copy HTML to Clipboard</em> button above.
+            This copies the entire application (~3,400 lines) to your clipboard.
           </span>
         </li>
         <li>
           <span class="step-text">
-            <strong>Paste a job description</strong> and your <strong>resume</strong> into the artifact&rsquo;s input fields
+            <strong>Open <a href="https://claude.ai" style="color:var(--accent)">Claude.ai</a></strong> and start a new conversation.
+            Type this prompt, then paste (Ctrl+V / Cmd+V) the HTML after it:
+            <div class="prompt-box">Create an artifact from this HTML code:</div>
+            Claude will respond with a clickable artifact preview. Click it to open.
           </span>
         </li>
         <li>
           <span class="step-text">
-            Click <strong>Analyze Fit</strong>, then click <strong>Get AI Analysis</strong> for personalized gap strategies, interview prep, and cover letter tips
+            <strong>Paste a job description</strong> and your <strong>resume</strong> into the artifact&rsquo;s input fields, then click <strong>Analyze Fit</strong>.
           </span>
         </li>
         <li>
           <span class="step-text">
-            Review your <strong>tailored cover letter and resume</strong>, pick a style, and download as .doc
+            Click <strong>Get AI Analysis</strong> for personalized gap strategies, interview prep, and cover letter tips.
+            Use the <strong>interactive overrides</strong> to refine match levels, then click AI Analysis again for updated feedback.
+          </span>
+        </li>
+        <li>
+          <span class="step-text">
+            Review your <strong>tailored cover letter and resume</strong>, pick a style preset, and download as .doc.
           </span>
         </li>
       </ol>
@@ -845,13 +897,35 @@
   </footer>
 
 <script>
+  var ARTIFACT_URL = 'https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/skills/job-apply/job-apply-artifact.html';
+
+  // Copy artifact HTML to clipboard
+  document.getElementById('copyBtn').addEventListener('click', function() {
+    var btn = this;
+    var origText = btn.innerHTML;
+    btn.innerHTML = '<span class="icon">&#8987;</span> Fetching...';
+    btn.disabled = true;
+    fetch(ARTIFACT_URL)
+      .then(function(r) { return r.text(); })
+      .then(function(html) {
+        return navigator.clipboard.writeText(html).then(function() {
+          btn.innerHTML = '<span class="icon">&#10003;</span> Copied! Now paste into Claude.ai';
+          setTimeout(function() { btn.innerHTML = origText; btn.disabled = false; }, 3000);
+        });
+      })
+      .catch(function() {
+        btn.innerHTML = '<span class="icon">&#10007;</span> Copy failed — try Download instead';
+        setTimeout(function() { btn.innerHTML = origText; btn.disabled = false; }, 3000);
+      });
+  });
+
   // Cross-origin download: fetch as blob and trigger via object URL
   document.getElementById('downloadBtn').addEventListener('click', function(e) {
     e.preventDefault();
     var btn = this;
     var origText = btn.innerHTML;
     btn.innerHTML = '<span class="icon">&#8987;</span> Downloading...';
-    fetch(btn.href)
+    fetch(ARTIFACT_URL)
       .then(function(r) { return r.blob(); })
       .then(function(blob) {
         var url = URL.createObjectURL(blob);
@@ -865,8 +939,7 @@
         btn.innerHTML = origText;
       })
       .catch(function() {
-        // Fallback: open the raw URL directly
-        window.open(btn.href, '_blank');
+        window.open(ARTIFACT_URL, '_blank');
         btn.innerHTML = origText;
       });
   });
