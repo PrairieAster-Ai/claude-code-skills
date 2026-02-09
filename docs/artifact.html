@@ -595,12 +595,90 @@
           </tr>
         </tbody>
       </table>
+      <h3>Interactive Overrides</h3>
+      <p>
+        The heuristic engine does its best, but you know your experience better than any keyword matcher.
+        Every match level and skill classification is overridable:
+      </p>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Element</th>
+            <th>How to Override</th>
+            <th>Visual Cue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Match icons (✅ ⚠️ ❌)</td>
+            <td>Click any icon to cycle: Strong &rarr; Partial &rarr; Gap &rarr; Strong</td>
+            <td>Icon updates instantly; override banner appears</td>
+          </tr>
+          <tr>
+            <td>Skill chips</td>
+            <td>Click a green chip to move it to Missing; click a red chip to move it to Matched</td>
+            <td>Chip moves between sections; override banner appears</td>
+          </tr>
+          <tr>
+            <td>Scores &amp; documents</td>
+            <td>Click <em>Update Scores &amp; Documents</em> in the override banner</td>
+            <td>Scores recalculate; cover letter and resume regenerate</td>
+          </tr>
+        </tbody>
+      </table>
       <div class="tip">
-        Disagree with the assessment? Click any match icon to cycle between
-        <strong>Strong</strong>, <strong>Partial</strong>, and <strong>Gap</strong>.
-        Click skill chips to move them between matched and missing.
-        Then click <em>Update Scores &amp; Documents</em> to recalculate.
+        A collapsible <strong>&ldquo;How to refine this assessment&rdquo;</strong> guide appears at the top of every assessment,
+        explaining all three override types. It starts open on first view so new users discover the feature naturally.
       </div>
+    </div>
+  </section>
+
+  <!-- AI-Powered Features -->
+  <section>
+    <div class="container">
+      <h2>AI-Powered Features</h2>
+      <p>
+        When the artifact runs inside a <a href="https://claude.ai" style="color:var(--accent)">Claude.ai</a> conversation,
+        it can call Claude directly for personalized analysis. When opened standalone in a browser, it shows a friendly notice
+        explaining how to access the AI features.
+      </p>
+      <h3>Inside Claude.ai</h3>
+      <p>
+        Click <strong>Get AI Analysis</strong> on the assessment step. Claude reads your scores, gaps, and skills,
+        then provides:
+      </p>
+      <div class="feature-grid" style="margin-bottom:20px">
+        <div class="feature-card">
+          <span class="feature-icon">&#129504;</span>
+          <strong>Gap Evaluation</strong>
+          <p>Are gaps truly disqualifying or manageable? Specific, honest assessment.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#127919;</span>
+          <strong>Gap Strategies</strong>
+          <p>One concrete way to frame existing experience for each gap.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#128172;</span>
+          <strong>Interview Prep</strong>
+          <p>3 custom questions based on your exact gaps, with answer frameworks.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">&#9998;</span>
+          <strong>Cover Letter Tips</strong>
+          <p>Top 3 strengths to emphasize and how to frame them.</p>
+        </div>
+      </div>
+      <p>
+        After making overrides, click <strong>Get AI Analysis</strong> again to get updated feedback reflecting your changes.
+      </p>
+
+      <h3>Standalone Browser</h3>
+      <p>
+        When opened directly in a browser (not inside Claude.ai), the AI button is replaced with a notice
+        explaining how to access the feature. All heuristic features &mdash; scoring, overrides, documents &mdash;
+        work identically in both modes.
+      </p>
     </div>
   </section>
 
@@ -626,7 +704,7 @@
           </tr>
           <tr>
             <td>AI-powered analysis</td>
-            <td>&mdash;</td>
+            <td>Inside Claude.ai</td>
             <td>Yes</td>
             <td>Yes</td>
           </tr>
@@ -736,7 +814,9 @@
         <summary>Can I use this as a Claude web artifact?</summary>
         <div class="faq-answer">
           Yes. The HTML file was designed to work both as a standalone page and as a Claude web chat artifact.
-          Ask Claude to create an artifact, then paste the HTML content.
+          Ask Claude to create an artifact, then paste the HTML content. When running inside Claude.ai,
+          you also get access to AI-powered analysis &mdash; click <em>Get AI Analysis</em> on the assessment step
+          for personalized gap strategies, interview prep, and cover letter tips.
         </div>
       </details>
     </div>
