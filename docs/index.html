@@ -3,82 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Generate tailored cover letters and resumes with AI-powered fit scoring. Three editions to choose from. Free and open source from PrairieAster.Ai.">
+  <meta property="og:title" content="Job Apply Skill — AI-Powered Job Application Documents">
+  <meta property="og:description" content="Generate tailored cover letters and resumes with AI-powered fit scoring. Three editions to choose from. Free and open source from PrairieAster.Ai.">
+  <meta property="og:url" content="https://prairieaster-ai.github.io/claude-code-skills/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="PrairieAster.Ai">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Job Apply Skill — AI-Powered Job Application Documents">
+  <meta name="twitter:description" content="Generate tailored cover letters and resumes with AI-powered fit scoring. Three editions to choose from. Free and open source from PrairieAster.Ai.">
   <title>Job Apply Skill &mdash; PrairieAster.Ai</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="styles.css">
   <style>
-    :root {
-      --accent: #7d60a6;
-      --accent-hover: #6b4f94;
-      --accent-light: #856da6;
-      --secondary: #7fa4cf;
-      --bg: #fafafa;
-      --card: #ffffff;
-      --text: #2d3436;
-      --muted: #636e72;
-      --border: #dfe6e9;
-      --code-bg: #f3eff8;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      color: var(--text);
-      background: var(--bg);
-      line-height: 1.6;
-    }
-
-    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
-
-    /* ---- Shared Nav ---- */
-    .site-nav {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 24px;
-      border-bottom: 1px solid var(--border);
-      background: var(--card);
-      flex-wrap: wrap;
-    }
-    .site-nav a {
-      color: var(--muted);
-      text-decoration: none;
-      font-size: 0.9rem;
-      font-weight: 500;
-      padding: 4px 8px;
-      border-radius: 6px;
-      transition: color 0.15s, background 0.15s;
-    }
-    .site-nav a:hover { color: var(--accent); background: var(--code-bg); }
-    .site-nav a.active { color: var(--accent); font-weight: 600; }
-    .site-nav .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-right: auto;
-      color: var(--text);
-      font-weight: 600;
-      padding: 4px 0;
-    }
-    .site-nav .nav-brand:hover { color: var(--accent); background: none; }
-    .site-nav .nav-brand img { height: 22px; }
-    .site-nav .nav-sep { color: var(--border); font-size: 1.1rem; user-select: none; padding: 0; }
-    .site-nav .nav-home { font-size: 1.1rem; padding: 4px 6px; }
-
-    /* ---- Hero ---- */
-    .hero {
-      text-align: center;
-      padding: 72px 24px 40px;
-    }
-    .hero .logo { display: block; height: 56px; margin: 0 auto 28px; }
-    .hero h1 { font-size: 2.4rem; font-weight: 700; margin-bottom: 12px; }
-    .hero .tagline { font-size: 1.15rem; color: var(--muted); max-width: 540px; margin: 0 auto 36px; }
-
-    /* ---- Sections ---- */
-    section { padding: 48px 0; }
-    section + section { border-top: 1px solid var(--border); }
-    section h2 { font-size: 1.6rem; font-weight: 700; margin-bottom: 24px; }
-    section p { margin-bottom: 12px; }
-
     /* ---- Edition Cards ---- */
     .edition-grid {
       display: grid;
@@ -126,65 +63,28 @@
     }
     .edition-card:hover .edition-cta { background: var(--accent-hover); }
 
-    /* ---- Feature grid ---- */
-    .feature-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 12px;
+    /* ---- Recommended badge ---- */
+    .edition-recommended {
+      position: relative;
+      border-color: var(--accent);
+      box-shadow: 0 2px 12px rgba(125,96,166,0.10);
     }
-    .feature-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
+    .edition-recommended .rec-badge {
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 3px 10px;
+      border-radius: 10px;
     }
-    .feature-card .feature-icon { font-size: 1.6rem; margin-bottom: 8px; display: block; }
-    .feature-card strong { display: block; margin-bottom: 4px; }
-    .feature-card p { font-size: 0.95rem; color: var(--muted); margin: 0; }
 
-    /* ---- Comparison table ---- */
-    .comparison-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
-      font-size: 0.95rem;
-    }
-    .comparison-table th, .comparison-table td {
-      padding: 10px 14px;
-      text-align: left;
-      border-bottom: 1px solid var(--border);
-    }
-    .comparison-table th {
-      background: var(--code-bg);
-      font-weight: 600;
-      font-size: 0.9rem;
-    }
-    .comparison-table td:first-child { font-weight: 500; }
-
-    /* ---- Footer ---- */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 36px 0;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.9rem;
-    }
-    footer a { color: var(--accent); text-decoration: none; }
-    footer a:hover { text-decoration: underline; }
-    footer .links { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
-
-    /* ---- Mobile ---- */
     @media (max-width: 600px) {
-      .hero { padding: 48px 16px 28px; }
-      .hero h1 { font-size: 1.8rem; }
-      .hero .tagline { font-size: 1rem; }
-      section { padding: 32px 0; }
       .edition-grid { grid-template-columns: 1fr; }
-      .feature-grid { grid-template-columns: 1fr; }
-      .comparison-table { font-size: 0.85rem; }
-      .comparison-table th, .comparison-table td { padding: 8px 10px; }
-      .site-nav { padding: 8px 16px; }
     }
   </style>
 </head>
@@ -201,6 +101,10 @@
     <a href="claude-code.html">Claude Code</a>
     <span class="nav-sep">|</span>
     <a href="https://github.com/PrairieAster-Ai/claude-code-skills/tree/main/skills/job-apply">Docs</a>
+    <a class="share-cta" onclick="shareOnLinkedIn()" title="Share on LinkedIn">
+      <span class="share-prompt">Find this useful?</span>
+      <span class="share-link">Share on LinkedIn</span>
+    </a>
   </nav>
 
   <!-- Hero -->
@@ -219,18 +123,19 @@
     <div class="container">
       <h2>Choose Your Edition</h2>
       <div class="edition-grid">
+        <a class="edition-card edition-recommended" href="artifact.html">
+          <span class="rec-badge">Recommended</span>
+          <div class="edition-icon">&#9889;</div>
+          <h3>Artifact</h3>
+          <div class="edition-req">Claude.ai Account (free or paid)</div>
+          <p>AI-powered analysis, interactive assessment overrides, live style switching, and 7 presets including novelty themes.</p>
+          <span class="edition-cta">Try It Now</span>
+        </a>
         <a class="edition-card" href="webchat.html">
           <div class="edition-icon">&#128172;</div>
           <h3>Web Chat</h3>
           <div class="edition-req">Claude.ai Account</div>
           <p>Attach your resume to a Claude conversation. AI-powered analysis generates .docx documents.</p>
-          <span class="edition-cta">Get Started</span>
-        </a>
-        <a class="edition-card" href="artifact.html">
-          <div class="edition-icon">&#9889;</div>
-          <h3>Artifact</h3>
-          <div class="edition-req">Claude.ai Account (free or paid)</div>
-          <p>AI-powered analysis, interactive assessment overrides, live style switching, and 7 presets including novelty themes.</p>
           <span class="edition-cta">Get Started</span>
         </a>
         <a class="edition-card" href="claude-code.html">
@@ -290,7 +195,7 @@
           <tr>
             <td>Requirements</td>
             <td>Claude.ai account</td>
-            <td>Any browser</td>
+            <td>Claude.ai account (free)</td>
             <td>Claude Code + Python</td>
           </tr>
           <tr>
@@ -357,6 +262,13 @@
       <p style="margin-top: 12px;">Built by <a href="https://www.prairieaster.ai/">PrairieAster.Ai</a></p>
     </div>
   </footer>
+
+  <script>
+    function shareOnLinkedIn() {
+      var url = encodeURIComponent(window.location.href);
+      window.open('https://www.linkedin.com/sharing/share-offsite/?url=' + url, '_blank', 'width=600,height=600');
+    }
+  </script>
 
 </body>
 </html>

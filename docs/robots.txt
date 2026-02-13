@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://prairieaster-ai.github.io/claude-code-skills/sitemap.xml
