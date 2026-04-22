@@ -111,6 +111,15 @@ def set_document_single_spacing(doc):
         list_style = doc.styles['List Bullet']
         list_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
+    # Configure Heading 2 style at the style level for theme consistency.
+    # This means changing the Word document theme will update all headings.
+    if 'Heading 2' in doc.styles:
+        h2_style = doc.styles['Heading 2']
+        h2_style.font.bold = True
+        h2_style.font.size = Pt(12)
+        h2_style.font.color.rgb = ACCENT_COLOR
+        h2_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+
 
 def add_horizontal_line(paragraph):
     """Add a colored horizontal line below a paragraph."""
@@ -129,6 +138,9 @@ def add_section_heading(doc, text, is_first=False):
     """
     Add a styled section heading with proper spacing.
 
+    Uses Heading 2 paragraph style so ATS parsers can identify section
+    boundaries via document structure, not just visual formatting.
+
     Args:
         doc: Document object
         text: Heading text
@@ -137,14 +149,16 @@ def add_section_heading(doc, text, is_first=False):
     Returns:
         The paragraph object
     """
-    section = doc.add_paragraph()
+    section = doc.add_heading(text, level=2)
     section.paragraph_format.space_before = Pt(6) if is_first else SPACE_BEFORE_HEADING
     section.paragraph_format.space_after = SPACE_AFTER_HEADING
 
-    section_run = section.add_run(text)
-    section_run.bold = True
-    section_run.font.size = Pt(12)
-    section_run.font.color.rgb = ACCENT_COLOR
+    # Override default Heading 2 styling to match our design
+    for run in section.runs:
+        run.bold = True
+        run.font.size = Pt(12)
+        run.font.color.rgb = ACCENT_COLOR
+        run.font.name = None  # Inherit document default, not heading font
     add_horizontal_line(section)
 
     return section
@@ -165,6 +179,54 @@ def _format_cert_detail(cert):
     if cert.get('year'):
         parts.append(cert['year'])
     return ', '.join(str(p) for p in parts)
+
+
+# =============================================================================
+# ATS Character Sanitizer (Workday + similar)
+# =============================================================================
+#
+# Workday and several other ATS systems strip or mangle '<' and '>' characters
+# during text extraction. The result is a butchered keyword like "Capability
+# Epic Story Task" with the hierarchy markers gone, or worse — the section
+# silently dropped. We replace the characters with safe equivalents:
+#
+#   ' > ' (hierarchy)        → ' → '
+#   ' < ' (hierarchy)        → ' ← '
+#   '>N'  (numeric compare)  → 'over N'
+#   '<N'  (numeric compare)  → 'under N'
+#
+# Sanitization runs once at the top of generate_application_documents() so
+# both renderers and any temp-script content benefit. Source data should also
+# avoid these characters (see SKILL.md ATS Optimization section), but this
+# is the defense-in-depth safety net.
+
+_NUMERIC_GT = re.compile(r">\s*(\d)")
+_NUMERIC_LT = re.compile(r"<\s*(\d)")
+
+
+def _sanitize_for_ats(text):
+    """Replace ATS-unsafe '<' and '>' characters in a single string."""
+    if not isinstance(text, str) or not text:
+        return text
+    text = _NUMERIC_GT.sub(r"over \1", text)
+    text = _NUMERIC_LT.sub(r"under \1", text)
+    text = text.replace(">", "\u2192").replace("<", "\u2190")
+    return text
+
+
+def _sanitize_data_for_ats(obj):
+    """Recursively sanitize all string values in a nested dict/list structure.
+
+    URLs cannot legally contain '<' or '>' (RFC 3986), so this is safe to
+    apply across the entire input data tree including link fields.
+    """
+    if isinstance(obj, str):
+        return _sanitize_for_ats(obj)
+    if isinstance(obj, dict):
+        return {k: _sanitize_data_for_ats(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_data_for_ats(v) for v in obj]
+    return obj
 
 
 def sanitize_filename(text, max_length=50):
@@ -226,7 +288,7 @@ def create_cover_letter(candidate, job, content, output_path):
     # Contact info
     contact_parts = [candidate.get('phone', ''), candidate.get('email', ''),
                      candidate.get('linkedin', ''), candidate.get('calendar', '')]
-    contact_text = ' | '.join(p for p in contact_parts if p)
+    contact_text = '  \u00b7  '.join(p for p in contact_parts if p)
 
     contact_p = doc.add_paragraph()
     contact_run = contact_p.add_run(contact_text)
@@ -310,20 +372,85 @@ def create_cover_letter(candidate, job, content, output_path):
     return output_path
 
 
+def _strip_markdown_bold(text):
+    """Remove markdown bold markers (**text**) from text, returning plain text."""
+    return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+
+
+def _add_hyperlink(paragraph, url, text, color="1a5276", size_half_pts="20"):
+    """Append a clickable hyperlink run to a paragraph.
+
+    Uses the document's relationship table so the link is a real Word
+    hyperlink (clickable in Word, Google Docs, Pages, and online viewers)
+    rather than plain text.
+    """
+    part = paragraph.part
+    r_id = part.relate_to(
+        url,
+        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+        is_external=True,
+    )
+
+    hyperlink = OxmlElement('w:hyperlink')
+    hyperlink.set(qn('r:id'), r_id)
+
+    new_run = OxmlElement('w:r')
+    rPr = OxmlElement('w:rPr')
+
+    c = OxmlElement('w:color')
+    c.set(qn('w:val'), color)
+    rPr.append(c)
+
+    u = OxmlElement('w:u')
+    u.set(qn('w:val'), 'single')
+    rPr.append(u)
+
+    sz = OxmlElement('w:sz')
+    sz.set(qn('w:val'), size_half_pts)
+    rPr.append(sz)
+
+    new_run.append(rPr)
+
+    t = OxmlElement('w:t')
+    t.text = text
+    t.set(qn('xml:space'), 'preserve')
+    new_run.append(t)
+
+    hyperlink.append(new_run)
+    paragraph._p.append(hyperlink)
+    return hyperlink
+
+
+def _append_bullet_links(paragraph, links):
+    """Render a bullet's `links` list as ' (label1 · label2)' with real hyperlinks."""
+    if not links:
+        return
+    paragraph.add_run(' (').bold = False
+    for i, link in enumerate(links):
+        if i > 0:
+            paragraph.add_run(' \u00b7 ').bold = False
+        _add_hyperlink(paragraph, link['url'], link['label'])
+    paragraph.add_run(')').bold = False
+
+
 def _add_text_with_highlights(paragraph, text, highlights):
     """Add text to paragraph with certain phrases bolded.
 
     Finds all highlight positions, resolves overlaps (longer match wins),
-    then emits runs in text order.
+    then emits runs in text order. Non-highlighted text is explicitly set
+    to bold=False to prevent style inheritance issues.
     """
+    # Strip any markdown bold syntax that Claude may have included
+    text = _strip_markdown_bold(text)
+
     if not highlights:
-        paragraph.add_run(text)
+        paragraph.add_run(text).bold = False
         return
 
     # Filter out empty/whitespace-only highlights (str.find('') matches everywhere)
     highlights = [h for h in highlights if h and h.strip()]
     if not highlights:
-        paragraph.add_run(text)
+        paragraph.add_run(text).bold = False
         return
 
     # Find all occurrences with their positions
@@ -338,7 +465,7 @@ def _add_text_with_highlights(paragraph, text, highlights):
             start = idx + 1
 
     if not spans:
-        paragraph.add_run(text)
+        paragraph.add_run(text).bold = False
         return
 
     # Sort by start position, then longest match first for overlap resolution
@@ -355,12 +482,12 @@ def _add_text_with_highlights(paragraph, text, highlights):
     pos = 0
     for start, end, _ in merged:
         if start > pos:
-            paragraph.add_run(text[pos:start])
+            paragraph.add_run(text[pos:start]).bold = False
         paragraph.add_run(text[start:end]).bold = True
         pos = end
 
     if pos < len(text):
-        paragraph.add_run(text[pos:])
+        paragraph.add_run(text[pos:]).bold = False
 
 
 # =============================================================================
@@ -407,7 +534,7 @@ def create_resume(candidate, content, output_path):
     # Contact info
     contact_parts = [candidate.get('phone', ''), candidate.get('email', ''),
                      candidate.get('linkedin', ''), candidate.get('calendar', '')]
-    contact_text = ' | '.join(p for p in contact_parts if p)
+    contact_text = '  \u00b7  '.join(p for p in contact_parts if p)
 
     contact_p = doc.add_paragraph()
     contact_run = contact_p.add_run(contact_text)
@@ -436,6 +563,16 @@ def create_resume(candidate, content, output_path):
     if content.get('experience'):
         add_section_heading(doc, 'Professional Experience')
 
+        # Fix combined company|dates format (ATS-critical: must be separate lines)
+        for job in content['experience']:
+            company = (job.get('company') or '').strip()
+            dates = (job.get('dates') or '').strip()
+            if not company and '|' in dates:
+                parts = dates.split('|', 1)
+                if len(parts) == 2 and re.search(r'\b\d{4}\b', parts[1]):
+                    job['company'] = parts[0].strip()
+                    job['dates'] = parts[1].strip()
+
         for idx, job in enumerate(content['experience']):
             # Job title - add space before to separate from previous job
             job_title_p = doc.add_paragraph()
@@ -446,8 +583,12 @@ def create_resume(candidate, content, output_path):
             job_title_p.space_after = Pt(1)
 
             # Company name on its own line (ATS-optimized: separate from dates)
+            company_text = job['company']
+            location = (job.get('location') or '').strip()
+            if location:
+                company_text = f"{company_text}, {location}"
             company_p = doc.add_paragraph()
-            company_run = company_p.add_run(job['company'])
+            company_run = company_p.add_run(company_text)
             company_run.bold = True
             company_run.font.size = Pt(10)
             company_p.space_after = Pt(1)
@@ -465,11 +606,14 @@ def create_resume(candidate, content, output_path):
                 bullet_p.paragraph_format.left_indent = Inches(0.35)
 
                 if isinstance(bullet, dict):
-                    # {text: "...", highlights: [...]}
+                    # {text: "...", highlights: [...], links: [{label, url}, ...]}
                     _add_text_with_highlights(bullet_p, bullet['text'],
                                               bullet.get('highlights', []))
+                    _append_bullet_links(bullet_p, bullet.get('links', []))
                 else:
-                    bullet_p.add_run(bullet)
+                    bullet_p.add_run(
+                        _strip_markdown_bold(str(bullet))
+                    ).bold = False
 
                 bullet_p.space_after = Pt(2)
 
@@ -546,6 +690,13 @@ def generate_application_documents(candidate, job, cover_letter, resume, output_
     Returns:
         Tuple of (cover_letter_path, resume_path)
     """
+    # ATS sanitization: replace '<' and '>' in all user-visible text fields.
+    # Workday and similar systems mangle these characters during extraction.
+    candidate = _sanitize_data_for_ats(candidate)
+    job = _sanitize_data_for_ats(job)
+    cover_letter = _sanitize_data_for_ats(cover_letter)
+    resume = _sanitize_data_for_ats(resume)
+
     output_dir = Path(output_dir).expanduser()
     output_dir.mkdir(parents=True, exist_ok=True)
 

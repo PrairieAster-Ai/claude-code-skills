@@ -60,13 +60,10 @@ def extract_text_from_docx(file_path):
             # Read the main document XML
             xml_content = docx.read('word/document.xml').decode('utf-8')
 
-        # Preserve paragraph breaks, then remove XML tags
-        text = re.sub(r'</w:p>', '\n', xml_content)
-        text = re.sub(r'<[^>]+>', ' ', text)
-        # Normalize whitespace within lines
-        lines = [re.sub(r'[ \t]+', ' ', line).strip() for line in text.split('\n')]
-        # Remove empty lines but preserve paragraph structure
-        text = '\n'.join(line for line in lines if line)
+        # Remove XML tags
+        text = re.sub(r'<[^>]+>', ' ', xml_content)
+        # Normalize whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
         return text
     except zipfile.BadZipFile:
         print(f"Error: {file_path} is not a valid .docx file")
@@ -138,7 +135,7 @@ def save_config(config):
 
 def prompt_input(prompt, default=None):
     """Prompt user for input with optional default."""
-    if default is not None and default != '':
+    if default:
         result = input(f"{prompt} [{default}]: ").strip()
         return result if result else default
     else:
@@ -190,16 +187,11 @@ def collect_summary(config):
             return config
 
     lines = []
-    prev_blank = False
     print("\nEnter your summary:")
     while True:
         line = input()
-        if not line:
-            if prev_blank and lines:
-                break
-            prev_blank = True
-            continue
-        prev_blank = False
+        if not line and lines:
+            break
         lines.append(line)
 
     config['qualifications']['summary'] = ' '.join(lines)
@@ -278,7 +270,7 @@ def collect_experience(config):
                 break
 
             highlights_input = input("    Phrases to highlight (comma-separated, or Enter for none): ")
-            highlights = [h.strip() for h in highlights_input.split(',') if h.strip()] if highlights_input else []
+            highlights = [h.strip() for h in highlights_input.split(',')] if highlights_input else []
 
             bullets.append({
                 'text': bullet_text,

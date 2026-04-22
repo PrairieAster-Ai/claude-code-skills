@@ -59,6 +59,7 @@ qualifications:
     # Example:
     # - title: "Senior Product Manager"
     #   company: "Company Name"
+    #   location: "City, ST"  # Optional — renders as "Company Name, City, ST"
     #   dates: "Jan 2022 - Present"
     #   bullets:
     #     - text: "Led product strategy for platform serving 500K users"

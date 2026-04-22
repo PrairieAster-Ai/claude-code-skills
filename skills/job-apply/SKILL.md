@@ -201,6 +201,18 @@ Options:
 
 ---
 
+### ATS Keyword Fidelity Rule (applies to Phases 2, 4, 5)
+
+**ATS systems and human recruiters do early-stage keyword matching that can miss paraphrased terms.** When the JD uses a specific phrase for a concept, the JD's exact wording should win in every output document.
+
+Concrete rules:
+- When writing cover letter and resume content, prefer the JD's literal phrasing over the candidate's usual wording.
+- Extract verbatim phrases from the JD for required skills, tools, methodologies, and credentials — these are the canonical list of terms to preserve.
+- Never invent metrics or facts the candidate's `config.yaml` doesn't contain.
+- This rule applies even when the candidate's `config.yaml` bullets use a different word for the same concept (e.g., resume says "PRDs" but JD says "product requirement documents" — use "product requirement documents" in the tailored output).
+
+---
+
 ### Phase 2: Job Fit Assessment
 
 See [fit-assessment.md](fit-assessment.md) for complete evaluation framework.
@@ -221,11 +233,11 @@ For each requirement, evaluate candidate evidence:
 | {Requirement 2} | {Evidence or transferable skill} | Rating |
 | ... | ... | ... |
 
-**Evidence Sources:**
-- Work history from resume
-- Portfolio project achievements (from config.yaml)
-- Certifications
-- Education
+**Evidence Sources (in priority order):**
+1. Work history from `config.yaml` qualifications
+2. Portfolio project achievements (from config.yaml)
+3. Certifications
+4. Education
 
 **Scoring:**
 - ✅ Strong match = 1.0 point
@@ -350,6 +362,7 @@ Which style best fits this role? (Affects content tone; visual styling uses Mode
    - Quantified achievements (percentages, dollar amounts, team sizes)
    - Recent and relevant project examples
    - Certifications that directly apply
+   - **Always reword the chosen evidence to use the JD's exact phrasing** for any qualifier the JD names (see ATS Keyword Fidelity Rule)
 
 3. **Match portfolio projects to requirements**:
    - For each relevant portfolio project from config.yaml:
@@ -360,6 +373,7 @@ Which style best fits this role? (Affects content tone; visual styling uses Mode
    - Include portfolio URLs in resume where appropriate
 
 4. **Identify keywords** from job description for ATS optimization
+   - Extract verbatim JD phrases for required skills, tools, methodologies, and credentials. Every such term should appear at least once verbatim in either the cover letter or the resume.
 
 5. **Select accent color** based on preset and industry:
    - See color recommendations in [style-presets.md](style-presets.md)
@@ -369,6 +383,7 @@ Which style best fits this role? (Affects content tone; visual styling uses Mode
    - Highlight transferable skills
    - Show learning velocity with examples
    - Reference portfolio projects that demonstrate rapid skill acquisition
+   - Use the JD's exact phrasing for any qualifier the JD names
 
 ---
 
@@ -426,13 +441,33 @@ generate_application_documents(
         "experience": [
             {
                 "title": "Job Title",
-                "company": "Company",
-                "dates": "Mon YYYY - Mon YYYY",
+                "company": "Employer Name",       # REQUIRED — employer ONLY
+                "location": "City, ST",            # optional
+                "dates": "Mon YYYY - Mon YYYY",    # dates ONLY
                 "bullets": [
                     {"text": "Achievement with metric", "highlights": ["metric"]}
                 ]
             }
         ],
+        #
+        # ┌──────────────────────────────────────────────────────────┐
+        # │  ATS CRITICAL: experience field format                   │
+        # │                                                          │
+        # │  ✅ RIGHT — company and dates are SEPARATE fields:       │
+        # │     "company": "Ameriprise Financial",                   │
+        # │     "dates":   "Jun 2021 - Oct 2022"                    │
+        # │                                                          │
+        # │  ❌ WRONG — company baked into dates with pipe:          │
+        # │     "company": "",                                       │
+        # │     "dates":   "Ameriprise Financial | Jun 2021 - Oct…" │
+        # │                                                          │
+        # │  ❌ WRONG — company baked into dates with dash:          │
+        # │     "dates":   "Ameriprise Financial — Jun 2021 - Oct…" │
+        # │                                                          │
+        # │  WHY: ATS "Fill from Resume" needs employer on its own   │
+        # │  bold line. Combined formats break Workday, Taleo, etc.  │
+        # └──────────────────────────────────────────────────────────┘
+        #
         "certifications": [{"name": "Cert Name", "year": "2023", "issuer": "Org"}],
         "education": [{"degree": "Degree, Major", "school": "University"}]
     },
@@ -451,12 +486,13 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 - Single page maximum
 - Opening paragraph: Hook with most relevant qualification
 - Body: 2-3 paragraphs with specific evidence mapped to requirements
-- **Address significant gaps proactively** with transferable skills or learning examples
+- **Address significant gaps proactively** with transferable skills or learning examples, woven naturally into the body (not defensively at the end)
 - **Reference portfolio projects** when they demonstrate relevant skills
 - Technical alignment section if role is technical
 - Closing: Express genuine interest and availability
 - No generic phrases ("I am writing to apply...")
 - Every claim backed by specific evidence
+- **ATS Keyword Fidelity Rule applies** — use JD-verbatim wording for required skills, tools, and credentials
 
 #### Resume Requirements
 
@@ -465,10 +501,19 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 
 **ATS Optimization:**
 - Use standard section headers: Summary, Skills, Experience, Education, Certifications
-- Include exact keywords from job description
+- Include exact keywords from job description — every required skill, tool, methodology, and credential named in the JD should appear at least once verbatim in the resume (Skills section is the natural place for terms that don't fit organically in bullets)
+- Reword existing config.yaml bullets to use the JD's exact phrasing where it names a qualifier (e.g., if config says "PRDs" and JD says "product requirements documents", use the JD's phrasing in the tailored output)
 - Use consistent date formatting (Mon YYYY - Mon YYYY)
 - Keep creative elements in header only; main content follows standard format
 - Use bullet points with action verbs
+
+**ATS-Unsafe Characters (Workday + similar):**
+Workday and several other ATS systems strip or mangle `<` and `>` characters during text extraction — a hierarchy like `Capability > Epic > Story > Task` can come out as `Capability Epic Story Task` with the markers gone, or worse, the section silently dropped.
+
+- Never write `<` or `>` in any user-visible bullet text, summary, skills line, or cover letter content. This applies whether you are writing fresh content for an application or reading from `config.yaml` (the canonical config has already been cleaned).
+- For hierarchies, use `→` (Unicode rightward arrow, U+2192) instead of `>`. Example: `Capability → Epic → Story → Task`.
+- For numeric comparisons, write `over N` instead of `>N` and `under N` instead of `<N`. Example: write "over 80% test coverage" not ">80% test coverage".
+- `generate_word_docs.py` contains a defense-in-depth sanitizer (`_sanitize_data_for_ats`) that runs at the top of `generate_application_documents()` and replaces stray `<`/`>` characters automatically. **Do not rely on it as a substitute for writing clean source content** — write it correctly the first time so the resume reads naturally to humans.
 
 **Human Scanning Optimization:**
 - Apply visual hierarchy through typography (bold, sizing)
@@ -525,6 +570,9 @@ Display comprehensive summary:
 
 ### Gaps Addressed in Cover Letter
 - {Gap}: {How it was addressed}
+
+### ATS Keywords Preserved Verbatim
+- {Comma-separated list of JD-verbatim required skills, tools, and credentials used in the documents}
 
 ### Next Steps
 1. Review the documents in the opened folder

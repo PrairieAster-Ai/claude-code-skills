@@ -167,7 +167,7 @@ If generation fails, offer: retry with simpler run, output as formatted text, or
 - **1 page preferred, 2 pages max**
 - ATS section headers: Summary, Skills, Experience, Education, Certifications
 - Bullet formula: **Action Verb + Task + Quantified Result**
-- 3-line experience header for ATS parsing (title, company, dates on separate lines)
+- 3-line experience header for ATS parsing (title, company, dates on separate lines — NEVER combine company and dates with a pipe separator)
 - Date format: Mon YYYY - Mon YYYY (consistent throughout)
 - Use exact keywords from job description
 - Match terminology exactly — if they say "AWS", don't write "Amazon Web Services"
@@ -225,11 +225,15 @@ qualifications:
       items: "Skill1, Skill2, Skill3"
   experience:
     - title: "Job Title"
-      company: "Company"
-      dates: "Mon YYYY - Present"
+      company: "Company"       # REQUIRED — employer name ONLY
+      location: "City, ST"     # optional — renders as "Company, City, ST"
+      dates: "Mon YYYY - Present"  # dates ONLY, never include company here
       bullets:
         - text: "Achievement with metric"
           highlights: ["metric"]
+  # ATS CRITICAL: company and dates MUST be separate fields.
+  # RIGHT: company: "Acme Corp"  dates: "Jan 2020 - Present"
+  # WRONG: company: ""  dates: "Acme Corp | Jan 2020 - Present"
   certifications:
     - name: "Cert Name"
       year: "YYYY"

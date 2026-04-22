@@ -58,6 +58,14 @@ def set_document_single_spacing(doc):
         list_style = doc.styles['List Bullet']
         list_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
+    # Configure Heading 2 style at the style level for theme consistency.
+    if 'Heading 2' in doc.styles:
+        h2_style = doc.styles['Heading 2']
+        h2_style.font.bold = True
+        h2_style.font.size = Pt(12)
+        h2_style.font.color.rgb = ACCENT_COLOR
+        h2_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+
 
 def add_horizontal_line(paragraph):
     """Add a colored horizontal line below a paragraph."""
@@ -73,15 +81,16 @@ def add_horizontal_line(paragraph):
 
 
 def add_section_heading(doc, text, is_first=False):
-    """Add a styled section heading with proper spacing."""
-    section = doc.add_paragraph()
+    """Add a styled section heading using Heading 2 style for ATS structure."""
+    section = doc.add_heading(text, level=2)
     section.paragraph_format.space_before = Pt(6) if is_first else SPACE_BEFORE_HEADING
     section.paragraph_format.space_after = SPACE_AFTER_HEADING
 
-    section_run = section.add_run(text)
-    section_run.bold = True
-    section_run.font.size = Pt(12)
-    section_run.font.color.rgb = ACCENT_COLOR
+    for run in section.runs:
+        run.bold = True
+        run.font.size = Pt(12)
+        run.font.color.rgb = ACCENT_COLOR
+        run.font.name = None
     add_horizontal_line(section)
 
     return section
@@ -113,20 +122,29 @@ def sanitize_filename(text, max_length=50):
     return safe or 'unnamed'
 
 
+def _strip_markdown_bold(text):
+    """Remove markdown bold markers (**text**) from text, returning plain text."""
+    return re.sub(r'\*\*(.+?)\*\*', r'\1', text)
+
+
 def _add_text_with_highlights(paragraph, text, highlights):
     """Add text to paragraph with certain phrases bolded.
 
     Finds all highlight positions, resolves overlaps (longer match wins),
-    then emits runs in text order.
+    then emits runs in text order. Non-highlighted text is explicitly set
+    to bold=False to prevent style inheritance issues.
     """
+    # Strip any markdown bold syntax that Claude may have included
+    text = _strip_markdown_bold(text)
+
     if not highlights:
-        paragraph.add_run(text)
+        paragraph.add_run(text).bold = False
         return
 
     # Filter out empty/whitespace-only highlights (str.find('') matches everywhere)
     highlights = [h for h in highlights if h and h.strip()]
     if not highlights:
-        paragraph.add_run(text)
+        paragraph.add_run(text).bold = False
         return
 
     # Find all occurrences with their positions
@@ -141,7 +159,7 @@ def _add_text_with_highlights(paragraph, text, highlights):
             start = idx + 1
 
     if not spans:
-        paragraph.add_run(text)
+        paragraph.add_run(text).bold = False
         return
 
     # Sort by start position, then longest match first for overlap resolution
@@ -158,12 +176,12 @@ def _add_text_with_highlights(paragraph, text, highlights):
     pos = 0
     for start, end, _ in merged:
         if start > pos:
-            paragraph.add_run(text[pos:start])
+            paragraph.add_run(text[pos:start]).bold = False
         paragraph.add_run(text[start:end]).bold = True
         pos = end
 
     if pos < len(text):
-        paragraph.add_run(text[pos:])
+        paragraph.add_run(text[pos:]).bold = False
 
 
 # =============================================================================
@@ -200,7 +218,7 @@ def create_cover_letter(candidate, job, content, output_path):
 
     contact_parts = [candidate.get('phone', ''), candidate.get('email', ''),
                      candidate.get('linkedin', ''), candidate.get('calendar', '')]
-    contact_text = ' | '.join(p for p in contact_parts if p)
+    contact_text = '  \u00b7  '.join(p for p in contact_parts if p)
 
     contact_p = doc.add_paragraph()
     contact_run = contact_p.add_run(contact_text)
@@ -317,7 +335,7 @@ def create_resume(candidate, content, output_path):
 
     contact_parts = [candidate.get('phone', ''), candidate.get('email', ''),
                      candidate.get('linkedin', ''), candidate.get('calendar', '')]
-    contact_text = ' | '.join(p for p in contact_parts if p)
+    contact_text = '  \u00b7  '.join(p for p in contact_parts if p)
 
     contact_p = doc.add_paragraph()
     contact_run = contact_p.add_run(contact_text)
@@ -346,6 +364,16 @@ def create_resume(candidate, content, output_path):
     if content.get('experience'):
         add_section_heading(doc, 'Professional Experience')
 
+        # Fix combined company|dates format (ATS-critical: must be separate lines)
+        for job in content['experience']:
+            company = (job.get('company') or '').strip()
+            dates = (job.get('dates') or '').strip()
+            if not company and '|' in dates:
+                parts = dates.split('|', 1)
+                if len(parts) == 2 and re.search(r'\b\d{4}\b', parts[1]):
+                    job['company'] = parts[0].strip()
+                    job['dates'] = parts[1].strip()
+
         for idx, job in enumerate(content['experience']):
             job_title_p = doc.add_paragraph()
             job_title_p.paragraph_format.space_before = Pt(0) if idx == 0 else Pt(12)
@@ -354,8 +382,12 @@ def create_resume(candidate, content, output_path):
             job_title_run.font.size = Pt(11)
             job_title_p.space_after = Pt(1)
 
+            company_text = job['company']
+            location = (job.get('location') or '').strip()
+            if location:
+                company_text = f"{company_text}, {location}"
             company_p = doc.add_paragraph()
-            company_run = company_p.add_run(job['company'])
+            company_run = company_p.add_run(company_text)
             company_run.bold = True
             company_run.font.size = Pt(10)
             company_p.space_after = Pt(1)
@@ -374,7 +406,9 @@ def create_resume(candidate, content, output_path):
                     _add_text_with_highlights(bullet_p, bullet['text'],
                                               bullet.get('highlights', []))
                 else:
-                    bullet_p.add_run(bullet)
+                    bullet_p.add_run(
+                        _strip_markdown_bold(str(bullet))
+                    ).bold = False
 
                 bullet_p.space_after = Pt(2)
 

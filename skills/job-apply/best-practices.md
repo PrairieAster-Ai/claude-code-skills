@@ -40,18 +40,13 @@ Research shows 62% of candidates who applied for jobs they were "underqualified"
    - Check common date formats in filenames
    - The most recent file by modification date is usually current
 
-2. **DOCX extraction technique** (cross-platform, using Python's zipfile)
-   ```python
-   import zipfile, re
-   with zipfile.ZipFile("file.docx") as z:
-       xml = z.read("word/document.xml").decode("utf-8")
-   text = re.sub(r"</w:p>", "\n", xml)
-   text = re.sub(r"<[^>]+>", " ", text)
-   print(text)
+2. **DOCX extraction technique**
+   ```bash
+   unzip -p "file.docx" word/document.xml | sed -e 's/<[^>]*>//g' | tr -s '[:space:]' '\n'
    ```
    - This extracts readable text from Word documents
-   - Formatting is lost but content and paragraph structure are preserved
-   - Works on all platforms (no shell tools needed)
+   - Formatting is lost but content is preserved
+   - Use `head` and `tail` for long documents
 
 3. **Portfolio project evidence**
    - README.md files often contain project summaries
@@ -62,7 +57,7 @@ Research shows 62% of candidates who applied for jobs they were "underqualified"
 ### Job Description Analysis
 
 1. **Classify requirements as must-have vs nice-to-have**
-   - **Must-have signals:** "Required", "Must possess", "Essential", first 3-5 listed
+   - **Must-have signals:** "Required", "Must possess", "Essential", first 5 listed
    - **Nice-to-have signals:** "Preferred", "Bonus", "Plus", "Ideal candidate"
    - Requirements listed first are usually most important
    - Repeated skills/technologies indicate high priority
@@ -142,7 +137,7 @@ Research shows 62% of candidates who applied for jobs they were "underqualified"
 ## ATS Success Factors
 
 1. **File format**
-   - Output as .docx (preferred by recruiters and ATS systems)
+   - Markdown converts cleanly to PDF
    - Avoid complex formatting that breaks parsing
    - Test by copying text to notepad - should be readable
 
