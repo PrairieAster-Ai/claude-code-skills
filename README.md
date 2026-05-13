@@ -214,7 +214,9 @@ Contributions welcome! Please:
 
 ## License
 
-MIT License - See individual skill directories for specific licenses.
+Apache License 2.0. See the [LICENSE](LICENSE) file at the repo root.
+
+Each skill inherits the repo's Apache 2.0 license unless a skill directory contains its own LICENSE file overriding it.
 
 ---
 

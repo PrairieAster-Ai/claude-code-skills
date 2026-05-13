@@ -178,4 +178,4 @@ Both skills read CLAUDE.md and will respect this boundary.
 
 ## License
 
-Same as the parent repo.
+Apache License 2.0. See the [LICENSE](../../LICENSE) file at the repo root.
