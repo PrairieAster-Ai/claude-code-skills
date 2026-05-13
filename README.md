@@ -2,6 +2,10 @@
 
 A collection of reusable skills for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), Anthropic's official CLI for Claude.
 
+This repo now includes two layers:
+- **Skills** for judgment, synthesis, and interactive workflows inside Claude Code
+- **Scripts/hooks** for deterministic checks that are better enforced by tooling
+
 ## Available Skills
 
 | Skill | Description | Invoke With |
@@ -93,6 +97,13 @@ brew install gitleaks osv-scanner
 /security-audit --post-pr 123    # post results as a GH PR comment on PR #123
 ```
 
+**Deterministic CLI:**
+```bash
+python3 scripts/security_audit.py scan
+python3 scripts/security_audit.py ci --base origin/main
+python3 scripts/security_audit.py comment --pr 123
+```
+
 See [security-audit README](skills/security-audit/README.md) for the full workflow and threat model.
 
 ---
@@ -171,6 +182,40 @@ See [github README](skills/github/README.md) for full documentation.
 
 ---
 
+## Automation Layer
+
+Some parts of these skills are now extracted into real tooling so teams can run them in hooks or CI without depending on an agent run.
+
+### Included scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/security_audit.py` | Runs the deterministic security pre-pass: diff detection, scanner selection, artifact generation, markdown/json summaries, optional PR comment posting |
+
+### Included hook templates
+
+| Hook template | Purpose |
+|---|---|
+| `hooks/pre-push.security-audit` | Run the deterministic security audit before pushing |
+
+Install them by copying or symlinking into `.git/hooks/` in a consuming repo.
+
+### Included GitHub Actions examples
+
+| Workflow | Purpose |
+|---|---|
+| `.github/workflows/security-audit-tools-only.yml` | Example pull request workflow for the deterministic security pre-pass |
+
+These workflows are examples, not a packaged action. Expect to tailor dependencies and thresholds per repository.
+
+### Design intent
+
+- Use the **scripts** for objective, repeatable checks.
+- Use the **skills** for triage, interpretation, prioritization, and writing.
+- Do not try to force high-judgment tasks like fit assessment, sprint planning, or LLM-based security verification into hooks.
+
+---
+
 ## Skill Development Standards
 
 All skills in this collection follow [Anthropic's Claude Code skill standards](https://docs.anthropic.com/en/docs/claude-code):
@@ -214,9 +259,7 @@ Contributions welcome! Please:
 
 ## License
 
-Apache License 2.0. See the [LICENSE](LICENSE) file at the repo root.
-
-Each skill inherits the repo's Apache 2.0 license unless a skill directory contains its own LICENSE file overriding it.
+MIT License - See individual skill directories for specific licenses.
 
 ---
 
