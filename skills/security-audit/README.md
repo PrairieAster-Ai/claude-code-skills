@@ -53,7 +53,7 @@ go install golang.org/x/vuln/cmd/govulncheck@latest   # Go SCA + reachability
 npm i -g socket                              # Supply-chain typosquat detection
 ```
 
-All seven are OSS and don't require API keys. Socket has a free tier without account for basic scans.
+Six of seven are OSS and need no API key. Socket's `scan create` (the recommended invocation) requires `socket login` even on the free tier; the `socket npm install` install-time guard works unauthenticated. Run `socket login` once and the skill will pick up the credential from `~/.socket/`.
 
 ## Usage
 

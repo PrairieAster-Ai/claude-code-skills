@@ -1,7 +1,7 @@
 ---
 name: security-audit
 description: Differential security audit of the pending changes on the current branch. A coexisting alternative to Anthropic's bundled /security-review that adds deterministic SAST/SCA/secrets scanners, LLM verification of tool output, asymmetric confidence (auto-dismiss FPs only, never TPs), per-repo memories, ASVS-by-touched-chapter checklists, MITRE ATT&CK tagging, and optional sandbox-validated fix patches.
-allowed-tools: "Bash(git:*),Bash(semgrep:*),Bash(gitleaks:*),Bash(osv-scanner:*),Bash(trivy:*),Bash(bandit:*),Bash(govulncheck:*),Bash(gosec:*),Bash(pip-audit:*),Bash(eslint:*),Bash(npx:*),Bash(pipx:*),Bash(jq:*),Bash(lizard:*),Bash(socket:*),Bash(trufflehog:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(gh repo view:*),Read,Glob,Grep,Task"
+allowed-tools: "Bash(git:*),Bash(semgrep:*),Bash(gitleaks:*),Bash(osv-scanner:*),Bash(trivy:*),Bash(bandit:*),Bash(govulncheck:*),Bash(gosec:*),Bash(pip-audit:*),Bash(npx:*),Bash(pipx:*),Bash(jq:*),Bash(lizard:*),Bash(socket:*),Bash(trufflehog:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(gh repo view:*),Read,Glob,Grep,Task"
 ---
 
 # Security Audit Skill
@@ -83,9 +83,11 @@ Run language-and-context-appropriate scanners. **All run in parallel, all emit S
 semgrep ci --baseline-commit="$(git merge-base HEAD "$BASE")" \
   --sarif --sarif-output=/tmp/sr-semgrep.sarif --quiet
 
-# 2. Secrets in the diff
+# 2. Secrets in the diff (resolve symbolic refs first — gitleaks two-dot
+#    ranges are flaky against refs like `origin/HEAD`)
+MERGE_BASE=$(git merge-base HEAD "$BASE")
 gitleaks git --report-format sarif --report-path /tmp/sr-gitleaks.sarif \
-  --log-opts="$BASE..HEAD" --no-banner
+  --log-opts="$MERGE_BASE..HEAD" --no-banner
 
 # 3. SCA across all manifests
 osv-scanner scan source --format=sarif --output=/tmp/sr-osv.sarif --recursive .
@@ -317,14 +319,27 @@ Posts the report as a GitHub PR comment on PR #N, using a comment format aligned
 
 ```bash
 PR_NUM="$1"
-gh pr view "$PR_NUM" --json state,isDraft,headRefName,headRefOid,baseRefName -q '.' > /tmp/sr-pr.json
+gh pr view "$PR_NUM" \
+  --json state,isDraft,headRefName,headRefOid,baseRefName,headRepository,baseRepository \
+  -q '.' > /tmp/sr-pr.json
 
 STATE=$(jq -r .state /tmp/sr-pr.json)
 DRAFT=$(jq -r .isDraft /tmp/sr-pr.json)
 HEAD_SHA=$(jq -r .headRefOid /tmp/sr-pr.json)
 BASE_REF=$(jq -r .baseRefName /tmp/sr-pr.json)
 HEAD_REF=$(jq -r .headRefName /tmp/sr-pr.json)
+HEAD_REPO=$(jq -r '.headRepository.nameWithOwner // empty' /tmp/sr-pr.json)
+BASE_REPO=$(jq -r '.baseRepository.nameWithOwner // empty' /tmp/sr-pr.json)
 REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+
+# Cross-repo safety: the cwd's repo must match the PR's base repo.
+# Prevents the case where a user is in repo A but passed a PR number
+# from repo B (gh resolves PR by number against the current remote,
+# which would silently post to the wrong place).
+if [ -n "$BASE_REPO" ] && [ "$REPO" != "$BASE_REPO" ]; then
+  echo "Refusing to post: cwd repo ($REPO) != PR base repo ($BASE_REPO)" >&2
+  exit 1
+fi
 
 # Skip closed / merged PRs
 [ "$STATE" = "OPEN" ] || { echo "PR #$PR_NUM is $STATE — skipping"; exit 0; }
@@ -551,6 +566,28 @@ jobs:
 ```
 
 The two jobs run in parallel; each posts its own clearly-headed comment (`### Security audit` vs `### Code review`).
+
+---
+
+## `--deep` mode
+
+A slower, more exhaustive variant for periodic reviews (e.g., pre-release branches, security-focused weeks). Adds three things to the default pipeline:
+
+```bash
+# 1. Complexity hotspots across the entire codebase, not just the diff.
+#    Files with cyclomatic complexity > 15 correlate with vuln density.
+lizard --CCN 15 --warnings_only $(git ls-files | grep -vE '^node_modules/|^\.venv/|^vendor/') \
+  > /tmp/sr-lizard-deep.txt 2>/dev/null || true
+
+# 2. Full git-history secrets scan (not just the diff range).
+#    Catches secrets that were committed and later deleted but remain in history.
+trufflehog git file://. --only-verified --json > /tmp/sr-trufflehog-deep.json 2>/dev/null || true
+
+# 3. Full SCA, not just changed manifests.
+osv-scanner scan source --format=sarif --output=/tmp/sr-osv-deep.sarif --recursive .
+```
+
+Expected runtime: 1–10 minutes depending on repo size and history depth. Use sparingly; the default mode is the recommended per-PR cadence.
 
 ---
 

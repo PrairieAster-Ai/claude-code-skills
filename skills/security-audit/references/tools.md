@@ -16,7 +16,7 @@ Curated, opinionated toolchain for the deterministic pre-pass. All recommendatio
 | Condition | Tool | Purpose | Command |
 |---|---|---|---|
 | `Dockerfile` / `*.tf` / `k8s/*.yaml` | **trivy** | IaC + container | `trivy config --format=sarif -o sr-trivy-iac.sarif .` |
-| `package.json` / `requirements.txt` / `go.mod` changed | **socket** | Supply-chain / typosquat | `socket scan create --json . > sr-socket.json` |
+| `package.json` / `requirements.txt` / `go.mod` changed | **socket** | Supply-chain / typosquat | `socket scan create --json . > sr-socket.json` — requires `socket login` once (free tier OK). Skip silently if unauthenticated. |
 | `*.py` in diff | **bandit** | Python SAST | `bandit -r <files> -f sarif -o sr-bandit.sarif --quiet` |
 | `*.py` deps changed | **pip-audit** | Python SCA | `pip-audit -f json -o sr-pip-audit.json` |
 | `*.go` in diff | **govulncheck** | Go SCA + reachability | `govulncheck -format sarif ./... > sr-govulncheck.sarif` |
