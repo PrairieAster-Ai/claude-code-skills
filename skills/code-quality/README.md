@@ -28,11 +28,43 @@ This skill provides:
    /code-quality sprint
    ```
 
+## Deterministic CLI
+
+The measurable part of this workflow is also available as a standalone script:
+
+```bash
+python3 scripts/code_quality.py --format markdown
+python3 scripts/code_quality.py --fail-on-thresholds
+python3 scripts/code_quality.py --src-dir src --max-any-count 20
+```
+
+The script can:
+- run lint, type-check, coverage, and duplication commands when available
+- count `any` usage in TypeScript files
+- flag oversized TS/TSX files
+- emit markdown and JSON summaries under `.artifacts/code-quality/`
+
+The skill still owns:
+- hotspot interpretation
+- sprint planning
+- prioritization tradeoffs
+- refactoring strategy
+
+## Hooks and CI
+
+Example automation entrypoints are included at the repo root:
+
+- `hooks/pre-commit.code-quality`
+- `.github/workflows/code-quality-report.yml`
+
+Treat these as examples for downstream repos, not a universal default.
+
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `SKILL.md` | Main skill prompt with workflow and commands |
+| `../../scripts/code_quality.py` | Deterministic CLI for metrics, thresholds, and report generation |
 | `methodology.md` | Refactoring patterns, sprint structure, prioritization, lessons learned |
 | `metrics-template.md` | Templates for baseline, sprint progress, and final validation |
 

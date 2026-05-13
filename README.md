@@ -140,6 +140,12 @@ See [job-apply README](skills/job-apply/README.md) for full documentation.
 /code-quality
 ```
 
+**Deterministic CLI:**
+```bash
+python3 scripts/code_quality.py --format markdown
+python3 scripts/code_quality.py --fail-on-thresholds
+```
+
 See [code-quality README](skills/code-quality/README.md) for full documentation.
 
 ---
@@ -171,6 +177,42 @@ See [github README](skills/github/README.md) for full documentation.
 
 ---
 
+## Automation Layer
+
+Some parts of these skills are now extracted into real tooling so teams can run them in hooks or CI without depending on an agent run.
+
+### Included scripts
+
+| Script | Purpose |
+|---|---|
+| `scripts/security_audit.py` | Runs the deterministic security pre-pass: diff detection, scanner selection, artifact generation, markdown/json summaries, optional PR comment posting |
+| `scripts/code_quality.py` | Runs measurable quality checks and emits markdown/json reports for local use or CI |
+
+### Included hook templates
+
+| Hook template | Purpose |
+|---|---|
+| `hooks/pre-push.security-audit` | Run the deterministic security audit before pushing |
+| `hooks/pre-commit.code-quality` | Run code quality thresholds before committing |
+
+Install them by copying or symlinking into `.git/hooks/` in a consuming repo.
+
+### Included GitHub Actions examples
+
+| Workflow | Purpose |
+|---|---|
+| `.github/workflows/security-audit-tools-only.yml` | Example pull request workflow for the deterministic security pre-pass |
+| `.github/workflows/code-quality-report.yml` | Example pull request workflow for code quality reporting |
+
+These workflows are examples, not a packaged action. Expect to tailor dependencies and thresholds per repository.
+
+### Design intent
+
+- Use the **scripts** for objective, repeatable checks.
+- Use the **skills** for triage, interpretation, prioritization, and writing.
+- Do not try to force high-judgment tasks like fit assessment, sprint planning, or LLM-based security verification into hooks.
+
+---
 ## Skill Development Standards
 
 All skills in this collection follow [Anthropic's Claude Code skill standards](https://docs.anthropic.com/en/docs/claude-code):
