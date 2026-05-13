@@ -1,4 +1,4 @@
-# Threat model for the security-review skill itself
+# Threat model for the security-audit skill itself
 
 The skill reads PR-introduced content and (in `--fix` mode) generates and applies patches. It is itself a target. Real-world incidents from CodeRabbit (Jan 2025 RCE), Vercel (April 2026 supply-chain breach), and Cursor (acknowledged prompt-injection exfiltration) anchor this list.
 

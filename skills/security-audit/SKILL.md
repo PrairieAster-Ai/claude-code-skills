@@ -1,23 +1,23 @@
 ---
-name: security-review
-description: Differential security review of the pending changes on the current branch. Combines deterministic SAST/SCA/secrets scanners with LLM verification, asymmetric confidence (auto-dismiss FPs only, never TPs), per-repo memories, ASVS-by-touched-chapter checklists, and ATT&CK tagging. Output: a high-signal markdown report with confidence-scored findings and (optional) sandbox-validated fix patches.
+name: security-audit
+description: Differential security audit of the pending changes on the current branch. A coexisting alternative to Anthropic's bundled /security-review that adds deterministic SAST/SCA/secrets scanners, LLM verification of tool output, asymmetric confidence (auto-dismiss FPs only, never TPs), per-repo memories, ASVS-by-touched-chapter checklists, MITRE ATT&CK tagging, and optional sandbox-validated fix patches.
 allowed-tools: "Bash(git:*),Bash(semgrep:*),Bash(gitleaks:*),Bash(osv-scanner:*),Bash(trivy:*),Bash(bandit:*),Bash(govulncheck:*),Bash(gosec:*),Bash(pip-audit:*),Bash(eslint:*),Bash(npx:*),Bash(pipx:*),Bash(jq:*),Bash(lizard:*),Bash(socket:*),Bash(trufflehog:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(gh repo view:*),Read,Glob,Grep,Task"
 ---
 
-# Security Review Skill
+# Security Audit Skill
 
-Differential, high-signal security review of the changes on the current branch.
+Differential, high-signal security audit of the changes on the current branch. Sits alongside Anthropic's bundled `/security-review` rather than replacing it, so teams can run both for a side-by-side comparison or pick the one that fits their workflow.
 
 The single most important rule: **better to miss some theoretical issues than flood the report with false positives.** Each finding must be something a security engineer would confidently raise in a PR review.
 
 ## When to use
 
-- `/security-review` — review pending changes on current branch vs `origin/HEAD`
-- `/security-review <base-ref>` — review vs a specific base (e.g. `main`, `release/v2`)
-- `/security-review --fix` — also propose sandbox-validated patches for HIGH confidence findings
-- `/security-review --tools-only` — just run the SAST/SCA pre-pass, skip LLM verification (CI mode)
-- `/security-review --deep` — also run `lizard`/`scc` complexity hotspots + full-history secret scan
-- `/security-review --post-pr <N>` — run the review and post results as a PR comment on PR #N (mirrors `/code-review`'s format so the two skills produce visually consistent comment threads)
+- `/security-audit` — audit pending changes on current branch vs `origin/HEAD`
+- `/security-audit <base-ref>` — audit vs a specific base (e.g. `main`, `release/v2`)
+- `/security-audit --fix` — also propose sandbox-validated patches for HIGH confidence findings
+- `/security-audit --tools-only` — just run the SAST/SCA pre-pass, skip LLM verification (CI mode)
+- `/security-audit --deep` — also run `lizard`/`scc` complexity hotspots + full-history secret scan
+- `/security-audit --post-pr <N>` — run the audit and post results as a PR comment on PR #N (mirrors `/code-review`'s format so the two skills produce visually consistent comment threads)
 
 ## Pipeline
 
@@ -216,7 +216,7 @@ Keep the higher-confidence one, merge file:line lists.
 `.claude/security-memories.md` (created on first run, gitignored OR committed by the team's choice):
 
 ```markdown
-# Security review memories
+# Security audit memories
 
 ## FP: dangerouslySetInnerHTML in components/Markdown.tsx
 **Reason:** Input passes through DOMPurify in lib/sanitize.ts:42 before render.
@@ -265,7 +265,7 @@ Drop any finding below **0.7** (Anthropic baseline). Publish gate at **0.8** for
 A single markdown report. **Final reply must contain the report and nothing else.**
 
 ```markdown
-# Security Review — {branch} vs {base}
+# Security Audit — {branch} vs {base}
 
 **Scope:** {N} files, {N} commits, {N} ASVS chapters loaded.
 **Pre-pass:** semgrep {n}, gitleaks {n}, osv-scanner {n}, …
@@ -316,16 +316,16 @@ DRAFT_TAG=""
 
 ### Skip if already commented on this SHA
 
-Before posting, check whether `/security-review` has already commented on `HEAD_SHA`. Avoid re-posting on every push.
+Before posting, check whether `/security-audit` has already commented on `HEAD_SHA`. Avoid re-posting on every push.
 
 ```bash
 EXISTING=$(gh pr view "$PR_NUM" --json comments -q ".comments[].body" \
-  | grep -F "### Security review" \
+  | grep -F "### Security audit" \
   | grep -F "$HEAD_SHA" || true)
-[ -n "$EXISTING" ] && { echo "Already reviewed $HEAD_SHA — skipping"; exit 0; }
+[ -n "$EXISTING" ] && { echo "Already audited $HEAD_SHA — skipping"; exit 0; }
 ```
 
-### Run the review against the PR base
+### Run the audit against the PR base
 
 ```bash
 git fetch origin "$BASE_REF" --quiet
@@ -338,7 +338,7 @@ git checkout --quiet "$HEAD_REF" 2>/dev/null || true
 Output verbatim — match `/code-review`'s structure so a reviewer's eye finds findings in the same shape:
 
 ```markdown
-### Security review
+### Security audit
 
 Found {N} security issues in {HEAD_SHA_SHORT}{DRAFT_TAG}:
 
@@ -360,21 +360,21 @@ Found {N} security issues in {HEAD_SHA_SHORT}{DRAFT_TAG}:
 
 **Scope:** {N} files vs `{base-ref}` · **Tools:** semgrep, gitleaks, osv-scanner{conditional tools} · **Auto-dismissed:** {n} (memories: {n}, FP filter: {n}, dedup: {n})
 
-🤖 Generated with [Claude Code](https://claude.ai/code) `/security-review`
+🤖 Generated with [Claude Code](https://claude.ai/code) `/security-audit`
 
-<sub>Companion: `/code-review` covers bugs and CLAUDE.md compliance. If this review was useful, react 👍. Otherwise 👎.</sub>
+<sub>Companion: `/code-review` covers bugs and CLAUDE.md compliance. If this audit was useful, react 👍. Otherwise 👎.</sub>
 ```
 
 If zero findings survive:
 
 ```markdown
-### Security review
+### Security audit
 
 No security issues found in {HEAD_SHA_SHORT}.
 
 **Scope:** {N} files vs `{base-ref}` · **Tools:** semgrep, gitleaks, osv-scanner{conditional} · **Auto-dismissed:** {n}
 
-🤖 Generated with [Claude Code](https://claude.ai/code) `/security-review`
+🤖 Generated with [Claude Code](https://claude.ai/code) `/security-audit`
 ```
 
 ### Permalink construction (critical)
@@ -437,7 +437,7 @@ Writes individual SARIF files. Upload each separately (post-2025-07-21 GitHub re
 
 ```yaml
 - name: Run security pre-pass
-  run: claude security-review --tools-only
+  run: claude security-audit --tools-only
 
 - name: Upload Semgrep SARIF
   uses: github/codeql-action/upload-sarif@v3
@@ -471,7 +471,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }   # need full history for diff
-      - run: claude security-review --post-pr "${{ github.event.pull_request.number }}"
+      - run: claude security-audit --post-pr "${{ github.event.pull_request.number }}"
 
   code-review:
     runs-on: ubuntu-latest
@@ -482,7 +482,7 @@ jobs:
       - run: claude /code-review "${{ github.event.pull_request.number }}"
 ```
 
-The two jobs run in parallel; each posts its own clearly-headed comment (`### Security review` vs `### Code review`).
+The two jobs run in parallel; each posts its own clearly-headed comment (`### Security audit` vs `### Code review`).
 
 ---
 

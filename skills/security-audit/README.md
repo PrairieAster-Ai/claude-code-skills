@@ -1,10 +1,10 @@
-# Security Review Skill
+# Security Audit Skill
 
-Differential, high-signal security review of the pending changes on the current branch. A successor to Anthropic's bundled `/security-review` that pairs deterministic SAST/SCA/secrets scanners with LLM verification — fewer false positives, broader coverage, optional sandbox-validated fixes.
+Differential, high-signal security audit of the pending changes on the current branch. A coexisting alternative to Anthropic's bundled `/security-review` that pairs deterministic SAST/SCA/secrets scanners with LLM verification — fewer false positives, broader coverage, optional sandbox-validated fixes.
 
 ## What's new vs the bundled `/security-review`
 
-| | Bundled (Anthropic) | This skill |
+| | Bundled `/security-review` (Anthropic) | `/security-audit` (this skill) |
 |---|---|---|
 | Differential by default | ✓ | ✓ |
 | LLM diff review | ✓ | ✓ |
@@ -19,20 +19,22 @@ Differential, high-signal security review of the pending changes on the current 
 | Sandbox-validated fixes | ✗ | **✓ (with `--fix`)** |
 | SARIF outputs for GitHub Code Scanning | ✗ | **✓ (per-tool, post-2025-07 compliant)** |
 
+The two skills coexist (different slugs, different commands). Run either or both — `/security-review` for a fast LLM-only check, `/security-audit` when you want the tools-augmented review.
+
 ## Install
 
 ### Per project
 
 ```bash
 git clone https://github.com/PrairieAster-Ai/claude-code-skills.git /tmp/ccs
-cp -r /tmp/ccs/skills/security-review .claude/skills/
+cp -r /tmp/ccs/skills/security-audit .claude/skills/
 ```
 
 ### Global
 
 ```bash
 git clone https://github.com/PrairieAster-Ai/claude-code-skills.git ~/.claude/skills-collection
-ln -s ~/.claude/skills-collection/skills/security-review ~/.claude/skills/security-review
+ln -s ~/.claude/skills-collection/skills/security-audit ~/.claude/skills/security-audit
 ```
 
 ### Required tooling (installed once)
@@ -56,12 +58,12 @@ All seven are OSS and don't require API keys. Socket has a free tier without acc
 ## Usage
 
 ```bash
-/security-review                  # vs origin/HEAD
-/security-review main             # vs explicit base
-/security-review --fix            # propose sandbox-validated patches for High-confidence findings
-/security-review --tools-only     # SAST/SCA pre-pass only — CI mode, writes per-tool SARIF
-/security-review --post-pr 123    # run review + post results as a PR #123 comment (mirrors /code-review's format)
-/security-review --deep           # adds complexity hotspots + full-history secret scan
+/security-audit                  # vs origin/HEAD
+/security-audit main             # vs explicit base
+/security-audit --fix            # propose sandbox-validated patches for High-confidence findings
+/security-audit --tools-only     # SAST/SCA pre-pass only — CI mode, writes per-tool SARIF
+/security-audit --post-pr 123    # run audit + post results as a PR #123 comment (mirrors /code-review's format)
+/security-audit --deep           # adds complexity hotspots + full-history secret scan
 ```
 
 ## How it works (5 phases + optional 6th)
@@ -95,7 +97,7 @@ The skill draws on:
 - **MITRE ATT&CK** for technique tagging
 - **CWE Top 25** for category mapping
 - **Anthropic's published `claude-code-security-review`** prompt and findings filter (baseline)
-- **Semgrep AI-powered Memories**, **Snyk CodeReduce**, **GitHub Copilot Autofix**, **Vercel Agent**, **Greptile**, **Cursor Bugbot/Security MCP** — for specific design patterns (see `references/design-notes.md` if added in a future revision)
+- **Semgrep AI-powered Memories**, **Snyk CodeReduce**, **GitHub Copilot Autofix**, **Vercel Agent**, **Greptile**, **Cursor Bugbot/Security MCP** — for specific design patterns
 
 ## Threat model
 
@@ -109,13 +111,14 @@ See `references/threat-model.md` for the full list.
 
 ## Companion skills
 
-`/security-review` is **deliberately scoped to security only**. Run it alongside a general code reviewer for full coverage — the boundaries are non-overlapping by design.
+`/security-audit` is **deliberately scoped to security only**. Run it alongside a general code reviewer for full coverage — the boundaries are non-overlapping by design.
 
 | Skill | Owns | Doesn't own |
 |---|---|---|
-| **`/security-review`** (this skill) | Injection, authn/authz, crypto, secrets, supply chain, ASVS findings, SSRF, deserialization, XSS in unsafe escape hatches | Bugs, lint, type errors, style, test coverage, perf, docs |
-| **`/code-review`** (marketplace plugin: `claude-plugins-official/code-review`) | Bugs, CLAUDE.md compliance, git-history context, prior-PR comments, code-comment guidance | General security issues (explicit exclusion in its prompt — defers to `/security-review`) |
-| **`/review`** (bundled in Claude Code) | Quick conversational PR review — broad scope | N/A — single-pass, no agent fleet |
+| **`/security-audit`** (this skill) | Injection, authn/authz, crypto, secrets, supply chain, ASVS findings, SSRF, deserialization, XSS in unsafe escape hatches | Bugs, lint, type errors, style, test coverage, perf, docs |
+| **`/security-review`** (bundled in Claude Code) | LLM-only diff review with 21-rule exclusion list and 0.7 confidence floor | No tools, no memories, no fixes |
+| **`/code-review`** (marketplace plugin: `claude-plugins-official/code-review`) | Bugs, CLAUDE.md compliance, git-history context, prior-PR comments, code-comment guidance | General security issues (explicit exclusion in its prompt — defers to a dedicated security reviewer) |
+| **`/review`** (bundled in Claude Code) | Quick conversational PR review — broad scope | Single-pass, no agent fleet |
 | **`/code-quality`** (this collection) | Lint, type-check, coverage, duplication, complexity | Anything diff-specific |
 | **`/owasp-security`** (companion) | Deep OWASP Top 10:2025 / ASVS 5.0 / Agentic AI 2026 reference for implementing controls | Diff review |
 
@@ -123,14 +126,14 @@ See `references/threat-model.md` for the full list.
 
 ```
 1. Pre-push (local)
-   └─ /security-review              # catch vulns before they leave your laptop
+   └─ /security-audit              # catch vulns before they leave your laptop
 
 2. PR opened
-   ├─ /security-review --post-pr N  # post security findings as a PR comment (CI or manual)
-   └─ /code-review N                # marketplace plugin — posts bugs/CLAUDE.md as a separate PR comment
+   ├─ /security-audit --post-pr N  # post security findings as a PR comment (CI or manual)
+   └─ /code-review N               # marketplace plugin — posts bugs/CLAUDE.md as a separate PR comment
 
 3. Merge gate (CI)
-   └─ /security-review --tools-only # per-tool SARIF → GitHub Code Scanning
+   └─ /security-audit --tools-only # per-tool SARIF → GitHub Code Scanning
 ```
 
 Three independent signals on the same PR, no duplicated findings.
@@ -141,7 +144,7 @@ To make the boundary explicit per-repo, add this to your `CLAUDE.md`:
 
 ```markdown
 ## Review ownership
-- /security-review owns: injection, authn/authz, crypto, secrets, supply chain
+- /security-audit owns: injection, authn/authz, crypto, secrets, supply chain
 - /code-review owns: bugs, CLAUDE.md compliance, historical context
 - Neither owns: lint, type errors, formatting, test coverage (CI handles these)
 ```
@@ -153,8 +156,8 @@ Both skills read CLAUDE.md and will respect this boundary.
 | File | Read by | Purpose |
 |---|---|---|
 | `CLAUDE.md`, `AGENTS.md`, `.cursorrules` | both skills | Repo conventions |
-| `.claude/security-memories.md` | `/security-review` only | Per-repo FP suppressions for security findings |
-| `.claude/security-config.yaml` | `/security-review` only | Per-repo exclusion / enable overrides |
+| `.claude/security-memories.md` | `/security-audit` only | Per-repo FP suppressions for security findings |
+| `.claude/security-config.yaml` | `/security-audit` only | Per-repo exclusion / enable overrides |
 
 ## Limitations
 

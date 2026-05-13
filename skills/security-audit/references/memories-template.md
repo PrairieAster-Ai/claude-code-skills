@@ -1,6 +1,6 @@
 # `.claude/security-memories.md` template
 
-This file lives in the **target repo** (not in this skill). Drop it at `.claude/security-memories.md` to suppress known false positives across runs of `/security-review`.
+This file lives in the **target repo** (not in this skill). Drop it at `.claude/security-memories.md` to suppress known false positives across runs of `/security-audit`.
 
 The skill reads this file on every run and applies entries before reporting. New memories are *proposed* after human triage — never written automatically.
 

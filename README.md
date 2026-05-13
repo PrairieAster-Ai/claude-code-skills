@@ -6,7 +6,7 @@ A collection of reusable skills for [Claude Code](https://docs.anthropic.com/en/
 
 | Skill | Description | Invoke With |
 |-------|-------------|-------------|
-| [**security-review**](skills/security-review/) | Differential security review combining SAST/SCA/secrets scanners with LLM verification, ASVS-by-touched-chapter checklists, per-repo FP memories, and sandbox-validated fixes | `/security-review [base-ref] [--fix\|--tools-only\|--deep]` |
+| [**security-audit**](skills/security-audit/) | Differential security audit combining SAST/SCA/secrets scanners with LLM verification, ASVS-by-touched-chapter checklists, per-repo FP memories, and sandbox-validated fixes. Coexists with Anthropic's bundled `/security-review`. | `/security-audit [base-ref] [--fix\|--tools-only\|--post-pr N\|--deep]` |
 | [**job-apply**](skills/job-apply/) | Generate tailored cover letters and resumes with job fit assessment | `/job-apply [job description]` |
 | [**code-quality**](skills/code-quality/) | Code quality assessment and improvement for TypeScript/React projects | `/code-quality` |
 | [**github**](skills/github/) | GitHub Wiki management, business model validation, and memory-bank integration | `/github` |
@@ -20,9 +20,9 @@ A collection of reusable skills for [Claude Code](https://docs.anthropic.com/en/
 Copy a specific skill to your project's `.claude/skills/` directory:
 
 ```bash
-# Install security-review skill
+# Install security-audit skill
 git clone https://github.com/PrairieAster-Ai/claude-code-skills.git /tmp/claude-code-skills
-cp -r /tmp/claude-code-skills/skills/security-review ~/.claude/skills/
+cp -r /tmp/claude-code-skills/skills/security-audit ~/.claude/skills/
 
 # Or install job-apply skill
 cp -r /tmp/claude-code-skills/skills/job-apply ~/.claude/skills/
@@ -63,9 +63,9 @@ ln -s ~/.claude/skills-collection/skills/github ~/.claude/skills/github
 
 ## Skills Overview
 
-### security-review
+### security-audit
 
-**Purpose:** High-signal, differential security review of the pending changes on the current branch — pairs deterministic SAST/SCA/secrets scanners with LLM verification so the report is actually actionable.
+**Purpose:** High-signal, differential security audit of the pending changes on the current branch. Pairs deterministic SAST/SCA/secrets scanners with LLM verification so the report is actually actionable. Coexists with Anthropic's bundled `/security-review` so you can run either or both.
 
 **Features:**
 - **Differential by default** — scans base vs head, reports only NEW findings
@@ -77,7 +77,7 @@ ln -s ~/.claude/skills-collection/skills/github ~/.claude/skills/github
 - **OWASP / CWE / MITRE ATT&CK tagging** on every finding
 - **Sandbox-validated fixes** with `--fix` — patches are applied to a scratch worktree, re-scanned, and tested before being surfaced
 - **SARIF outputs** for GitHub Code Scanning (post-2025-07-21 multi-run compliant)
-- **CI mode** with `--tools-only`
+- **CI mode** with `--tools-only`; **PR-comment mode** with `--post-pr N` (mirrors `/code-review`'s format)
 
 **Quick Start:**
 ```bash
@@ -86,13 +86,14 @@ pipx install semgrep lizard
 brew install gitleaks osv-scanner
 
 # Use the skill
-/security-review                  # vs origin/HEAD
-/security-review main             # vs an explicit base
-/security-review --fix            # propose sandbox-validated patches for high-confidence findings
-/security-review --tools-only     # CI mode — writes per-tool SARIF, skips LLM phase
+/security-audit                  # vs origin/HEAD
+/security-audit main             # vs an explicit base
+/security-audit --fix            # propose sandbox-validated patches for high-confidence findings
+/security-audit --tools-only     # CI mode — writes per-tool SARIF, skips LLM phase
+/security-audit --post-pr 123    # post results as a GH PR comment on PR #123
 ```
 
-See [security-review README](skills/security-review/README.md) for the full workflow and threat model.
+See [security-audit README](skills/security-audit/README.md) for the full workflow and threat model.
 
 ---
 
