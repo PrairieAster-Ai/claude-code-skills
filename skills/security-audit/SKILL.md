@@ -110,14 +110,28 @@ fi
 # Per-language SAST
 grep -qE '\.py$'  /tmp/sr-files.txt && bandit -r $(grep '\.py$' /tmp/sr-files.txt) -f sarif -o /tmp/sr-bandit.sarif --quiet 2>/dev/null
 grep -qE '\.go$'  /tmp/sr-files.txt && govulncheck -format sarif ./... > /tmp/sr-govulncheck.sarif 2>/dev/null
-grep -qE '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt && \
-  npx --yes eslint --no-eslintrc --plugin security \
-    --rule 'security/detect-eval-with-expression: error' \
-    --rule 'security/detect-non-literal-fs-filename: warn' \
-    --rule 'security/detect-child-process: error' \
-    --rule 'security/detect-unsafe-regex: warn' \
-    --format @microsoft/eslint-formatter-sarif -o /tmp/sr-eslint-sec.sarif \
-    $(grep -E '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt) 2>/dev/null || true
+if grep -qE '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt; then
+  # Build a tiny flat config that opts out of the project's eslint config
+  # (we don't want to inherit it; we just want the security plugin's rules)
+  cat > /tmp/sr-eslint.config.mjs <<'EOF'
+import security from 'eslint-plugin-security';
+export default [{
+  plugins: { security },
+  rules: {
+    'security/detect-eval-with-expression': 'error',
+    'security/detect-non-literal-fs-filename': 'warn',
+    'security/detect-child-process': 'error',
+    'security/detect-unsafe-regex': 'warn',
+  },
+}];
+EOF
+  mapfile -t SR_JS_FILES < <(grep -E '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt)
+  [ ${#SR_JS_FILES[@]} -gt 0 ] && npx --yes eslint \
+    --config /tmp/sr-eslint.config.mjs \
+    --format @microsoft/eslint-formatter-sarif \
+    -o /tmp/sr-eslint-sec.sarif \
+    "${SR_JS_FILES[@]}" 2>/dev/null || true
+fi
 ```
 
 ### Merge for LLM consumption only
@@ -232,27 +246,33 @@ On every run: load memories, match findings, auto-dismiss those that hit a memor
 
 ### Hard exclusions (verbatim — DO NOT REPORT)
 
-1. Denial of Service (DoS) / resource exhaustion / rate limiting / memory & CPU exhaustion.
-2. Secrets stored on disk if otherwise secured (handled by other processes).
-3. Lack of input validation on non-security-critical fields without proven impact.
-4. Input sanitization concerns in GitHub Actions unless clearly triggerable via untrusted input.
-5. "Lack of hardening" — code is not required to implement every best practice; flag concrete vulns only.
-6. Theoretical race conditions / timing attacks without a concrete attack path.
-7. Outdated third-party libraries (managed separately — let `osv-scanner` report those as its own runs).
-8. Memory safety in memory-safe languages (Rust, Go, JS/TS, Python, Java, C#).
-9. Files that are only unit tests or test helpers.
-10. Log spoofing (unsanitized user input to logs).
-11. Path-only SSRF (host and protocol must be attacker-controllable).
-12. User-controlled content inside AI system prompts (not a code vuln).
-13. Regex injection / ReDoS.
-14. Findings in documentation files (`*.md`, `*.mdx`, `*.rst`).
-15. Lack of audit logs.
-16. Tabnabbing, XS-Leaks, prototype pollution, open redirects — unless extremely high confidence.
-17. XSS in React/Angular/Vue 3 templates unless using unsafe escape hatches (`dangerouslySetInnerHTML`, `bypassSecurityTrust*`, `v-html`).
-18. Client-side authentication / permission checks (server is responsible).
-19. Command injection in shell scripts unless concrete attack path exists.
-20. Vulnerabilities in `.ipynb` notebooks unless concrete attack path exists.
-21. Logging non-PII even if "sensitive feeling."
+This list mirrors `references/exclusions.md` (25 items). Both are canonical.
+
+1. Denial of Service (DoS) / resource exhaustion / rate limiting.
+2. Memory / CPU exhaustion.
+3. Secrets stored on disk if otherwise secured (handled by other processes).
+4. Lack of input validation on non-security-critical fields without proven impact.
+5. Input sanitization concerns in GitHub Actions unless clearly triggerable via untrusted input.
+6. "Lack of hardening" — code is not required to implement every best practice; flag concrete vulns only.
+7. Theoretical race conditions / timing attacks without a concrete attack path.
+8. Outdated third-party libraries (managed separately — let `osv-scanner` report those as its own runs).
+9. Memory safety in memory-safe languages (Rust, Go, JS/TS, Python, Java, C#).
+10. Files that are only unit tests or test helpers.
+11. Log spoofing (unsanitized user input to logs).
+12. Path-only SSRF (host and protocol must be attacker-controllable).
+13. User-controlled content inside AI system prompts (not a code vuln).
+14. Regex injection / ReDoS.
+15. Findings in documentation files (`*.md`, `*.mdx`, `*.rst`).
+16. Lack of audit logs.
+17. Tabnabbing, XS-Leaks, prototype pollution, open redirects — unless extremely high confidence.
+18. XSS in React/Angular/Vue 3 templates unless using unsafe escape hatches (`dangerouslySetInnerHTML`, `bypassSecurityTrust*`, `v-html`).
+19. Client-side authentication / permission checks (server is responsible).
+20. Command injection in shell scripts unless concrete attack path exists.
+21. Vulnerabilities in `.ipynb` notebooks unless concrete attack path exists.
+22. Logging non-PII even if "sensitive feeling."
+23. UUIDs treated as guessable — UUIDs (v4+) are assumed unguessable.
+24. Attacks that rely on controlling an environment variable or CLI flag — these are trusted inputs.
+25. Resource leaks (memory, file descriptors) — not security vulnerabilities.
 
 ### Confidence threshold
 
@@ -316,28 +336,38 @@ DRAFT_TAG=""
 
 ### Skip if already commented on this SHA
 
-Before posting, check whether `/security-audit` has already commented on `HEAD_SHA`. Avoid re-posting on every push.
+Before posting, check whether `/security-audit` has already commented on `HEAD_SHA`. Every comment posted by this skill carries an HTML-comment marker with the full SHA so this lookup is deterministic.
 
 ```bash
+MARKER="<!-- security-audit:sha=$HEAD_SHA -->"
 EXISTING=$(gh pr view "$PR_NUM" --json comments -q ".comments[].body" \
-  | grep -F "### Security audit" \
-  | grep -F "$HEAD_SHA" || true)
+  | grep -F "$MARKER" || true)
 [ -n "$EXISTING" ] && { echo "Already audited $HEAD_SHA — skipping"; exit 0; }
 ```
 
-### Run the audit against the PR base
+The `MARKER` line is emitted as the first line of every PR comment this skill produces (see "Comment format" below).
+
+### Run the audit against the PR base in a scratch worktree
+
+Never mutate the user's working tree. Use a detached `git worktree` rooted at the PR's HEAD SHA:
 
 ```bash
 git fetch origin "$BASE_REF" --quiet
-git checkout --quiet "$HEAD_REF" 2>/dev/null || true
-# Then Phase 1–5 with BASE="origin/$BASE_REF"
+WORKTREE=/tmp/sr-pr-$PR_NUM-$$
+git worktree add --detach --quiet "$WORKTREE" "$HEAD_SHA"
+trap 'git worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
+cd "$WORKTREE"
+# Then run Phase 1–5 with BASE="origin/$BASE_REF"
 ```
+
+The `trap` ensures the worktree is torn down on exit (success or failure). The user's original branch and working tree are never touched.
 
 ### Comment format
 
 Output verbatim — match `/code-review`'s structure so a reviewer's eye finds findings in the same shape:
 
 ```markdown
+<!-- security-audit:sha={HEAD_SHA_FULL} -->
 ### Security audit
 
 Found {N} security issues in {HEAD_SHA_SHORT}{DRAFT_TAG}:
@@ -368,6 +398,7 @@ Found {N} security issues in {HEAD_SHA_SHORT}{DRAFT_TAG}:
 If zero findings survive:
 
 ```markdown
+<!-- security-audit:sha={HEAD_SHA_FULL} -->
 ### Security audit
 
 No security issues found in {HEAD_SHA_SHORT}.
@@ -418,12 +449,49 @@ FINAL_STATE=$(gh pr view "$PR_NUM" --json state -q .state)
 For each finding at confidence ≥ 0.9:
 
 1. Generate a minimal patch using the rule's help text + the minimized snippet from Phase 3.
-2. **Apply on a scratch worktree** (`git worktree add /tmp/sr-fix-{n}`).
-3. Re-run the **same** SAST rule against the patched file. If the rule still fires, discard the patch.
-4. Run `npm test`/`pytest`/`go test` (auto-detected) on the patched worktree. If any test that was previously green now fails, discard the patch.
+2. **Apply on a scratch worktree** rooted at the current HEAD, with the project's installed dependency tree linked in (a fresh worktree has no `node_modules` / `.venv`, so tests would fail spuriously without this step):
+
+   ```bash
+   WORKTREE=/tmp/sr-fix-${N}-$$
+   git worktree add --detach --quiet "$WORKTREE" HEAD
+   trap 'git worktree remove --force "$WORKTREE" 2>/dev/null || true' EXIT
+
+   # Link dependency trees from the original tree so tests can run.
+   # Symlinks are sufficient — tests do not write into these dirs.
+   for d in node_modules .venv venv vendor; do
+     [ -e "$d" ] && [ ! -e "$WORKTREE/$d" ] && ln -s "$(pwd)/$d" "$WORKTREE/$d"
+   done
+
+   cd "$WORKTREE"
+   git apply /tmp/sr-fix-${N}.patch
+   ```
+
+3. **Re-run the same SAST rule** against the patched file. If the rule still fires, discard the patch:
+
+   ```bash
+   # Example for Semgrep — use the original alarm's rule id
+   semgrep scan --config="$RULE_ID" --error --quiet "$PATCHED_FILE" && KEPT=yes || KEPT=no
+   ```
+
+4. **Run the project's tests.** Auto-detect by manifest file present in the worktree:
+
+   | Manifest | Command |
+   |---|---|
+   | `package.json` with `test` script | `npm test --silent` (or `pnpm test`, `yarn test`) |
+   | `pytest.ini` / `pyproject.toml [tool.pytest]` | `pytest -q` |
+   | `go.mod` | `go test ./...` |
+   | `Cargo.toml` | `cargo test --quiet` |
+
+   If any previously-green test now fails, discard the patch.
+
 5. Only surface patches that pass both checks. Render as a markdown diff block per finding.
 
 This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing."
+
+### `--fix` failure modes
+
+- **Missing dependencies in the original tree.** If the user's working tree never had `node_modules` etc. installed, `--fix` cannot validate. Surface a warning and downgrade these fixes to "unvalidated — review manually" rather than discarding silently.
+- **Tests are slow.** If `npm test` takes >60s, the skill surfaces the patch with a warning that test validation was skipped due to timeout. The user can opt into the long path with `--fix --no-timeout`.
 
 ---
 

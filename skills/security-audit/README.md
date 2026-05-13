@@ -8,7 +8,7 @@ Differential, high-signal security audit of the pending changes on the current b
 |---|---|---|
 | Differential by default | ✓ | ✓ |
 | LLM diff review | ✓ | ✓ |
-| Hard exclusion list | ✓ (21 rules) | ✓ (21 rules, extended) |
+| Hard exclusion list | ✓ (21 rules) | ✓ (25 rules, extended) |
 | Confidence floor | 0.7 | 0.7 publish · 0.8 flag · 0.9 fix |
 | Deterministic pre-pass (SAST/SCA/secrets) | ✗ | **✓ (semgrep + gitleaks + osv-scanner + lang-specific)** |
 | OWASP/CWE/ATT&CK tagging | ✗ | **✓** |
