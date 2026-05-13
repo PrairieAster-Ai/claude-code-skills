@@ -16,7 +16,7 @@ Curated, opinionated toolchain for the deterministic pre-pass. All recommendatio
 | Condition | Tool | Purpose | Command |
 |---|---|---|---|
 | `Dockerfile` / `*.tf` / `k8s/*.yaml` | **trivy** | IaC + container | `trivy config --format=sarif -o sr-trivy-iac.sarif .` |
-| `package.json` / `requirements.txt` / `go.mod` changed | **socket** | Supply-chain / typosquat | `socket scan create --json . > sr-socket.json` |
+| `package.json` / `requirements.txt` / `go.mod` changed | **socket** | Supply-chain / typosquat | `socket scan create --json . > sr-socket.json`. Requires `socket login` once (free tier OK). Skip silently if unauthenticated. |
 | `*.py` in diff | **bandit** | Python SAST | `bandit -r <files> -f sarif -o sr-bandit.sarif --quiet` |
 | `*.py` deps changed | **pip-audit** | Python SCA | `pip-audit -f json -o sr-pip-audit.json` |
 | `*.go` in diff | **govulncheck** | Go SCA + reachability | `govulncheck -format sarif ./... > sr-govulncheck.sarif` |
@@ -47,11 +47,11 @@ Curated, opinionated toolchain for the deterministic pre-pass. All recommendatio
 
 ## OWASP / CWE / ATT&CK mapping
 
-- **Semgrep** rules carry `metadata.cwe` and `metadata.owasp` — surfaces in SARIF as `properties.tags`.
+- **Semgrep** rules carry `metadata.cwe` and `metadata.owasp`. Surfaces in SARIF as `properties.tags`.
 - **Bandit, gosec, checkov** emit CWE IDs in SARIF `properties.cwe`.
 - **gitleaks** → map to CWE-798 (Use of Hard-coded Credentials).
 - **osv-scanner** → map to CWE-1395 (Dependency on Vulnerable Third-Party Component) + OWASP A06:2025.
-- **ATT&CK** mapping is a post-processing step the skill does itself — small lookup from `(category, sink)` → technique ID. Example:
+- **ATT&CK** mapping is a post-processing step the skill does itself. Small lookup from `(category, sink)` → technique ID. Example:
   - Hardcoded token → T1552 (Credential Access)
   - `curl | bash` in Dockerfile → T1059 (Execution)
   - Obfuscated `postinstall` → T1048 (Exfiltration)
@@ -63,4 +63,4 @@ Curated, opinionated toolchain for the deterministic pre-pass. All recommendatio
 jq -s '{runs: map(.runs[]?)}' /tmp/sr-*.sarif > /tmp/sr-combined.json
 ```
 
-This combined file is fed to the verification prompt. **Never re-upload it** — since GitHub's 2025-07-21 change, code scanning rejects multiple runs sharing `tool.driver.name + runAutomationDetails.id`. Upload each tool's SARIF separately with distinct `tool_name` / `category`.
+This combined file is fed to the verification prompt. **Never re-upload it.** Since GitHub's 2025-07-21 change, code scanning rejects multiple runs sharing `tool.driver.name + runAutomationDetails.id`. Upload each tool's SARIF separately with distinct `tool_name` / `category`.

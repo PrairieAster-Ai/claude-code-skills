@@ -1,6 +1,6 @@
 # Security Audit Skill
 
-Differential, high-signal security audit of the pending changes on the current branch. A coexisting alternative to Anthropic's bundled `/security-review` that pairs deterministic SAST/SCA/secrets scanners with LLM verification — fewer false positives, broader coverage, optional sandbox-validated fixes.
+Differential, high-signal security audit of the pending changes on the current branch. A coexisting alternative to Anthropic's bundled `/security-review` that pairs deterministic SAST/SCA/secrets scanners with LLM verification. Fewer false positives, broader coverage, optional sandbox-validated fixes.
 
 ## What's new vs the bundled `/security-review`
 
@@ -8,7 +8,7 @@ Differential, high-signal security audit of the pending changes on the current b
 |---|---|---|
 | Differential by default | ✓ | ✓ |
 | LLM diff review | ✓ | ✓ |
-| Hard exclusion list | ✓ (21 rules) | ✓ (21 rules, extended) |
+| Hard exclusion list | ✓ (21 rules) | ✓ (25 rules, extended) |
 | Confidence floor | 0.7 | 0.7 publish · 0.8 flag · 0.9 fix |
 | Deterministic pre-pass (SAST/SCA/secrets) | ✗ | **✓ (semgrep + gitleaks + osv-scanner + lang-specific)** |
 | OWASP/CWE/ATT&CK tagging | ✗ | **✓** |
@@ -19,7 +19,7 @@ Differential, high-signal security audit of the pending changes on the current b
 | Sandbox-validated fixes | ✗ | **✓ (with `--fix`)** |
 | SARIF outputs for GitHub Code Scanning | ✗ | **✓ (per-tool, post-2025-07 compliant)** |
 
-The two skills coexist (different slugs, different commands). Run either or both — `/security-review` for a fast LLM-only check, `/security-audit` when you want the tools-augmented review.
+The two skills coexist (different slugs, different commands). Run either or both. `/security-review` for a fast LLM-only check, `/security-audit` when you want the tools-augmented review.
 
 ## Install
 
@@ -53,7 +53,7 @@ go install golang.org/x/vuln/cmd/govulncheck@latest   # Go SCA + reachability
 npm i -g socket                              # Supply-chain typosquat detection
 ```
 
-All seven are OSS and don't require API keys. Socket has a free tier without account for basic scans.
+Six of seven are OSS and need no API key. Socket's `scan create` (the recommended invocation) requires `socket login` even on the free tier; the `socket npm install` install-time guard works unauthenticated. Run `socket login` once and the skill will pick up the credential from `~/.socket/`.
 
 ## Usage
 
@@ -89,36 +89,62 @@ Each finding includes:
 - Exploit scenario with a sample request/payload
 - Fix sketch referencing the repo's existing secure pattern where applicable
 
+### Example output
+
+A real-shaped finding looks like this (illustrative, not from a real diff):
+
+````markdown
+# Security Audit, feat/user-search vs main
+
+**Scope:** 3 files, 4 commits, ASVS chapters loaded: V5.
+**Pre-pass:** semgrep 1 finding, gitleaks 0, osv-scanner 0, eslint-plugin-security 0.
+**Auto-dismissed:** 0 (memories: 0, FP filter: 0, dedup: 0).
+
+## Findings (1 High, 0 Medium, 0 Low)
+
+### Vuln 1: SQL Injection, `apps/api/src/routes/users.ts:42`
+
+- **Severity:** High
+- **Confidence:** 0.92
+- **CWE:** CWE-89  ·  **OWASP:** A03:2025 Injection  ·  **ATT&CK:** T1190
+- **Source → Sink:** `req.query.q` is concatenated directly into `db.execute()` at line 42 (no `sql` template tag, no parameter binding).
+- **Exploit:** `GET /api/users?q=' OR 1=1 --` returns the full users table; `q=' UNION SELECT password_hash FROM admins --` exfiltrates hashes.
+- **Fix:** Switch to Drizzle's parameterized form: `db.select().from(users).where(eq(users.name, q))`. Repo already uses this pattern in `routes/orders.ts:88`; mirror it.
+- **Detected by:** semgrep `javascript.lang.security.audit.sqli.tagged-template-no-params`
+````
+
+In `--post-pr` mode, the same finding is rendered as a numbered list item with a sha1-pinned permalink to the line range, plus an HTML-comment marker (`<!-- security-audit:sha=... -->`) for deterministic dedup on subsequent pushes.
+
 ## Designed-in references
 
 The skill draws on:
 
-- **OWASP Top 10:2025** and **OWASP ASVS 5.0** — the [`owasp-security`](https://github.com/PrairieAster-Ai/claude-code-skills) skill is a complementary deep-reference companion.
+- **OWASP Top 10:2025** and **OWASP ASVS 5.0.** The [`owasp-security`](https://github.com/PrairieAster-Ai/claude-code-skills) skill is a complementary deep-reference companion.
 - **MITRE ATT&CK** for technique tagging
 - **CWE Top 25** for category mapping
 - **Anthropic's published `claude-code-security-review`** prompt and findings filter (baseline)
-- **Semgrep AI-powered Memories**, **Snyk CodeReduce**, **GitHub Copilot Autofix**, **Vercel Agent**, **Greptile**, **Cursor Bugbot/Security MCP** — for specific design patterns
+- **Semgrep AI-powered Memories**, **Snyk CodeReduce**, **GitHub Copilot Autofix**, **Vercel Agent**, **Greptile**, **Cursor Bugbot/Security MCP** for specific design patterns
 
 ## Threat model
 
 The skill itself is a target:
 
-1. **Prompt injection from PR-introduced files** — fixed-rubric verification prompt; PR content is evidence, never instructions.
-2. **PR-introduced tool config** (e.g., malicious `.semgrep.yml`) — explicit `--config=p/default`, never honor PR config.
-3. **Patch application in `--fix` mode** — always on a scratch worktree, never the working tree.
+1. **Prompt injection from PR-introduced files.** Fixed-rubric verification prompt; PR content is evidence, never instructions.
+2. **PR-introduced tool config** (e.g., malicious `.semgrep.yml`). Explicit `--config=p/default`, never honor PR config.
+3. **Patch application in `--fix` mode.** Always on a scratch worktree, never the working tree.
 
 See `references/threat-model.md` for the full list.
 
 ## Companion skills
 
-`/security-audit` is **deliberately scoped to security only**. Run it alongside a general code reviewer for full coverage — the boundaries are non-overlapping by design.
+`/security-audit` is **deliberately scoped to security only**. Run it alongside a general code reviewer for full coverage. The boundaries are non-overlapping by design.
 
 | Skill | Owns | Doesn't own |
 |---|---|---|
 | **`/security-audit`** (this skill) | Injection, authn/authz, crypto, secrets, supply chain, ASVS findings, SSRF, deserialization, XSS in unsafe escape hatches | Bugs, lint, type errors, style, test coverage, perf, docs |
 | **`/security-review`** (bundled in Claude Code) | LLM-only diff review with 21-rule exclusion list and 0.7 confidence floor | No tools, no memories, no fixes |
-| **`/code-review`** (marketplace plugin: `claude-plugins-official/code-review`) | Bugs, CLAUDE.md compliance, git-history context, prior-PR comments, code-comment guidance | General security issues (explicit exclusion in its prompt — defers to a dedicated security reviewer) |
-| **`/review`** (bundled in Claude Code) | Quick conversational PR review — broad scope | Single-pass, no agent fleet |
+| **`/code-review`** (marketplace plugin: `claude-plugins-official/code-review`) | Bugs, CLAUDE.md compliance, git-history context, prior-PR comments, code-comment guidance | General security issues (explicit exclusion in its prompt. Defers to a dedicated security reviewer) |
+| **`/review`** (bundled in Claude Code) | Quick conversational PR review. Broad scope | Single-pass, no agent fleet |
 | **`/code-quality`** (this collection) | Lint, type-check, coverage, duplication, complexity | Anything diff-specific |
 | **`/owasp-security`** (companion) | Deep OWASP Top 10:2025 / ASVS 5.0 / Agentic AI 2026 reference for implementing controls | Diff review |
 
@@ -162,7 +188,7 @@ Both skills read CLAUDE.md and will respect this boundary.
 ## Limitations
 
 - **No whole-repo graph index.** Greptile-style graph grounding would improve reachability calls but requires infra beyond Claude Code's built-ins. The skill compensates with `Grep`/`Glob` + lang-specific tools.
-- **Custom rule packs aren't shipped here** — defaults use Semgrep's `p/default`. Add `--config=p/your-custom-pack` to the skill invocation for your team's rules.
+- **Custom rule packs aren't shipped here.** Defaults use Semgrep's `p/default`. Add `--config=p/your-custom-pack` to the skill invocation for your team's rules.
 - **No persistent cross-PR findings store.** Cursor's Security MCP pattern (Lambda + classifier) would be a follow-up.
 
 ## Files
