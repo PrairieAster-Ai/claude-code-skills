@@ -60,6 +60,7 @@ All seven are OSS and don't require API keys. Socket has a free tier without acc
 /security-review main             # vs explicit base
 /security-review --fix            # propose sandbox-validated patches for High-confidence findings
 /security-review --tools-only     # SAST/SCA pre-pass only — CI mode, writes per-tool SARIF
+/security-review --post-pr 123    # run review + post results as a PR #123 comment (mirrors /code-review's format)
 /security-review --deep           # adds complexity hotspots + full-history secret scan
 ```
 
@@ -71,6 +72,7 @@ All seven are OSS and don't require API keys. Socket has a free tier without acc
 3. LLM verification     — per-alarm sub-tasks, source→sink reasoning, confidence scoring
 4. Triage + dedup       — memories applied, semantic dedup, exclusion filter
 5. Report               — markdown with CWE/OWASP/ATT&CK tags
+5b. --post-pr (optional)— post the report as a GH PR comment (mirrors /code-review's shape)
 6. --fix (optional)     — generate patch → apply to worktree → re-run rule → run tests → discard if regression
 ```
 
@@ -104,6 +106,55 @@ The skill itself is a target:
 3. **Patch application in `--fix` mode** — always on a scratch worktree, never the working tree.
 
 See `references/threat-model.md` for the full list.
+
+## Companion skills
+
+`/security-review` is **deliberately scoped to security only**. Run it alongside a general code reviewer for full coverage — the boundaries are non-overlapping by design.
+
+| Skill | Owns | Doesn't own |
+|---|---|---|
+| **`/security-review`** (this skill) | Injection, authn/authz, crypto, secrets, supply chain, ASVS findings, SSRF, deserialization, XSS in unsafe escape hatches | Bugs, lint, type errors, style, test coverage, perf, docs |
+| **`/code-review`** (marketplace plugin: `claude-plugins-official/code-review`) | Bugs, CLAUDE.md compliance, git-history context, prior-PR comments, code-comment guidance | General security issues (explicit exclusion in its prompt — defers to `/security-review`) |
+| **`/review`** (bundled in Claude Code) | Quick conversational PR review — broad scope | N/A — single-pass, no agent fleet |
+| **`/code-quality`** (this collection) | Lint, type-check, coverage, duplication, complexity | Anything diff-specific |
+| **`/owasp-security`** (companion) | Deep OWASP Top 10:2025 / ASVS 5.0 / Agentic AI 2026 reference for implementing controls | Diff review |
+
+### Recommended workflow
+
+```
+1. Pre-push (local)
+   └─ /security-review              # catch vulns before they leave your laptop
+
+2. PR opened
+   ├─ /security-review --post-pr N  # post security findings as a PR comment (CI or manual)
+   └─ /code-review N                # marketplace plugin — posts bugs/CLAUDE.md as a separate PR comment
+
+3. Merge gate (CI)
+   └─ /security-review --tools-only # per-tool SARIF → GitHub Code Scanning
+```
+
+Three independent signals on the same PR, no duplicated findings.
+
+### CLAUDE.md "Review ownership" pattern
+
+To make the boundary explicit per-repo, add this to your `CLAUDE.md`:
+
+```markdown
+## Review ownership
+- /security-review owns: injection, authn/authz, crypto, secrets, supply chain
+- /code-review owns: bugs, CLAUDE.md compliance, historical context
+- Neither owns: lint, type errors, formatting, test coverage (CI handles these)
+```
+
+Both skills read CLAUDE.md and will respect this boundary.
+
+### Shared context files
+
+| File | Read by | Purpose |
+|---|---|---|
+| `CLAUDE.md`, `AGENTS.md`, `.cursorrules` | both skills | Repo conventions |
+| `.claude/security-memories.md` | `/security-review` only | Per-repo FP suppressions for security findings |
+| `.claude/security-config.yaml` | `/security-review` only | Per-repo exclusion / enable overrides |
 
 ## Limitations
 

@@ -1,7 +1,7 @@
 ---
 name: security-review
 description: Differential security review of the pending changes on the current branch. Combines deterministic SAST/SCA/secrets scanners with LLM verification, asymmetric confidence (auto-dismiss FPs only, never TPs), per-repo memories, ASVS-by-touched-chapter checklists, and ATT&CK tagging. Output: a high-signal markdown report with confidence-scored findings and (optional) sandbox-validated fix patches.
-allowed-tools: "Bash(git:*),Bash(semgrep:*),Bash(gitleaks:*),Bash(osv-scanner:*),Bash(trivy:*),Bash(bandit:*),Bash(govulncheck:*),Bash(gosec:*),Bash(pip-audit:*),Bash(eslint:*),Bash(npx:*),Bash(pipx:*),Bash(jq:*),Bash(lizard:*),Bash(socket:*),Bash(trufflehog:*),Bash(gh:*),Read,Glob,Grep,Task"
+allowed-tools: "Bash(git:*),Bash(semgrep:*),Bash(gitleaks:*),Bash(osv-scanner:*),Bash(trivy:*),Bash(bandit:*),Bash(govulncheck:*),Bash(gosec:*),Bash(pip-audit:*),Bash(eslint:*),Bash(npx:*),Bash(pipx:*),Bash(jq:*),Bash(lizard:*),Bash(socket:*),Bash(trufflehog:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh api:*),Bash(gh repo view:*),Read,Glob,Grep,Task"
 ---
 
 # Security Review Skill
@@ -17,12 +17,14 @@ The single most important rule: **better to miss some theoretical issues than fl
 - `/security-review --fix` — also propose sandbox-validated patches for HIGH confidence findings
 - `/security-review --tools-only` — just run the SAST/SCA pre-pass, skip LLM verification (CI mode)
 - `/security-review --deep` — also run `lizard`/`scc` complexity hotspots + full-history secret scan
+- `/security-review --post-pr <N>` — run the review and post results as a PR comment on PR #N (mirrors `/code-review`'s format so the two skills produce visually consistent comment threads)
 
 ## Pipeline
 
 ```
 1. Context  →  2. Pre-pass (tools)  →  3. LLM verification  →  4. Triage + dedup  →  5. Report
-                                                              (+ 6. Sandbox-validated fixes if --fix)
+                                                              (+ 5b. Post to PR if --post-pr)
+                                                              (+ 6.  Sandbox-validated fixes if --fix)
 ```
 
 Each phase has hard exits — if Phase 1 finds no changes, stop. If Phase 2 finds nothing AND the diff touches zero security-sensitive surfaces, return "No security-relevant changes." rather than padding the report.
@@ -287,6 +289,130 @@ If zero findings survive: `No security issues identified in changes vs {base}.` 
 
 ---
 
+## Phase 5b — `--post-pr <N>` mode (optional)
+
+Posts the report as a GitHub PR comment on PR #N, using a comment format aligned with the `/code-review` marketplace plugin so the two skills produce parallel, visually consistent comment threads.
+
+### Pre-flight
+
+```bash
+PR_NUM="$1"
+gh pr view "$PR_NUM" --json state,isDraft,headRefName,headRefOid,baseRefName -q '.' > /tmp/sr-pr.json
+
+STATE=$(jq -r .state /tmp/sr-pr.json)
+DRAFT=$(jq -r .isDraft /tmp/sr-pr.json)
+HEAD_SHA=$(jq -r .headRefOid /tmp/sr-pr.json)
+BASE_REF=$(jq -r .baseRefName /tmp/sr-pr.json)
+HEAD_REF=$(jq -r .headRefName /tmp/sr-pr.json)
+REPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+
+# Skip closed / merged PRs
+[ "$STATE" = "OPEN" ] || { echo "PR #$PR_NUM is $STATE — skipping"; exit 0; }
+
+# Allow draft (security findings on drafts are valuable) but tag the comment
+DRAFT_TAG=""
+[ "$DRAFT" = "true" ] && DRAFT_TAG=" *(draft PR — findings may evolve)*"
+```
+
+### Skip if already commented on this SHA
+
+Before posting, check whether `/security-review` has already commented on `HEAD_SHA`. Avoid re-posting on every push.
+
+```bash
+EXISTING=$(gh pr view "$PR_NUM" --json comments -q ".comments[].body" \
+  | grep -F "### Security review" \
+  | grep -F "$HEAD_SHA" || true)
+[ -n "$EXISTING" ] && { echo "Already reviewed $HEAD_SHA — skipping"; exit 0; }
+```
+
+### Run the review against the PR base
+
+```bash
+git fetch origin "$BASE_REF" --quiet
+git checkout --quiet "$HEAD_REF" 2>/dev/null || true
+# Then Phase 1–5 with BASE="origin/$BASE_REF"
+```
+
+### Comment format
+
+Output verbatim — match `/code-review`'s structure so a reviewer's eye finds findings in the same shape:
+
+```markdown
+### Security review
+
+Found {N} security issues in {HEAD_SHA_SHORT}{DRAFT_TAG}:
+
+1. **{Severity} · {CWE-id} · {OWASP-tag}** — {one-line description}
+
+   Source → sink: {short chain}.
+   Recommendation: {short fix sketch}.
+
+   https://github.com/{REPO}/blob/{HEAD_SHA}/{file}#L{start}-L{end}
+
+2. **High · CWE-89 · A03:2025 Injection** — User input from `req.query.q` is interpolated directly into `db.execute()`.
+
+   Source → sink: `req.query.q` → string concat → `db.execute()` at users.ts:42 (no parameter binding).
+   Recommendation: switch to Drizzle's parameterized form; mirror the pattern at `routes/orders.ts:88`.
+
+   https://github.com/owner/repo/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/apps/api/src/routes/users.ts#L40-L45
+
+---
+
+**Scope:** {N} files vs `{base-ref}` · **Tools:** semgrep, gitleaks, osv-scanner{conditional tools} · **Auto-dismissed:** {n} (memories: {n}, FP filter: {n}, dedup: {n})
+
+🤖 Generated with [Claude Code](https://claude.ai/code) `/security-review`
+
+<sub>Companion: `/code-review` covers bugs and CLAUDE.md compliance. If this review was useful, react 👍. Otherwise 👎.</sub>
+```
+
+If zero findings survive:
+
+```markdown
+### Security review
+
+No security issues found in {HEAD_SHA_SHORT}.
+
+**Scope:** {N} files vs `{base-ref}` · **Tools:** semgrep, gitleaks, osv-scanner{conditional} · **Auto-dismissed:** {n}
+
+🤖 Generated with [Claude Code](https://claude.ai/code) `/security-review`
+```
+
+### Permalink construction (critical)
+
+Each finding MUST link with the **full PR head SHA** so the PR comment stays stable as the PR evolves. Format:
+
+```
+https://github.com/{owner/repo}/blob/{HEAD_SHA_full}/{file_path}#L{start_line}-L{end_line}
+```
+
+Rules (mirror `/code-review`):
+
+1. Full 40-char SHA only — no `$(git rev-parse HEAD)` interpolation; the comment is rendered as static markdown.
+2. Provide at least 1 line of context before and after the finding line (e.g. for line 42, link `L40-L44`).
+3. Repo path must match the PR's repo (`gh repo view --json nameWithOwner -q .nameWithOwner`).
+4. Use `#L<start>-L<end>` format; line range, not just a single line.
+
+### Post the comment
+
+```bash
+gh pr comment "$PR_NUM" --body-file /tmp/sr-pr-comment.md
+```
+
+### Re-eligibility check (TOCTOU guard)
+
+Between starting the review and posting, the PR might have closed/merged. Re-check before posting:
+
+```bash
+FINAL_STATE=$(gh pr view "$PR_NUM" --json state -q .state)
+[ "$FINAL_STATE" = "OPEN" ] || { echo "PR closed during review — not posting"; exit 0; }
+```
+
+### Threat model considerations
+
+`--post-pr` mode does not change the threats listed in `references/threat-model.md`, but it adds one operational concern: the comment body must NEVER include shell output from PR-introduced code or unsanitized PR file contents. Only the pre-pass tool output and the LLM verification analysis go into the comment. PR-introduced content is referenced by *permalink*, not embedded.
+
+---
+
 ## Phase 6 — `--fix` mode (optional)
 
 For each finding at confidence ≥ 0.9:
@@ -303,7 +429,11 @@ This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-ge
 
 ## CI integration
 
-`security-review --tools-only` writes individual SARIF files. Upload them separately:
+Two complementary modes:
+
+### `--tools-only` for GitHub Code Scanning
+
+Writes individual SARIF files. Upload each separately (post-2025-07-21 GitHub requires distinct `tool.driver.name` per upload):
 
 ```yaml
 - name: Run security pre-pass
@@ -322,6 +452,37 @@ This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-ge
     category: osv-scanner
 # …repeat per tool
 ```
+
+### `--post-pr` for human-readable PR comments
+
+Pair with `/code-review` so each PR gets two distinct, non-overlapping comment threads:
+
+```yaml
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }   # need full history for diff
+      - run: claude security-review --post-pr "${{ github.event.pull_request.number }}"
+
+  code-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - run: claude /code-review "${{ github.event.pull_request.number }}"
+```
+
+The two jobs run in parallel; each posts its own clearly-headed comment (`### Security review` vs `### Code review`).
 
 ---
 
