@@ -2,7 +2,7 @@
 
 This file lives in the **target repo** (not in this skill). Drop it at `.claude/security-memories.md` to suppress known false positives across runs of `/security-audit`.
 
-The skill reads this file on every run and applies entries before reporting. New memories are *proposed* after human triage — never written automatically.
+The skill reads this file on every run and applies entries before reporting. New memories are *proposed* after human triage. Never written automatically.
 
 ## Format
 
@@ -50,19 +50,19 @@ Each memory is a markdown section. The header is the human-readable title; the b
 
 1. After Phase 2 (pre-pass), every alarm is matched against memories. A memory hits when **all** of `(tool, rule, path-glob)` match.
 2. Matched alarms are auto-dismissed and counted in the report's "Auto-dismissed (memories: N)" line.
-3. New findings that the human user dismisses during review can be promoted to memories. The skill proposes the entry but the user copies it in by hand — the skill MUST NOT write `.claude/security-memories.md` automatically.
+3. New findings that the human user dismisses during review can be promoted to memories. The skill proposes the entry but the user copies it in by hand. The skill MUST NOT write `.claude/security-memories.md` automatically.
 
 ## What memories are NOT for
 
 - Suppressing **real** vulnerabilities. The asymmetric rule applies: memories can only suppress findings the model would already classify as FPs at confidence ≥ 0.8. A memory cannot override a TP classification.
 - Suppressing **entire categories**. That belongs in `.claude/security-config.yaml` (see `exclusions.md`).
-- Sharing across repos. Memories are repo-local context — they encode that codebase's specific compensating controls.
+- Sharing across repos. Memories are repo-local context. They encode that codebase's specific compensating controls.
 
 ## Commit policy
 
 Two reasonable defaults:
 
-1. **Commit memories** — they're project context, useful for the whole team, and a good audit trail of "we considered this and decided it was OK because X."
-2. **Gitignore memories** — if you want each developer's local-only triage to not affect the team's review baseline.
+1. **Commit memories.** They're project context, useful for the whole team, and a good audit trail of "we considered this and decided it was OK because X."
+2. **Gitignore memories.** If you want each developer's local-only triage to not affect the team's review baseline.
 
 Pick one and document it in the repo's README. Mixing leads to confusion.

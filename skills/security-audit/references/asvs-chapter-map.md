@@ -14,7 +14,7 @@ Each row: regex (case-insensitive) → ASVS V5.0 chapter(s) to include in the ve
 | `fetch(`, `axios`, `requests.`, `urllib`, `http.get`, `node-fetch`, URL coming from user input | V10 (Communication), SSRF subsection of V5 | SSRF, TLS verification |
 | `multer`, `formidable`, `file_get_contents`, `path.join(req.`, `os.path.join`, `extractall`, `tarfile.extract`, `zip.extract` | V12 (Files & Resources) | Path traversal, zip-slip |
 | `Dockerfile`, `*.tf`, `*.yaml` under `k8s/` or `helm/`, `vercel.json`, `vercel.ts` | V14 (Configuration) | Infra config |
-| `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `Gemfile` | V8 (Data Protection — supply chain), Supply chain pre-pass | New dependencies |
+| `package.json`, `package-lock.json`, `pnpm-lock.yaml`, `requirements.txt`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `Gemfile` | V8 (Data Protection. Supply chain), Supply chain pre-pass | New dependencies |
 | `CORS`, `Access-Control-Allow-Origin`, `helmet`, `Content-Security-Policy`, `cookie` flags | V13 (API & Web Service Security) | Web headers, CORS |
 | `RLS`, `row level security`, role checks, `if (user.role`, `requirePermission`, `casbin`, `oso`, `cancan` | V4 (Access Control) | Authorization logic |
 | `log.info`/`logger.warn` with variable interpolation that may contain secrets, `console.log` of objects containing tokens | V9 (Logging & Error Handling) | Sensitive data in logs |
