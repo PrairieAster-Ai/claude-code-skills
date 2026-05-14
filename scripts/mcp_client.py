@@ -98,8 +98,12 @@ class SemgrepMCPClient:
             },
         )
         self._recv()  # discard server info
-        # MCP requires an `initialized` notification after the handshake.
-        self._notify("initialized", {})
+        # MCP requires a `notifications/initialized` notification after the
+        # handshake. The `notifications/` prefix is critical — sending
+        # `initialized` without it (as a previous version of this file did)
+        # leaves the server in a half-handshaken state where tools/list
+        # returns the empty set or InvalidParams.
+        self._notify("notifications/initialized", {})
         self._initialized = True
 
     def _send(self, method: str, params: dict[str, Any]) -> int:
