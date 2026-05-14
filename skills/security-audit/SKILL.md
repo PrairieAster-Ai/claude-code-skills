@@ -175,6 +175,86 @@ jq -s '{runs: map(.runs[]?)}' /tmp/sr-*.sarif 2>/dev/null > /tmp/sr-combined.jso
 
 **Goal:** for each pre-pass alarm AND for each new-code surface the tools missed, decide if there's a real, exploitable vulnerability introduced by *this diff*.
 
+### Finding routing (rule-metadata driven)
+
+Before spawning verification sub-tasks, route each finding to a specialized verifier prompt based on its rule metadata. Semgrep rules (and many other SAST tools) emit OWASP and CWE tags as SARIF properties; use them to pick a specialist prompt rather than running one generic prompt against every finding.
+
+The routing key is the finding's primary classification, derived in this order:
+
+1. **`properties.owasp`** from the SARIF rule definition (Semgrep, Bandit, gosec all emit this when applicable). Map to ASVS chapter via the OWASP→ASVS table below.
+2. **`properties.cwe`** as fallback when OWASP is absent. Map via the CWE→ASVS table.
+3. **Tool-default classification** when neither tag is present:
+   - `gitleaks` findings → V11 (Cryptography, secrets sub-section)
+   - `osv-scanner` findings → V8 (Data Protection, supply chain)
+   - `eslint-plugin-security` rules → look up per rule (`detect-eval-with-expression` → V5, `detect-non-literal-fs-filename` → V12, etc.)
+4. **File-regex touched-chapter detection** (the table in Phase 1) as the final fallback for findings with no metadata at all, or for manual hunting paths where there's no finding to route from.
+
+#### OWASP Top 10:2025 → ASVS chapter
+
+| OWASP tag | ASVS chapter(s) | Specialized verifier |
+|---|---|---|
+| A01 Broken Access Control | V4 | `verifiers/access-control.md` |
+| A02 Cryptographic Failures | V11 | `verifiers/cryptography.md` |
+| A03 Injection | V5 | `verifiers/injection.md` |
+| A04 Insecure Design | V2 + ASVS chapter matching the design flaw | `verifiers/design-flaw.md` |
+| A05 Security Misconfiguration | V14 | `verifiers/configuration.md` |
+| A06 Vulnerable Components | V8 (supply chain sub-section) | `verifiers/supply-chain.md` |
+| A07 Identification & Authn Failures | V6 + V7 | `verifiers/authentication.md` |
+| A08 Software & Data Integrity | V8 + V14 | `verifiers/integrity.md` |
+| A09 Logging & Monitoring Failures | V9 | `verifiers/logging.md` |
+| A10 SSRF | V10 (SSRF sub-section of V5) | `verifiers/ssrf.md` |
+
+Specialized verifiers live in `references/verifiers/` (not all created yet — generic fallback handles unimplemented categories). Each specialist prompt encodes:
+
+- The exploitation model for the vulnerability class (e.g., SSRF requires host or protocol control, not just path)
+- Common false-positive patterns for the class (e.g., React XSS is auto-escaped except in `dangerouslySetInnerHTML`)
+- The relevant ASVS chapter loaded inline
+- Examples of confirmed exploits for that class
+
+#### Why this beats file-regex routing
+
+The previous design used file-content regex to decide "this diff touches auth, load V6/V7 into the prompt." That works as a *fallback* but it has two failure modes:
+
+1. **False positives:** a diff that adds JSDoc mentioning `bcrypt` triggers the auth verifier even though nothing security-relevant changed.
+2. **False negatives:** a Drizzle SQL injection in a route file that doesn't match any of the regex keywords gets routed to the generic prompt, which is less precise than the injection specialist.
+
+Rule-metadata routing is more accurate because the rule itself encodes the vulnerability class. The file-regex stays as the fallback for cases where:
+
+- No finding fires but the diff is in sensitive territory (manual hunting)
+- A finding comes from a tool that doesn't emit CWE/OWASP metadata
+- A finding's metadata is missing or malformed
+
+#### Routing implementation
+
+```python
+# Pseudocode for routing each finding to its verifier
+def route_finding(finding) -> Path:
+    # 1. OWASP-driven
+    owasp_tags = finding.get("properties", {}).get("owasp", [])
+    for tag in owasp_tags:
+        if (verifier := OWASP_TO_VERIFIER.get(tag[:3])):  # "A03..." → "A03"
+            return verifier
+
+    # 2. CWE-driven
+    cwe_tags = finding.get("properties", {}).get("cwe", [])
+    for tag in cwe_tags:
+        if (verifier := CWE_TO_VERIFIER.get(tag.split(":", 1)[0])):
+            return verifier
+
+    # 3. Tool-default
+    if (verifier := TOOL_DEFAULTS.get(finding["tool"])):
+        return verifier
+
+    # 4. File-regex fallback (from Phase 1 touched-chapter table)
+    return generic_verifier
+```
+
+Save the routing decision for each finding to `/tmp/sr-routing.json` for audit-trail purposes. The final report includes "routed via X" so the user can verify the right specialist ran.
+
+
+This phase is asymmetric:
+- The model **may** auto-dismiss findings it judges to be false positives (confidence ≥ 0.8 that it's NOT a vulnerability).
+- The model **may NOT** auto-dismiss a tool finding it judges as a real vulnerability. Only a human (or a per-repo Memory; see Phase 4) can downgrade a real vuln. **Misclassifying a vuln as FP is worse than the inverse.**
 ### Why two chains, not one
 
 The Semgrep Assistant team published their accuracy claims (96% agreement with human triage at 60%+ auto-triage rate) and called out the design failure mode directly: **a single prompt optimized for both FP-filtering and TP-reasoning silently drops true positives.** When the model is asked "is this a real vulnerability AND please assign confidence," it tends to default to the conservative answer when uncertain, which means real bugs slip through as low-confidence FPs.
