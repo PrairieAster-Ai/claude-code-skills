@@ -88,6 +88,8 @@ Any diff to these files counts as a `review-policy-change` finding that requires
 
 Run language-and-context-appropriate scanners. **All run in parallel, all emit SARIF or JSON**, all are scoped to changed files / changed deps where possible. Skip categories that don't apply to this diff.
 
+**MCP-aware path (optional):** when the user has the Semgrep MCP server installed (via `pipx install uv && uvx semgrep-mcp` or `pipx install semgrep-mcp`), `scripts/security_audit.py scan --use-mcp` routes the Semgrep call through MCP for typed errors and access to extra tools (`get_abstract_syntax_tree`, `semgrep_rule_schema`). Falls back to subprocess on any MCP failure. See `references/mcp-integration.md` for the integration pattern and the migration roadmap. The legacy subprocess path remains the default.
+
 ### Always-on (default stack, ~25s on a 20-file PR)
 
 ```bash

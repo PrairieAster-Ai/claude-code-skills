@@ -425,6 +425,62 @@ def summary_markdown(summary: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _try_mcp_scan(args: argparse.Namespace, changed_files: list[str], output_dir: Path) -> dict | None:
+    """Attempt to run the Semgrep portion of the audit via MCP.
+
+    Returns a CommandResult-like dict for the semgrep tool on success, or
+    None if MCP is unavailable / failed (caller falls back to subprocess).
+
+    Only handles the Semgrep call; gitleaks/osv-scanner/etc. remain on the
+    subprocess path. See `references/mcp-integration.md` for the migration
+    plan.
+    """
+    if not getattr(args, "use_mcp", False):
+        return None
+    try:
+        from mcp_client import SemgrepMCPClient, is_available, SemgrepMCPError
+    except ImportError:
+        return None
+    if not is_available():
+        return None
+
+    semgrep_out = output_dir / "semgrep.sarif"
+    try:
+        with SemgrepMCPClient.spawn() as client:
+            mb = merge_base(args.base)
+            # The semgrep_scan tool takes path + config. We use --config=auto
+            # for parity with the recommended subprocess invocation.
+            result = client.call(
+                "semgrep_scan",
+                {
+                    "path": str(ROOT),
+                    "config": "auto",
+                    "baseline_commit": mb,
+                    "sarif_output": str(semgrep_out),
+                },
+            )
+        return {
+            "name": "semgrep (via MCP)",
+            "status": "ok",
+            "returncode": 0,
+            "findings": count_artifact_findings(semgrep_out),
+            "artifact": str(semgrep_out),
+            "skipped_reason": None,
+            "command": ["mcp:semgrep_scan", "--config=auto"],
+        }
+    except SemgrepMCPError as exc:
+        # MCP path failed; let the caller fall through to subprocess.
+        return {
+            "name": "semgrep (via MCP)",
+            "status": "warning",
+            "returncode": None,
+            "findings": None,
+            "artifact": None,
+            "skipped_reason": f"MCP error, falling back to subprocess: {exc}",
+            "command": ["mcp:semgrep_scan"],
+        }
+
+
 def cmd_scan(args: argparse.Namespace) -> int:
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -445,7 +501,31 @@ def cmd_scan(args: argparse.Namespace) -> int:
         return 0
 
     results: list[CommandResult] = []
+
+    # MCP-aware Semgrep path: if --use-mcp is set, try to route Semgrep through
+    # the MCP server. On success, skip the subprocess Semgrep entry in the plan.
+    # On failure (MCP unavailable or error), fall through to subprocess as
+    # though --use-mcp wasn't passed.
+    mcp_semgrep = _try_mcp_scan(args, changed_files, output_dir)
+    if mcp_semgrep and mcp_semgrep.get("status") == "ok":
+        results.append(
+            CommandResult(
+                name=mcp_semgrep["name"],
+                command=mcp_semgrep["command"],
+                artifact=mcp_semgrep["artifact"],
+                status=mcp_semgrep["status"],
+                returncode=mcp_semgrep["returncode"],
+                findings=mcp_semgrep["findings"],
+                stdout="",
+                stderr="",
+                skipped_reason=mcp_semgrep["skipped_reason"],
+            )
+        )
+
     for name, command, artifact, required_binary in build_tool_plan(args.base, changed_files, output_dir, args.deep):
+        # Skip subprocess Semgrep when MCP successfully handled it.
+        if name == "semgrep" and mcp_semgrep and mcp_semgrep.get("status") == "ok":
+            continue
         result = run_tool(name, command, artifact, required_binary)
         persist_artifact_output(result, artifact)
         results.append(result)
@@ -674,12 +754,22 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Artifact output directory.")
     scan.add_argument("--deep", action="store_true", help="Enable deep mode add-ons such as trufflehog.")
     scan.add_argument("--fail-on-findings", action="store_true", help="Exit non-zero if findings are detected.")
+    scan.add_argument(
+        "--use-mcp",
+        action="store_true",
+        help="Route Semgrep through the Semgrep MCP server (requires `uvx` or `semgrep-mcp`). Falls back to subprocess on failure. See references/mcp-integration.md.",
+    )
     scan.set_defaults(func=cmd_scan)
 
     ci = subparsers.add_parser("ci", help="CI-friendly alias for scan with non-zero exit on findings.")
     ci.add_argument("--base", default="origin/HEAD", help="Git base ref to diff against.")
     ci.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Artifact output directory.")
     ci.add_argument("--deep", action="store_true", help="Enable deep mode add-ons such as trufflehog.")
+    ci.add_argument(
+        "--use-mcp",
+        action="store_true",
+        help="Route Semgrep through the Semgrep MCP server. See references/mcp-integration.md.",
+    )
     ci.set_defaults(func=lambda args: cmd_scan(argparse.Namespace(**vars(args), fail_on_findings=True)))
 
     comment = subparsers.add_parser("comment", help="Post the latest markdown summary to a GitHub PR.")
