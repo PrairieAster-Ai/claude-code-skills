@@ -133,9 +133,26 @@ fi
 grep -qE '\.py$'  /tmp/sr-files.txt && bandit -r $(grep '\.py$' /tmp/sr-files.txt) -f sarif -o /tmp/sr-bandit.sarif --quiet 2>/dev/null
 grep -qE '\.go$'  /tmp/sr-files.txt && govulncheck -format sarif ./... > /tmp/sr-govulncheck.sarif 2>/dev/null
 if grep -qE '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt; then
-  # Build a tiny flat config that opts out of the project's eslint config
-  # (we don't want to inherit it; we just want the security plugin's rules)
-  cat > /tmp/sr-eslint.config.mjs <<'EOF'
+  # ESLint flat config resolves plugin imports relative to the CONFIG
+  # FILE'S directory, not the cwd or npx cache. So we set up a proper
+  # sibling project with its own package.json + node_modules, then
+  # invoke the locally-installed eslint from there. After the first
+  # run the install is cached.
+  ESLINT_DIR=/tmp/sr-eslint-runner
+  mkdir -p "$ESLINT_DIR"
+  cat > "$ESLINT_DIR/package.json" <<'EOF'
+{
+  "name": "sr-eslint-runner",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "eslint": "^9.0.0",
+    "eslint-plugin-security": "^3.0.0",
+    "@microsoft/eslint-formatter-sarif": "^3.0.0"
+  }
+}
+EOF
+  cat > "$ESLINT_DIR/config.mjs" <<'EOF'
 import security from 'eslint-plugin-security';
 export default [{
   plugins: { security },
@@ -147,12 +164,18 @@ export default [{
   },
 }];
 EOF
-  mapfile -t SR_JS_FILES < <(grep -E '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt)
-  [ ${#SR_JS_FILES[@]} -gt 0 ] && npx --yes eslint \
-    --config /tmp/sr-eslint.config.mjs \
-    --format @microsoft/eslint-formatter-sarif \
-    -o /tmp/sr-eslint-sec.sarif \
-    "${SR_JS_FILES[@]}" 2>/dev/null || true
+  # First run: install. Subsequent runs: no-op (cached).
+  [ ! -d "$ESLINT_DIR/node_modules/eslint-plugin-security" ] && \
+    (cd "$ESLINT_DIR" && npm install --silent --no-audit --no-fund --no-progress 2>/dev/null)
+
+  # Absolute paths since we'll run eslint with the runner dir as cwd.
+  mapfile -t SR_JS_FILES < <(grep -E '\.(ts|tsx|js|jsx)$' /tmp/sr-files.txt | xargs -I{} realpath {})
+  [ ${#SR_JS_FILES[@]} -gt 0 ] && \
+    "$ESLINT_DIR/node_modules/.bin/eslint" \
+      --config "$ESLINT_DIR/config.mjs" \
+      --format @microsoft/eslint-formatter-sarif \
+      -o /tmp/sr-eslint-sec.sarif \
+      "${SR_JS_FILES[@]}" 2>/dev/null || true
 fi
 ```
 

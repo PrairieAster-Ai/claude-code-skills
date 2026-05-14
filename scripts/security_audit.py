@@ -321,11 +321,34 @@ def build_tool_plan(base: str, changed_files: list[str], output_dir: Path, deep:
     if categories["js"]:
         js_files = [file for file in changed_files if file.endswith((".js", ".jsx", ".ts", ".tsx"))]
         eslint_out = output_dir / "eslint-security.sarif"
-        # ESLint 9+ removed --no-eslintrc; the modern way is a scratch flat
-        # config file that opts out of project config and loads only the
-        # security plugin's rules.
-        eslint_config = output_dir / "eslint-security.config.mjs"
-        eslint_config.write_text(
+
+        # ESLint flat config resolves imported plugins relative to the config
+        # file's own directory, NOT relative to npx's install cache. So
+        # `npx --yes -p eslint-plugin-security eslint --config /elsewhere/cfg.mjs`
+        # always errors with "Cannot find package 'eslint-plugin-security'".
+        #
+        # Fix: set up a proper sibling project at output_dir/eslint-runner
+        # with its own package.json + node_modules. After the first invocation,
+        # `npm install` is a no-op and subsequent runs are fast.
+        eslint_dir = output_dir / "eslint-runner"
+        eslint_dir.mkdir(parents=True, exist_ok=True)
+        (eslint_dir / "package.json").write_text(
+            json.dumps(
+                {
+                    "name": "sr-eslint-runner",
+                    "version": "0.0.0",
+                    "private": True,
+                    "dependencies": {
+                        "eslint": "^9.0.0",
+                        "eslint-plugin-security": "^3.0.0",
+                        "@microsoft/eslint-formatter-sarif": "^3.0.0",
+                    },
+                },
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+        (eslint_dir / "config.mjs").write_text(
             "import security from 'eslint-plugin-security';\n"
             "export default [{\n"
             "  plugins: { security },\n"
@@ -338,23 +361,47 @@ def build_tool_plan(base: str, changed_files: list[str], output_dir: Path, deep:
             "}];\n",
             encoding="utf-8",
         )
+        # First-run install. After this lands the node_modules dir is cached
+        # in the artifact tree, so subsequent runs reuse it.
+        if not (eslint_dir / "node_modules" / "eslint-plugin-security").exists():
+            try:
+                subprocess.run(
+                    ["npm", "install", "--silent", "--no-audit", "--no-fund", "--no-progress"],
+                    cwd=eslint_dir,
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+            except (OSError, subprocess.TimeoutExpired):
+                pass  # fall through; the eslint step will report missing deps
+
+        # ESLint v9's flat-config base-path check ignores files outside cwd.
+        # We run with cwd=ROOT (project root, set by run_tool) and pass file
+        # paths as relative to ROOT. The eslint binary, config, and formatter
+        # are referenced by absolute path so the resolution works regardless.
+        # `--no-warn-ignored` silences harmless warnings about paths that look
+        # outside cwd to eslint's heuristics.
+        formatter_path = (
+            eslint_dir / "node_modules" / "@microsoft" / "eslint-formatter-sarif" / "sarif.js"
+        )
+
         plan.append(
             (
                 "eslint-security",
                 [
-                    "npx",
-                    "--yes",
-                    "eslint",
+                    str(eslint_dir / "node_modules" / ".bin" / "eslint"),
+                    "--no-warn-ignored",
                     "--config",
-                    str(eslint_config),
+                    str(eslint_dir / "config.mjs"),
                     "--format",
-                    "@microsoft/eslint-formatter-sarif",
+                    str(formatter_path),
                     "-o",
                     str(eslint_out),
-                    *js_files,
+                    *js_files,  # relative to ROOT (project root) — run_tool sets cwd=ROOT
                 ],
                 eslint_out,
-                "npx",
+                str(eslint_dir / "node_modules" / ".bin" / "eslint"),
             )
         )
 
