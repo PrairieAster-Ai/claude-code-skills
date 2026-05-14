@@ -412,53 +412,78 @@ Keep the higher-confidence one, merge file:line lists.
 
 On every run: load memories, match findings, auto-dismiss those that hit a memory. After human triage of *new* findings, **propose** new memories (don't auto-write; human approves).
 
-### Memory as triage byproduct
+### Per-rule FP/TP ledger
 
-Following Semgrep Assistant's design pattern: every verification call should include a `suggested_memory` field in its structured JSON output, so memory creation becomes a side effect of normal triage rather than a separate manual step.
+Every triage decision is appended to `.claude/security-audit/rule-stats.jsonl`. One JSON object per line, no schema migrations required, easy to grep and aggregate. The ledger is the cheap-RAG version of Semgrep Assistant's "previous triage decisions" context: it lets the verifier few-shot from how this exact rule has been triaged in this repo's recent history.
 
-The verification prompt MUST include this field:
+#### Format
 
-```jsonc
-{
-  // ...other verification output fields...
-  "suggested_memory": {
-    "applies": <true|false>,
-    "rationale": "<one-sentence explanation of why this finding is safe in this codebase>",
-    "scope": {
-      "rule": "<tool>:<rule_id>",
-      "paths": ["<glob>", ...]
-    },
-    "expires": "<YYYY-MM-DD or null>"
-  }
-}
+```jsonl
+{"ts": "2026-05-13T19:14:23Z", "tool": "semgrep", "rule_id": "javascript.lang.security.audit.sqli.tagged-template-no-params", "verdict": "tp", "confidence": 0.92, "file": "apps/api/src/routes/users.ts", "line": 42, "reason": "Direct interpolation of req.query.q into db.execute, no parameter binding", "pr_sha": "abc123def..."}
+{"ts": "2026-05-13T19:14:25Z", "tool": "semgrep", "rule_id": "react.dangerously-set-inner-html", "verdict": "fp", "confidence": 0.95, "file": "apps/web/src/components/Markdown.tsx", "line": 88, "reason": "Input passes through DOMPurify in lib/sanitize.ts:42", "pr_sha": "abc123def..."}
 ```
 
-Set `applies=true` only when:
-- The finding has been classified as a confident false positive (Chain A `is_fp=true, fp_confidence ≥ 0.85`)
-- The rationale is **specific to this codebase** (refers to a real file, a known sanitizer, a documented invariant), not generic ("React is generally safe")
-- The pattern is likely to recur in future PRs
+Required fields: `ts`, `tool`, `rule_id`, `verdict` (one of `fp` / `tp` / `unconfirmed`), `confidence`, `file`, `reason`.
 
-Set `applies=false` for:
-- True positives (memories should never suppress real bugs)
-- Findings where the FP reason is generic and would over-suppress
-- One-off cases (e.g., a test fixture) where a memory would create more noise than signal
+Optional fields: `line`, `pr_sha`, `human_override` (boolean, true if a human disagreed with the model's verdict).
 
-After Phase 4 completes:
+#### Reading the ledger as few-shot context
 
-1. The skill writes all `suggested_memory` entries where `applies=true` to `.claude/security-audit/pending-memories.jsonl`.
-2. The skill surfaces the pending memories in the final report under a "Proposed memories" section, with a clear note that they're proposals, not commitments.
-3. The user reviews them and runs `python3 scripts/security_audit.py promote-memories` (or accepts them inline) to append to `.claude/security-memories.md`.
-4. The skill MUST NOT auto-append to `.claude/security-memories.md` without explicit user action. Memory creation is a security-relevant operation (T8 in threat model: malicious memories can suppress real bugs).
+At Phase 3 entry, for each finding being verified, query the ledger for the most recent 5 to 10 entries matching the same `rule_id`. Format them as few-shot examples in the verifier prompt:
 
-### Auto-promotion safety rules
+```
+PRIOR TRIAGE FOR THIS RULE (most recent first):
 
-Even when the user runs `promote-memories`, the skill enforces:
+[2026-05-09] verdict=fp confidence=0.95
+  file=apps/web/src/components/Markdown.tsx:88
+  reason="Input passes through DOMPurify in lib/sanitize.ts:42"
 
-- **Never promote a memory whose scope path matches a file modified in the current PR.** The contributor controlling the PR shouldn't be able to suppress findings about their own changes.
-- **Never promote a memory referencing a sanitizer/validator function that doesn't exist on the base branch.** Use `git show origin/$BASE_REF:<file>` to verify the cited function is real.
-- **Require a 14-day expiry by default** unless the user passes `--no-expire`. Expired memories are loaded but flagged in the final report as "memory expired, please re-review."
+[2026-04-22] verdict=tp confidence=0.88
+  file=apps/api/src/routes/admin.ts:140
+  reason="req.body.html rendered without sanitization in admin notice template"
 
-These rules turn the suggested-memory mechanism into a productivity tool while keeping the threat surface bounded.
+USE THESE AS PRECEDENT for confidence calibration, not as automatic dismissal.
+A new occurrence of the rule MUST still be evaluated on its own merits.
+The point is to give the verifier institutional memory of how this rule has
+behaved in this codebase, not to bias toward the prior verdict.
+```
+
+The verifier prompt is explicitly told not to auto-dismiss based on prior triage. Past decisions inform calibration; they don't decide the current case.
+
+#### Writing to the ledger
+
+After Phase 4 triage completes (and any human review on surfaced findings), append one row per finding to the ledger. The append happens regardless of verdict (FP, TP, or unconfirmed) so the ledger accurately reflects the rule's behavior in this codebase over time.
+
+```bash
+echo "$VERIFICATION_JSON" >> .claude/security-audit/rule-stats.jsonl
+```
+
+The ledger is intentionally append-only. No edits, no deletions. If a past verdict turns out to be wrong, the correction is recorded as a new row with `human_override: true` and a `corrects` field pointing at the prior ts.
+
+#### Aggregating: `python3 scripts/security_audit.py rule-stats`
+
+Summarize the ledger to identify rules with poor signal-to-noise in this repo:
+
+```bash
+python3 scripts/security_audit.py rule-stats --since=180d --threshold=0.2
+```
+
+Output:
+
+```
+Rule: react.dangerously-set-inner-html
+  Total triaged: 14  (TP: 1, FP: 12, unconfirmed: 1)
+  FP rate: 86%
+  Suggestion: consider promoting a global memory or adjusting confidence
+              floor for this rule, or excluding it via .claude/security-config.yaml.
+
+Rule: javascript.lang.security.audit.sqli.tagged-template-no-params
+  Total triaged: 3  (TP: 3, FP: 0, unconfirmed: 0)
+  FP rate: 0%
+  Suggestion: high-signal rule, keep at default sensitivity.
+```
+
+The `--threshold` flag (default 0.5) controls when a rule gets flagged as "high FP rate" in the suggestion text.
 
 ### Hard exclusions (verbatim. DO NOT REPORT)
 
