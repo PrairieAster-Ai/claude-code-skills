@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -61,11 +62,55 @@ def default_command(script_name: str, fallback: str | None = None) -> str | None
     return fallback
 
 
-def extract_first_number(lines: str) -> int | None:
+def count_eslint_errors(stdout: str, stderr: str) -> int | None:
+    """Count ESLint errors from stdout/stderr.
+
+    Prefers the canonical "✖ N problems (E errors, W warnings)" summary
+    line, falls back to counting `error` markers, last-resort returns None.
+    Avoids the brittle "first number anywhere" heuristic which matches
+    line numbers, column numbers, and rule names with digits.
+    """
     import re
 
-    match = re.search(r"(\d+)", lines)
-    return int(match.group(1)) if match else None
+    text = stdout + "\n" + stderr
+    # Canonical ESLint summary: "✖ 3 problems (2 errors, 1 warning)"
+    summary = re.search(r"\b(\d+)\s+errors?\b", text)
+    if summary:
+        return int(summary.group(1))
+    # Fallback: count occurrences of "  error  " (ESLint stylish formatter)
+    err_count = len(re.findall(r"^\s*\d+:\d+\s+error\s", text, re.MULTILINE))
+    if err_count > 0:
+        return err_count
+    return None
+
+
+def count_tsc_errors(stdout: str, stderr: str) -> int | None:
+    """Count TypeScript errors from `tsc --noEmit` output by counting the
+    canonical `error TS<code>:` markers."""
+    import re
+
+    text = stdout + "\n" + stderr
+    matches = re.findall(r"\berror TS\d+:", text)
+    return len(matches) if matches or "error TS" in text else None
+
+
+# Regex for `: any` that excludes JSDoc/comment lines and matches at a word
+# boundary so it ignores `:: anything` and `: anything-else`.
+_ANY_RE = re.compile(r":\s*any\b")
+_LINE_COMMENT_RE = re.compile(r"^\s*(//|\*|/\*)")
+
+
+def _strip_comments(text: str) -> str:
+    """Best-effort strip of `//` line comments and `/* ... */` block
+    comments before scanning for `: any`. We don't need a full parser;
+    we just want to drop the obvious false-positive cases."""
+    import re
+
+    # Block comments
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.DOTALL)
+    # Single-line comments — only strip from `//` to end-of-line
+    text = re.sub(r"//.*?$", "", text, flags=re.MULTILINE)
+    return text
 
 
 def count_any_types(src_dir: Path) -> dict:
@@ -82,7 +127,9 @@ def count_any_types(src_dir: Path) -> dict:
             text = path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
             continue
-        hits = text.count(": any")
+        # Strip comments so `// can be: any` and JSDoc don't inflate the count.
+        stripped = _strip_comments(text)
+        hits = len(_ANY_RE.findall(stripped))
         if hits:
             rel = str(path.relative_to(ROOT))
             files[rel] = hits
@@ -176,7 +223,9 @@ def cmd_assess(args: argparse.Namespace) -> int:
 
     lint_cmd = args.lint_cmd or default_command("lint")
     typecheck_cmd = args.typecheck_cmd or default_command("type-check")
-    coverage_cmd = args.coverage_cmd or default_command("test", "npx vitest run --coverage")
+    # Most `npm test` scripts don't emit coverage by themselves; default to
+    # vitest's explicit coverage invocation rather than `npm run test`.
+    coverage_cmd = args.coverage_cmd or "npx vitest run --coverage"
     duplication_cmd = args.duplication_cmd or f"npx jscpd {args.src_dir} --reporters json --output {output_dir / 'duplication-report'}"
 
     command_results = {}
@@ -185,13 +234,19 @@ def cmd_assess(args: argparse.Namespace) -> int:
     if lint_cmd:
         lint_result = run_shell(lint_cmd)
         command_results["lint"] = {"command": lint_cmd, "returncode": lint_result.returncode}
-        lint_errors = 0 if lint_result.returncode == 0 else extract_first_number(lint_result.stdout + "\n" + lint_result.stderr)
+        if lint_result.returncode == 0:
+            lint_errors = 0
+        else:
+            lint_errors = count_eslint_errors(lint_result.stdout, lint_result.stderr)
 
     type_errors = None
     if typecheck_cmd:
         type_result = run_shell(typecheck_cmd)
         command_results["typecheck"] = {"command": typecheck_cmd, "returncode": type_result.returncode}
-        type_errors = 0 if type_result.returncode == 0 else extract_first_number(type_result.stdout + "\n" + type_result.stderr)
+        if type_result.returncode == 0:
+            type_errors = 0
+        else:
+            type_errors = count_tsc_errors(type_result.stdout, type_result.stderr)
 
     coverage_percent = None
     if coverage_cmd and command_available("npx"):
