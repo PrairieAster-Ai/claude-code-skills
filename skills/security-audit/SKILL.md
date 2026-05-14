@@ -171,43 +171,197 @@ jq -s '{runs: map(.runs[]?)}' /tmp/sr-*.sarif 2>/dev/null > /tmp/sr-combined.jso
 
 ---
 
-## Phase 3: LLM verification
+## Phase 3: LLM verification (dual prompt chain)
 
-**Goal:** for each pre-pass alarm AND for each new-code surface the tools missed, decide if there's a real, exploitable vulnerability introduced by *this diff*. Apply the same prompt to net-new manual hunting (the categories below).
+**Goal:** for each pre-pass alarm AND for each new-code surface the tools missed, decide if there's a real, exploitable vulnerability introduced by *this diff*.
+
+### Finding routing (rule-metadata driven)
+
+Before spawning verification sub-tasks, route each finding to a specialized verifier prompt based on its rule metadata. Semgrep rules (and many other SAST tools) emit OWASP and CWE tags as SARIF properties; use them to pick a specialist prompt rather than running one generic prompt against every finding.
+
+The routing key is the finding's primary classification, derived in this order:
+
+1. **`properties.owasp`** from the SARIF rule definition (Semgrep, Bandit, gosec all emit this when applicable). Map to ASVS chapter via the OWASP→ASVS table below.
+2. **`properties.cwe`** as fallback when OWASP is absent. Map via the CWE→ASVS table.
+3. **Tool-default classification** when neither tag is present:
+   - `gitleaks` findings → V11 (Cryptography, secrets sub-section)
+   - `osv-scanner` findings → V8 (Data Protection, supply chain)
+   - `eslint-plugin-security` rules → look up per rule (`detect-eval-with-expression` → V5, `detect-non-literal-fs-filename` → V12, etc.)
+4. **File-regex touched-chapter detection** (the table in Phase 1) as the final fallback for findings with no metadata at all, or for manual hunting paths where there's no finding to route from.
+
+#### OWASP Top 10:2025 → ASVS chapter
+
+| OWASP tag | ASVS chapter(s) | Specialized verifier |
+|---|---|---|
+| A01 Broken Access Control | V4 | `verifiers/access-control.md` |
+| A02 Cryptographic Failures | V11 | `verifiers/cryptography.md` |
+| A03 Injection | V5 | `verifiers/injection.md` |
+| A04 Insecure Design | V2 + ASVS chapter matching the design flaw | `verifiers/design-flaw.md` |
+| A05 Security Misconfiguration | V14 | `verifiers/configuration.md` |
+| A06 Vulnerable Components | V8 (supply chain sub-section) | `verifiers/supply-chain.md` |
+| A07 Identification & Authn Failures | V6 + V7 | `verifiers/authentication.md` |
+| A08 Software & Data Integrity | V8 + V14 | `verifiers/integrity.md` |
+| A09 Logging & Monitoring Failures | V9 | `verifiers/logging.md` |
+| A10 SSRF | V10 (SSRF sub-section of V5) | `verifiers/ssrf.md` |
+
+Specialized verifiers live in `references/verifiers/` (not all created yet — generic fallback handles unimplemented categories). Each specialist prompt encodes:
+
+- The exploitation model for the vulnerability class (e.g., SSRF requires host or protocol control, not just path)
+- Common false-positive patterns for the class (e.g., React XSS is auto-escaped except in `dangerouslySetInnerHTML`)
+- The relevant ASVS chapter loaded inline
+- Examples of confirmed exploits for that class
+
+#### Why this beats file-regex routing
+
+The previous design used file-content regex to decide "this diff touches auth, load V6/V7 into the prompt." That works as a *fallback* but it has two failure modes:
+
+1. **False positives:** a diff that adds JSDoc mentioning `bcrypt` triggers the auth verifier even though nothing security-relevant changed.
+2. **False negatives:** a Drizzle SQL injection in a route file that doesn't match any of the regex keywords gets routed to the generic prompt, which is less precise than the injection specialist.
+
+Rule-metadata routing is more accurate because the rule itself encodes the vulnerability class. The file-regex stays as the fallback for cases where:
+
+- No finding fires but the diff is in sensitive territory (manual hunting)
+- A finding comes from a tool that doesn't emit CWE/OWASP metadata
+- A finding's metadata is missing or malformed
+
+#### Routing implementation
+
+```python
+# Pseudocode for routing each finding to its verifier
+def route_finding(finding) -> Path:
+    # 1. OWASP-driven
+    owasp_tags = finding.get("properties", {}).get("owasp", [])
+    for tag in owasp_tags:
+        if (verifier := OWASP_TO_VERIFIER.get(tag[:3])):  # "A03..." → "A03"
+            return verifier
+
+    # 2. CWE-driven
+    cwe_tags = finding.get("properties", {}).get("cwe", [])
+    for tag in cwe_tags:
+        if (verifier := CWE_TO_VERIFIER.get(tag.split(":", 1)[0])):
+            return verifier
+
+    # 3. Tool-default
+    if (verifier := TOOL_DEFAULTS.get(finding["tool"])):
+        return verifier
+
+    # 4. File-regex fallback (from Phase 1 touched-chapter table)
+    return generic_verifier
+```
+
+Save the routing decision for each finding to `/tmp/sr-routing.json` for audit-trail purposes. The final report includes "routed via X" so the user can verify the right specialist ran.
+
 
 This phase is asymmetric:
 - The model **may** auto-dismiss findings it judges to be false positives (confidence ≥ 0.8 that it's NOT a vulnerability).
 - The model **may NOT** auto-dismiss a tool finding it judges as a real vulnerability. Only a human (or a per-repo Memory; see Phase 4) can downgrade a real vuln. **Misclassifying a vuln as FP is worse than the inverse.**
+### Why two chains, not one
 
-### Verification prompt (per finding)
+The Semgrep Assistant team published their accuracy claims (96% agreement with human triage at 60%+ auto-triage rate) and called out the design failure mode directly: **a single prompt optimized for both FP-filtering and TP-reasoning silently drops true positives.** When the model is asked "is this a real vulnerability AND please assign confidence," it tends to default to the conservative answer when uncertain, which means real bugs slip through as low-confidence FPs.
+
+The fix is structural: run **two specialized prompts in parallel** per finding, each with its own framing, and never let one short-circuit the other. The FP-detector chain is allowed to auto-dismiss confident FPs. The TP-explainer chain produces the exploit chain and recommendation. Both run for every finding. The final triage step combines them.
+
+This phase explicitly bias toward **minimizing false negatives**, not maximizing FP filtering. A noisy true positive is a worse failure mode than a missed true positive only if developers actually triage; once a bot is ignored, both failure modes are equivalent and missing a real bug is the worse outcome.
+
+### Chain A: FP-detector
+
+**Prompt:**
 
 ```
-You are a senior security engineer verifying a security alarm against this PR's diff.
+You are a senior security engineer assessing whether a security alarm is a false positive.
 
 INPUTS:
-- ALARM: {tool name, rule id, file:line, message, CWE, OWASP tag}
-- CODE SNIPPET: 30 lines around the alarm (minimized — strip irrelevant branches; aim for the smallest semantic-preserving slice that still demonstrates the data flow, à la Snyk CodeReduce)
+- ALARM: {tool, rule_id, file:line, message, CWE, OWASP tag}
+- CODE SNIPPET: 30 lines around the alarm (minimized, strip irrelevant branches)
 - DIFF CONTEXT: the unified hunk that introduced the line
-- REPO CONVENTIONS: contents of CLAUDE.md / AGENTS.md / security-memories.md
+- REPO CONVENTIONS: contents of CLAUDE.md / AGENTS.md / security-memories.md (from PR base)
 - ASVS CHAPTERS LOADED: {from Phase 1}
 
-QUESTIONS:
-1. Is this introduced by THIS diff, or pre-existing? (Out of scope if pre-existing.)
-2. Is there a concrete attack path from untrusted input to this sink? Describe source → sinks → privilege boundary.
-3. Does a memory or convention in this repo neutralize the finding? (If yes, this is an FP and may be auto-dismissed.)
-4. Severity: HIGH (RCE/data breach/authn bypass), MEDIUM (significant impact w/ conditions), LOW (defense-in-depth).
-5. Confidence 0.0–1.0:
-   - 0.9–1.0: Certain exploit path identified, can produce PoC
-   - 0.8–0.9: Clear vulnerability pattern with known exploitation methods
-   - 0.7–0.8: Suspicious pattern requiring specific conditions
-   - Below 0.7: Do not report
-6. ATT&CK technique tag (T-XXXX) if applicable.
-7. Recommendation: minimal patch sketch + reference to repo's existing secure pattern if any.
+QUESTION: Is this alarm a false positive in this repository's context?
+
+Consider:
+- Does an existing memory or convention neutralize the finding?
+- Does the surrounding code clearly demonstrate the input is already validated/sanitized upstream?
+- Does the language or framework make this class of issue impossible here (e.g., React XSS in plain JSX)?
+- Is the alarm pre-existing rather than introduced by this diff?
+
+OUTPUT JSON ONLY:
+{
+  "is_fp": <true|false>,
+  "fp_confidence": <0.0-1.0>,
+  "reason": "<one sentence>",
+  "evidence": "<the specific line(s) of code or memory that justify dismissal>"
+}
 
 You do not need to run commands or write files. Read code only.
+The goal is to minimize false negatives. If unsure, return is_fp=false.
 ```
 
-Run verification as **parallel sub-tasks** (one per finding, cap at ~20 in flight). For diffs where the tool pre-pass returned nothing but the diff touches sensitive surface (per touched-chapter table), spawn one sub-task per touched chapter to do manual hunting against ASVS requirements in that chapter.
+The FP-detector is allowed to auto-dismiss when `is_fp=true AND fp_confidence ≥ 0.85`.
+
+### Chain B: TP-explainer
+
+**Prompt:**
+
+```
+You are a senior security engineer explaining an exploitable vulnerability to a developer.
+
+INPUTS:
+- ALARM: {tool, rule_id, file:line, message, CWE, OWASP tag}
+- CODE SNIPPET: 30 lines around the alarm (minimized)
+- DIFF CONTEXT: the unified hunk that introduced the line
+- REPO CONVENTIONS: contents of CLAUDE.md / AGENTS.md / security-memories.md (from PR base)
+
+QUESTION: Assuming this IS a real vulnerability, what is the concrete exploit chain and fix?
+
+You are NOT being asked whether it's real. Assume it is and produce the strongest possible explanation. If the alarm turns out to be a false positive, Chain A handles that. Your job is to make the TP case as clearly as possible.
+
+OUTPUT JSON ONLY:
+{
+  "severity": <"HIGH"|"MEDIUM"|"LOW">,
+  "tp_confidence": <0.0-1.0>,
+  "source_sink": "<source → ... → sink chain>",
+  "exploit_scenario": "<concrete attack with sample request/payload>",
+  "attack_complexity": <"low"|"medium"|"high">,
+  "attck_technique": "<T-XXXX or null>",
+  "recommendation": "<minimal patch sketch>",
+  "repo_pattern_reference": "<path:line where the repo already uses the safe pattern, or null>"
+}
+
+Severity guide:
+- HIGH: RCE, data breach, authn bypass, privilege escalation
+- MEDIUM: significant impact requiring specific conditions
+- LOW: defense-in-depth, only exploitable under restrictive scenarios
+
+Confidence guide:
+- 0.9-1.0: Certain exploit path; could produce a PoC
+- 0.8-0.9: Clear pattern, known exploitation methods
+- 0.7-0.8: Suspicious pattern, specific conditions required
+- Below 0.7: Insufficient evidence; mark for human review
+```
+
+The TP-explainer never auto-dismisses. Even if `tp_confidence` is low, the output is preserved as evidence for human triage.
+
+### Triage step (combine A + B)
+
+For each finding, after both chains complete:
+
+| Chain A says | Chain B says | Action |
+|---|---|---|
+| `is_fp=true, fp_confidence ≥ 0.85` | (any) | **Auto-dismiss as FP.** Log Chain B's analysis for audit trail but do not surface. |
+| `is_fp=true, fp_confidence < 0.85` | (any) | **Surface as low-confidence finding** with both Chain A's reason and Chain B's analysis. Human triages. |
+| `is_fp=false` | `tp_confidence ≥ 0.7` | **Surface as confirmed finding** with Chain B's exploit chain. |
+| `is_fp=false` | `tp_confidence < 0.7` | **Surface as low-confidence finding** with Chain B's analysis. Human triages. |
+
+**Critical rule:** Chain B's output is the *content* of the finding when surfaced. Chain A's role is purely gating. This means the final report always shows the full exploit reasoning when a finding is surfaced, never just "rule fired."
+
+### Parallelism and cost
+
+Run both chains as **parallel sub-tasks** per finding (one Task call per chain per finding). For a typical PR with 5 to 15 findings, that's 10 to 30 parallel sub-tasks. Cap at 40 in flight to avoid exhausting rate limits. Use Haiku-class for Chain A (FP detection benefits from speed and the task is structured); use Sonnet or better for Chain B (TP reasoning benefits from depth).
+
+### Falling back to manual hunting
+
+For diffs where the tool pre-pass returned no findings but Phase 1's touched-chapter detection flagged the diff as touching sensitive surface, spawn one **TP-explainer sub-task per touched chapter** with the chapter's ASVS requirements loaded. There's no Chain A in this path because there's no alarm to filter; the question is purely "what could go wrong here." Surface every output where `tp_confidence ≥ 0.7`.
 
 ### Categories to examine (manual hunting checklist. Only those triggered by the diff)
 
@@ -586,7 +740,9 @@ For each finding at confidence ≥ 0.9:
 
 5. Only surface patches that pass both checks. Render as a markdown diff block per finding.
 
-This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing."
+6. **Offer to synthesize a regression rule.** For each surfaced patch, prompt the user: "Author a Semgrep rule that catches this pattern repo-wide?" If yes, delegate to the `/semgrep-rule-creator` skill (Trail of Bits, see `README.md` "Authoring custom rules for your repo") with the (vulnerable, fixed) pair as input. The rule-creator skill handles the test-first authoring loop and writes the resulting rule to `.semgrep/repo-rules.yml`. The fix patches one instance; the rule catches every future instance.
+
+This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing" + a delegation to test-driven rule authoring for compounding value.
 
 ### `--fix` failure modes
 
