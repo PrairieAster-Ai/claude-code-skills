@@ -15,7 +15,7 @@ Differential, high-signal security audit of the pending changes on the current b
 | Touched-chapter ASVS checklist | ✗ | **✓ (only loads chapters the diff touches)** |
 | Per-repo Memories (FP suppression) | ✗ | **✓ (`.claude/security-memories.md`)** |
 | Semantic dedup across alarms | ✗ | **✓** |
-| Asymmetric FP/TP handling | ✗ | **✓ (auto-dismiss FPs only)** |
+| Dual prompt chain (FP-detector + TP-explainer, parallel, independent) | ✗ | **✓ (Semgrep Assistant pattern)** |
 | Sandbox-validated fixes | ✗ | **✓ (with `--fix`)** |
 | SARIF outputs for GitHub Code Scanning | ✗ | **✓ (per-tool, post-2025-07 compliant)** |
 
@@ -106,7 +106,7 @@ These are templates, not mandatory installation paths. The expectation is that c
 ```
 1. Context              — diff scope, touched-chapter detection
 2. Pre-pass (tools)     — semgrep, gitleaks, osv-scanner, lang-specific (parallel, <30s typical)
-3. LLM verification     — per-alarm sub-tasks, source→sink reasoning, confidence scoring
+3. LLM verification     — dual prompt chain per finding (FP-detector + TP-explainer, parallel), then triage combine
 4. Triage + dedup       — memories applied, semantic dedup, exclusion filter
 5. Report               — markdown with CWE/OWASP/ATT&CK tags
 5b. --post-pr (optional)— post the report as a GH PR comment (mirrors /code-review's shape)
