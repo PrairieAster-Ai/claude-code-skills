@@ -513,7 +513,9 @@ For each finding at confidence ≥ 0.9:
 
 5. Only surface patches that pass both checks. Render as a markdown diff block per finding.
 
-This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing."
+6. **Offer to synthesize a regression rule.** For each surfaced patch, prompt the user: "Author a Semgrep rule that catches this pattern repo-wide?" If yes, delegate to the `/semgrep-rule-creator` skill (Trail of Bits, see `README.md` "Authoring custom rules for your repo") with the (vulnerable, fixed) pair as input. The rule-creator skill handles the test-first authoring loop and writes the resulting rule to `.semgrep/repo-rules.yml`. The fix patches one instance; the rule catches every future instance.
+
+This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing" + a delegation to test-driven rule authoring for compounding value.
 
 ### `--fix` failure modes
 
