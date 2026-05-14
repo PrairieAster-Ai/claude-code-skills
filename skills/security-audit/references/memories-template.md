@@ -50,7 +50,17 @@ Each memory is a markdown section. The header is the human-readable title; the b
 
 1. After Phase 2 (pre-pass), every alarm is matched against memories. A memory hits when **all** of `(tool, rule, path-glob)` match.
 2. Matched alarms are auto-dismissed and counted in the report's "Auto-dismissed (memories: N)" line.
-3. New findings that the human user dismisses during review can be promoted to memories. The skill proposes the entry but the user copies it in by hand. The skill MUST NOT write `.claude/security-memories.md` automatically.
+3. **Memory creation is a triage byproduct.** Every LLM verification emits a `suggested_memory` field in its JSON output (see Phase 4 in `SKILL.md`). Suggested memories with `applies=true` are written to `.claude/security-audit/pending-memories.jsonl`.
+4. Pending memories are surfaced in the final report under "Proposed memories." The user reviews them.
+5. The user runs `python3 scripts/security_audit.py promote-memories` to apply the safety filters and append surviving memories to `.claude/security-memories.md`. The skill MUST NOT auto-append without this explicit user action.
+
+### Safety filters during promotion
+
+- **Scope-intersection check:** never promote a memory whose path-scope matches a file modified in the current PR. Prevents a contributor from suppressing findings about their own diff.
+- **Rationale-cite check:** if the rationale references `path/to/file.ts:42`, verify that file exists on the base ref via `git show origin/$BASE_REF:path/to/file.ts`. Prevents fabricated references.
+- **14-day default expiry:** promoted memories carry an `Expires:` date unless `--no-expire` is passed. Expired memories are loaded but flagged in future reports as "memory expired, re-review."
+
+These filters mitigate T8 in the threat model (malicious memories from PR head). The mechanism turns memory creation into a productivity tool while keeping the threat surface bounded.
 
 ## What memories are NOT for
 

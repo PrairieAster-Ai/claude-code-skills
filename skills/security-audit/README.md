@@ -15,7 +15,7 @@ Differential, high-signal security audit of the pending changes on the current b
 | Touched-chapter ASVS checklist | ✗ | **✓ (only loads chapters the diff touches)** |
 | Per-repo Memories (FP suppression) | ✗ | **✓ (`.claude/security-memories.md`)** |
 | Semantic dedup across alarms | ✗ | **✓** |
-| Asymmetric FP/TP handling | ✗ | **✓ (auto-dismiss FPs only)** |
+| Dual prompt chain (FP-detector + TP-explainer, parallel, independent) | ✗ | **✓ (Semgrep Assistant pattern)** |
 | Sandbox-validated fixes | ✗ | **✓ (with `--fix`)** |
 | SARIF outputs for GitHub Code Scanning | ✗ | **✓ (per-tool, post-2025-07 compliant)** |
 
@@ -106,7 +106,7 @@ These are templates, not mandatory installation paths. The expectation is that c
 ```
 1. Context              — diff scope, touched-chapter detection
 2. Pre-pass (tools)     — semgrep, gitleaks, osv-scanner, lang-specific (parallel, <30s typical)
-3. LLM verification     — per-alarm sub-tasks, source→sink reasoning, confidence scoring
+3. LLM verification     — dual prompt chain per finding (FP-detector + TP-explainer, parallel), then triage combine
 4. Triage + dedup       — memories applied, semantic dedup, exclusion filter
 5. Report               — markdown with CWE/OWASP/ATT&CK tags
 5b. --post-pr (optional)— post the report as a GH PR comment (mirrors /code-review's shape)
@@ -182,6 +182,39 @@ See `references/threat-model.md` for the full list.
 | **`/review`** (bundled in Claude Code) | Quick conversational PR review. Broad scope | Single-pass, no agent fleet |
 | **`/code-quality`** (this collection) | Lint, type-check, coverage, duplication, complexity | Anything diff-specific |
 | **`/owasp-security`** (companion) | Deep OWASP Top 10:2025 / ASVS 5.0 / Agentic AI 2026 reference for implementing controls | Diff review |
+| **`/semgrep-rule-creator`** ([trailofbits/skills](https://github.com/trailofbits/skills/tree/main/plugins/semgrep-rule-creator)) | Test-driven Semgrep rule authoring (positive/negative test corpus, AST inspection, `semgrep --test` iteration loop) | Running the rule against a real diff |
+| **`/semgrep-rule-variant-creator`** ([trailofbits/skills](https://github.com/trailofbits/skills/tree/main/plugins/semgrep-rule-variant-creator)) | Porting an existing Semgrep rule across languages | Authoring the rule in the first place |
+
+### Authoring custom rules for your repo
+
+The most common gap in `/security-audit` output is missing project-specific patterns. Semgrep's registry packs (`p/default`, `p/typescript`, `p/react`, etc.) catch the common classes but not your stack's idioms. For wsl-menu-app that means Drizzle ORM raw queries, Supabase service-role bypasses, the project's specific auth middleware shape. Generic rules miss these. Hand-rolled rules catch them and produce zero false positives because they encode actual project knowledge.
+
+**Workflow:**
+
+1. `/security-audit` flags a finding (or you spot a pattern by hand).
+2. Delegate to `/semgrep-rule-creator` with: a positive example (vulnerable snippet), a negative example (the safe version that the repo already uses elsewhere), and a one-line description of the pattern.
+3. The rule-creator skill drafts a rule, runs `semgrep --test` against your corpus, iterates until both tests pass.
+4. Commit the resulting rule to `.semgrep/repo-rules.yml` in your project.
+5. `/security-audit` picks it up automatically on the next run via `--config=.semgrep/`.
+
+**When to delegate:** anytime `/security-audit` produces a fix for a class of bug that could recur. The fix patches one instance; a rule catches every future instance.
+
+**Example invocation pattern:**
+
+```
+You: I just fixed a Drizzle raw-query SQL injection in users.ts:42.
+     /semgrep-rule-creator: author a rule that catches this pattern across the repo.
+
+     Positive test (should fire):
+       db.execute(sql`SELECT * FROM users WHERE name = ${req.query.q}`)
+
+     Negative test (must NOT fire):
+       db.select().from(users).where(eq(users.name, req.query.q))
+
+     Description: Drizzle sql template literal interpolating user input from req.*
+```
+
+The rule-creator skill is maintained by Trail of Bits (the security firm). We depend on it rather than reinventing test-first rule authoring inside this skill.
 
 ### Recommended workflow
 
