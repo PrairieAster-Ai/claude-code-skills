@@ -141,7 +141,7 @@ Many employers accept these substitutions:
 ### For Technical Skill Gaps
 
 **In Cover Letter:**
-> "While my hands-on experience is primarily with [Related Technology], I've built [Similar System] using comparable architectural patterns. My track record of rapidly mastering new platforms—most recently learning [Technology] in [Timeframe] to deliver [Project]—positions me to quickly become productive with [Required Technology]."
+> "While my hands-on experience is primarily with [Related Technology], I've built [Similar System] using comparable architectural patterns. My track record of rapidly mastering new platforms - most recently learning [Technology] in [Timeframe] to deliver [Project] - positions me to quickly become productive with [Required Technology]."
 
 **In Interview:**
 - Acknowledge the gap honestly

@@ -207,9 +207,9 @@ Options:
 
 Concrete rules:
 - When writing cover letter and resume content, prefer the JD's literal phrasing over the candidate's usual wording.
-- Extract verbatim phrases from the JD for required skills, tools, methodologies, and credentials — these are the canonical list of terms to preserve.
+- Extract verbatim phrases from the JD for required skills, tools, methodologies, and credentials - these are the canonical list of terms to preserve.
 - Never invent metrics or facts the candidate's `config.yaml` doesn't contain.
-- This rule applies even when the candidate's `config.yaml` bullets use a different word for the same concept (e.g., resume says "PRDs" but JD says "product requirement documents" — use "product requirement documents" in the tailored output).
+- This rule applies even when the candidate's `config.yaml` bullets use a different word for the same concept (e.g., resume says "PRDs" but JD says "product requirement documents" - use "product requirement documents" in the tailored output).
 
 ---
 
@@ -319,7 +319,7 @@ Based on this assessment, would you like to:
 - After showing the analysis, re-ask: "Proceed with application, or skip?"
 
 **If user chooses "Skip this opportunity":**
-- Acknowledge the decision: "Understood — skipping this one."
+- Acknowledge the decision: "Understood - skipping this one."
 - Do not generate documents or log the application
 - Ask: "Would you like to apply to a different job? Paste the next job description."
 
@@ -441,7 +441,7 @@ generate_application_documents(
         "experience": [
             {
                 "title": "Job Title",
-                "company": "Employer Name",       # REQUIRED — employer ONLY
+                "company": "Employer Name",       # REQUIRED - employer ONLY
                 "location": "City, ST",            # optional
                 "dates": "Mon YYYY - Mon YYYY",    # dates ONLY
                 "bullets": [
@@ -453,16 +453,16 @@ generate_application_documents(
         # ┌──────────────────────────────────────────────────────────┐
         # │  ATS CRITICAL: experience field format                   │
         # │                                                          │
-        # │  ✅ RIGHT — company and dates are SEPARATE fields:       │
+        # │  ✅ RIGHT - company and dates are SEPARATE fields:       │
         # │     "company": "Ameriprise Financial",                   │
         # │     "dates":   "Jun 2021 - Oct 2022"                    │
         # │                                                          │
-        # │  ❌ WRONG — company baked into dates with pipe:          │
+        # │  ❌ WRONG - company baked into dates with pipe:          │
         # │     "company": "",                                       │
         # │     "dates":   "Ameriprise Financial | Jun 2021 - Oct…" │
         # │                                                          │
-        # │  ❌ WRONG — company baked into dates with dash:          │
-        # │     "dates":   "Ameriprise Financial — Jun 2021 - Oct…" │
+        # │  ❌ WRONG - company baked into dates with dash:          │
+        # │     "dates":   "Ameriprise Financial - Jun 2021 - Oct…" │
         # │                                                          │
         # │  WHY: ATS "Fill from Resume" needs employer on its own   │
         # │  bold line. Combined formats break Workday, Taleo, etc.  │
@@ -475,7 +475,7 @@ generate_application_documents(
 )
 ```
 
-The script also provides `log_application(company, role, fit_score, output_dir)` and `open_output_folder(output_dir)` — use these in Phase 6 instead of manual Bash commands.
+The script also provides `log_application(company, role, fit_score, output_dir)` and `open_output_folder(output_dir)` - use these in Phase 6 instead of manual Bash commands.
 
 #### Cover Letter Requirements
 
@@ -492,7 +492,7 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 - Closing: Express genuine interest and availability
 - No generic phrases ("I am writing to apply...")
 - Every claim backed by specific evidence
-- **ATS Keyword Fidelity Rule applies** — use JD-verbatim wording for required skills, tools, and credentials
+- **ATS Keyword Fidelity Rule applies** - use JD-verbatim wording for required skills, tools, and credentials
 
 #### Resume Requirements
 
@@ -501,19 +501,40 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 
 **ATS Optimization:**
 - Use standard section headers: Summary, Skills, Experience, Education, Certifications
-- Include exact keywords from job description — every required skill, tool, methodology, and credential named in the JD should appear at least once verbatim in the resume (Skills section is the natural place for terms that don't fit organically in bullets)
+- Include exact keywords from job description - every required skill, tool, methodology, and credential named in the JD should appear at least once verbatim in the resume (Skills section is the natural place for terms that don't fit organically in bullets)
 - Reword existing config.yaml bullets to use the JD's exact phrasing where it names a qualifier (e.g., if config says "PRDs" and JD says "product requirements documents", use the JD's phrasing in the tailored output)
 - Use consistent date formatting (Mon YYYY - Mon YYYY)
 - Keep creative elements in header only; main content follows standard format
 - Use bullet points with action verbs
 
 **ATS-Unsafe Characters (Workday + similar):**
-Workday and several other ATS systems strip or mangle `<` and `>` characters during text extraction — a hierarchy like `Capability > Epic > Story > Task` can come out as `Capability Epic Story Task` with the markers gone, or worse, the section silently dropped.
+Workday and several other ATS systems strip or mangle `<` and `>` characters during text extraction. A hierarchy like `Capability > Epic > Story > Task` can come out as `Capability Epic Story Task` with the markers gone, or worse, the section silently dropped.
 
 - Never write `<` or `>` in any user-visible bullet text, summary, skills line, or cover letter content. This applies whether you are writing fresh content for an application or reading from `config.yaml` (the canonical config has already been cleaned).
 - For hierarchies, use `→` (Unicode rightward arrow, U+2192) instead of `>`. Example: `Capability → Epic → Story → Task`.
 - For numeric comparisons, write `over N` instead of `>N` and `under N` instead of `<N`. Example: write "over 80% test coverage" not ">80% test coverage".
-- `generate_word_docs.py` contains a defense-in-depth sanitizer (`_sanitize_data_for_ats`) that runs at the top of `generate_application_documents()` and replaces stray `<`/`>` characters automatically. **Do not rely on it as a substitute for writing clean source content** — write it correctly the first time so the resume reads naturally to humans.
+
+**AI-Tell Characters (em-dash U+2014 and en-dash U+2013):**
+
+The em-dash (Unicode codepoint U+2014, looks like a long horizontal bar between spaces) has become a widely-recognized indicator of AI-generated writing. Recruiters and hiring managers increasingly flag em-dash-heavy prose as likely AI-edited, which carries stigma in 2026 and beyond. The same applies to the en-dash (U+2013) when used in numeric ranges: humans typing on a keyboard produce a plain hyphen instead.
+
+- Never write a U+2014 em-dash or U+2013 en-dash in any user-visible content (cover letter prose, resume summary, bullets, skills lines). This applies to fresh content you draft AND to content quoted or reshaped from `config.yaml`.
+- For a strong break in a sentence, prefer a colon, semicolon, period, or comma. Example:
+  - GOOD: `"Portfolio Factory: built and shipped an AI-powered career assessment platform..."`
+  - BAD:  `"Portfolio Factory — built and shipped an AI-powered career assessment platform..."` (uses U+2014)
+- For a parenthetical aside, use commas or parentheses. Example:
+  - GOOD: `"At Ameriprise, a regulated financial-services firm, I owned..."`
+  - BAD:  `"At Ameriprise — a regulated financial-services firm — I owned..."` (uses U+2014)
+- For numeric ranges, use a plain ASCII hyphen. Example:
+  - GOOD: `"3-4 month delivery cadence"` (ASCII hyphen U+002D)
+  - BAD:  `"3–4 month delivery cadence"` (uses en-dash U+2013)
+- For project-name-then-description bullets, use a colon. Example:
+  - GOOD: `"Claude Code Skills (open-source): reusable AI agent skill suite..."`
+  - BAD:  `"Claude Code Skills (open-source) — reusable AI agent skill suite..."` (uses U+2014)
+- The literal U+2014 / U+2013 characters in this rule's examples are written as `—` / `–` escapes on purpose, so a mechanical clean-up pass over SKILL.md cannot delete the BAD examples and silently destroy the rule.
+
+**Defense-in-depth sanitizer:**
+`generate_word_docs.py` contains a sanitizer (`_sanitize_data_for_ats`) that runs at the top of `generate_application_documents()` and replaces stray `<`, `>`, U+2014, and U+2013 characters automatically. **Do not rely on it as a substitute for writing clean source content.** Write it correctly the first time so the resume reads naturally to humans, and the sanitizer is only a backstop for source-data drift.
 
 **Human Scanning Optimization:**
 - Apply visual hierarchy through typography (bold, sizing)

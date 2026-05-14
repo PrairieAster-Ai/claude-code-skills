@@ -213,7 +213,7 @@ Hiring managers spend **6-10 seconds** scanning a resume before deciding to read
 
 ## Fun & Novelty Presets
 
-These presets are available in the **Artifact Edition** (self-contained HTML tool). They produce real, functional resumes and cover letters — just with personality. Great for internal applications, creative industries, or making your friends laugh.
+These presets are available in the **Artifact Edition** (self-contained HTML tool). They produce real, functional resumes and cover letters - just with personality. Great for internal applications, creative industries, or making your friends laugh.
 
 > **Note:** Fun presets are for the artifact only. The CLI edition generates .docx files using the three professional presets above.
 
@@ -221,7 +221,7 @@ These presets are available in the **Artifact Edition** (self-contained HTML too
 
 **Archetype:** Seafaring adventurer, pirate captain
 
-**Tone:** Nautical metaphor throughout — jobs are "voyages," skills are an "arsenal," experience entries are "exploits." Formal but swashbuckling.
+**Tone:** Nautical metaphor throughout - jobs are "voyages," skills are an "arsenal," experience entries are "exploits." Formal but swashbuckling.
 
 | Element | Value |
 |---------|-------|
@@ -240,7 +240,7 @@ These presets are available in the **Artifact Edition** (self-contained HTML too
 
 **Archetype:** Ambitious pink powerhouse, legally unstoppable
 
-**Tone:** Enthusiastic, confident, exclamation marks and bold claims — but backed by real evidence. "Yes, I'm THAT Candidate."
+**Tone:** Enthusiastic, confident, exclamation marks and bold claims - but backed by real evidence. "Yes, I'm THAT Candidate."
 
 | Element | Value |
 |---------|-------|
@@ -278,7 +278,7 @@ These presets are available in the **Artifact Edition** (self-contained HTML too
 
 **Archetype:** Shakespearean player, theatrical performer
 
-**Tone:** Iambic pentameter in fixed template text. Early Modern English flavor — "forsooth," "prithee," "thy court." Decorative flourishes between sections.
+**Tone:** Iambic pentameter in fixed template text. Early Modern English flavor - "forsooth," "prithee," "thy court." Decorative flourishes between sections.
 
 | Element | Value |
 |---------|-------|

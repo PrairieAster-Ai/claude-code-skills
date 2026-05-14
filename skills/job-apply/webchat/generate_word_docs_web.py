@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate styled Word documents for job applications — Web Chat Edition.
+Generate styled Word documents for job applications - Web Chat Edition.
 
 Standalone script for Claude's Analysis sandbox. Duplicates core document
 generation from generate_word_docs.py so it works without filesystem access
@@ -100,8 +100,8 @@ def _format_cert_detail(cert):
     """Build certification detail string from either schema.
 
     Handles both formats:
-    - {name, detail} — used by document generator API
-    - {name, year, issuer} — used by config.yaml and import_resume.py
+    - {name, detail} - used by document generator API
+    - {name, year, issuer} - used by config.yaml and import_resume.py
     """
     if cert.get('detail'):
         return cert['detail']
@@ -514,7 +514,7 @@ def parse_uploaded_resume(file_path):
     """
     Extract text from an uploaded .docx resume.
 
-    Uses Python's zipfile module to read the document XML — no external
+    Uses Python's zipfile module to read the document XML - no external
     tools needed. Works in the Analysis sandbox.
 
     Args:
@@ -608,7 +608,7 @@ def generate_profile_yaml(candidate, qualifications, output_path="/tmp/profile.y
     """
     Generate a portable profile.yaml that can be reused across sessions.
 
-    The profile contains candidate info and qualifications — everything
+    The profile contains candidate info and qualifications - everything
     needed to skip resume parsing on the next run.
 
     Args:
