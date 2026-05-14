@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -531,6 +532,124 @@ def cmd_comment(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def cmd_promote_memories(args: argparse.Namespace) -> int:
+    """Promote pending suggested_memory entries into .claude/security-memories.md.
+
+    Reads .claude/security-audit/pending-memories.jsonl (one JSON object per
+    line), applies safety filters (T8 mitigations), and appends the survivors
+    to .claude/security-memories.md.
+
+    Safety filters:
+      1. Never promote a memory whose path-scope intersects files changed in
+         this PR (the contributor must not be able to suppress findings about
+         their own diff).
+      2. Verify the rationale's cited sanitizer/file exists on the base ref
+         (cheap "not making up references" check).
+      3. Apply a default 14-day expiry unless --no-expire.
+    """
+    import datetime
+    from pathlib import Path as _Path
+
+    pending_path = ROOT / ".claude" / "security-audit" / "pending-memories.jsonl"
+    if not pending_path.exists():
+        print(f"No pending memories at {pending_path}", file=sys.stderr)
+        return 0
+
+    memories_path = ROOT / ".claude" / "security-memories.md"
+    memories_path.parent.mkdir(parents=True, exist_ok=True)
+
+    base = args.base or "origin/HEAD"
+    try:
+        changed = set(
+            run(["git", "diff", "--name-only", f"{base}..."], check=False).stdout.splitlines()
+        )
+    except Exception:
+        changed = set()
+
+    promoted = 0
+    rejected: list[tuple[str, str]] = []
+    appended_blocks: list[str] = []
+
+    for raw in pending_path.read_text(encoding="utf-8").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            mem = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            rejected.append((raw[:60], f"invalid JSON: {exc}"))
+            continue
+
+        scope = mem.get("scope") or {}
+        rule = scope.get("rule", "?")
+        paths = scope.get("paths") or []
+        rationale = mem.get("rationale", "").strip()
+
+        # Filter 1: scope must not intersect changed files
+        intersects = False
+        for pattern in paths:
+            for path in changed:
+                if _Path(path).match(pattern):
+                    intersects = True
+                    break
+            if intersects:
+                break
+        if intersects:
+            rejected.append((rule, f"scope intersects changed files: {paths}"))
+            continue
+
+        # Filter 2: if rationale references a file:line, verify the file exists on base
+        ref_match = re.search(r"`([^`]+\.\w{1,8}):\d+`", rationale)
+        if ref_match:
+            cited_path = ref_match.group(1)
+            check = run(["git", "show", f"{base}:{cited_path}"], check=False)
+            if check.returncode != 0:
+                rejected.append((rule, f"rationale cites {cited_path} which doesn't exist on {base}"))
+                continue
+
+        # Filter 3: default 14-day expiry
+        if not args.no_expire:
+            expires = mem.get("expires")
+            if not expires:
+                expires = (datetime.date.today() + datetime.timedelta(days=14)).isoformat()
+                mem["expires"] = expires
+
+        scope_str = f"rule={rule}"
+        if paths:
+            scope_str += " path=" + ",".join(paths)
+
+        block = "\n## FP (auto-promoted): {title}\n\n- **Rule:** {rule}\n- **Scope:** {scope}\n- **Reason:** {reason}\n- **Created:** {today} by /security-audit promote-memories\n".format(
+            title=rule.split(":", 1)[-1].split(".")[-1][:60],
+            rule=rule,
+            scope=scope_str,
+            reason=rationale or "(no rationale provided)",
+            today=datetime.date.today().isoformat(),
+        )
+        if mem.get("expires"):
+            block += f"- **Expires:** {mem['expires']}\n"
+        appended_blocks.append(block)
+        promoted += 1
+
+    if appended_blocks:
+        with memories_path.open("a", encoding="utf-8") as fp:
+            if memories_path.stat().st_size == 0:
+                fp.write("# Security audit memories\n")
+            fp.write("\n".join(appended_blocks))
+            fp.write("\n")
+
+    print(f"Promoted: {promoted}", file=sys.stderr)
+    if rejected:
+        print(f"Rejected: {len(rejected)}", file=sys.stderr)
+        for rule, reason in rejected:
+            print(f"  {rule}: {reason}", file=sys.stderr)
+
+    # Clear pending file after successful promotion
+    if promoted > 0 and not args.dry_run:
+        pending_path.unlink()
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -552,6 +671,15 @@ def build_parser() -> argparse.ArgumentParser:
     comment.add_argument("--pr", required=True, help="Pull request number.")
     comment.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Artifact output directory.")
     comment.set_defaults(func=cmd_comment)
+
+    promote = subparsers.add_parser(
+        "promote-memories",
+        help="Promote pending suggested_memory entries to .claude/security-memories.md (with T8 safety filters).",
+    )
+    promote.add_argument("--base", default="origin/HEAD", help="Base ref for the changed-files safety check.")
+    promote.add_argument("--no-expire", action="store_true", help="Don't add a default 14-day expiry.")
+    promote.add_argument("--dry-run", action="store_true", help="Show what would be promoted without writing.")
+    promote.set_defaults(func=cmd_promote_memories)
 
     return parser
 

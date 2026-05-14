@@ -332,6 +332,54 @@ Keep the higher-confidence one, merge file:line lists.
 
 On every run: load memories, match findings, auto-dismiss those that hit a memory. After human triage of *new* findings, **propose** new memories (don't auto-write; human approves).
 
+### Memory as triage byproduct
+
+Following Semgrep Assistant's design pattern: every verification call should include a `suggested_memory` field in its structured JSON output, so memory creation becomes a side effect of normal triage rather than a separate manual step.
+
+The verification prompt MUST include this field:
+
+```jsonc
+{
+  // ...other verification output fields...
+  "suggested_memory": {
+    "applies": <true|false>,
+    "rationale": "<one-sentence explanation of why this finding is safe in this codebase>",
+    "scope": {
+      "rule": "<tool>:<rule_id>",
+      "paths": ["<glob>", ...]
+    },
+    "expires": "<YYYY-MM-DD or null>"
+  }
+}
+```
+
+Set `applies=true` only when:
+- The finding has been classified as a confident false positive (Chain A `is_fp=true, fp_confidence ≥ 0.85`)
+- The rationale is **specific to this codebase** (refers to a real file, a known sanitizer, a documented invariant), not generic ("React is generally safe")
+- The pattern is likely to recur in future PRs
+
+Set `applies=false` for:
+- True positives (memories should never suppress real bugs)
+- Findings where the FP reason is generic and would over-suppress
+- One-off cases (e.g., a test fixture) where a memory would create more noise than signal
+
+After Phase 4 completes:
+
+1. The skill writes all `suggested_memory` entries where `applies=true` to `.claude/security-audit/pending-memories.jsonl`.
+2. The skill surfaces the pending memories in the final report under a "Proposed memories" section, with a clear note that they're proposals, not commitments.
+3. The user reviews them and runs `python3 scripts/security_audit.py promote-memories` (or accepts them inline) to append to `.claude/security-memories.md`.
+4. The skill MUST NOT auto-append to `.claude/security-memories.md` without explicit user action. Memory creation is a security-relevant operation (T8 in threat model: malicious memories can suppress real bugs).
+
+### Auto-promotion safety rules
+
+Even when the user runs `promote-memories`, the skill enforces:
+
+- **Never promote a memory whose scope path matches a file modified in the current PR.** The contributor controlling the PR shouldn't be able to suppress findings about their own changes.
+- **Never promote a memory referencing a sanitizer/validator function that doesn't exist on the base branch.** Use `git show origin/$BASE_REF:<file>` to verify the cited function is real.
+- **Require a 14-day expiry by default** unless the user passes `--no-expire`. Expired memories are loaded but flagged in the final report as "memory expired, please re-review."
+
+These rules turn the suggested-memory mechanism into a productivity tool while keeping the threat surface bounded.
+
 ### Hard exclusions (verbatim. DO NOT REPORT)
 
 This list mirrors `references/exclusions.md` (25 items). Both are canonical.
