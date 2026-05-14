@@ -258,6 +258,79 @@ Keep the higher-confidence one, merge file:line lists.
 
 On every run: load memories, match findings, auto-dismiss those that hit a memory. After human triage of *new* findings, **propose** new memories (don't auto-write; human approves).
 
+### Per-rule FP/TP ledger
+
+Every triage decision is appended to `.claude/security-audit/rule-stats.jsonl`. One JSON object per line, no schema migrations required, easy to grep and aggregate. The ledger is the cheap-RAG version of Semgrep Assistant's "previous triage decisions" context: it lets the verifier few-shot from how this exact rule has been triaged in this repo's recent history.
+
+#### Format
+
+```jsonl
+{"ts": "2026-05-13T19:14:23Z", "tool": "semgrep", "rule_id": "javascript.lang.security.audit.sqli.tagged-template-no-params", "verdict": "tp", "confidence": 0.92, "file": "apps/api/src/routes/users.ts", "line": 42, "reason": "Direct interpolation of req.query.q into db.execute, no parameter binding", "pr_sha": "abc123def..."}
+{"ts": "2026-05-13T19:14:25Z", "tool": "semgrep", "rule_id": "react.dangerously-set-inner-html", "verdict": "fp", "confidence": 0.95, "file": "apps/web/src/components/Markdown.tsx", "line": 88, "reason": "Input passes through DOMPurify in lib/sanitize.ts:42", "pr_sha": "abc123def..."}
+```
+
+Required fields: `ts`, `tool`, `rule_id`, `verdict` (one of `fp` / `tp` / `unconfirmed`), `confidence`, `file`, `reason`.
+
+Optional fields: `line`, `pr_sha`, `human_override` (boolean, true if a human disagreed with the model's verdict).
+
+#### Reading the ledger as few-shot context
+
+At Phase 3 entry, for each finding being verified, query the ledger for the most recent 5 to 10 entries matching the same `rule_id`. Format them as few-shot examples in the verifier prompt:
+
+```
+PRIOR TRIAGE FOR THIS RULE (most recent first):
+
+[2026-05-09] verdict=fp confidence=0.95
+  file=apps/web/src/components/Markdown.tsx:88
+  reason="Input passes through DOMPurify in lib/sanitize.ts:42"
+
+[2026-04-22] verdict=tp confidence=0.88
+  file=apps/api/src/routes/admin.ts:140
+  reason="req.body.html rendered without sanitization in admin notice template"
+
+USE THESE AS PRECEDENT for confidence calibration, not as automatic dismissal.
+A new occurrence of the rule MUST still be evaluated on its own merits.
+The point is to give the verifier institutional memory of how this rule has
+behaved in this codebase, not to bias toward the prior verdict.
+```
+
+The verifier prompt is explicitly told not to auto-dismiss based on prior triage. Past decisions inform calibration; they don't decide the current case.
+
+#### Writing to the ledger
+
+After Phase 4 triage completes (and any human review on surfaced findings), append one row per finding to the ledger. The append happens regardless of verdict (FP, TP, or unconfirmed) so the ledger accurately reflects the rule's behavior in this codebase over time.
+
+```bash
+echo "$VERIFICATION_JSON" >> .claude/security-audit/rule-stats.jsonl
+```
+
+The ledger is intentionally append-only. No edits, no deletions. If a past verdict turns out to be wrong, the correction is recorded as a new row with `human_override: true` and a `corrects` field pointing at the prior ts.
+
+#### Aggregating: `python3 scripts/security_audit.py rule-stats`
+
+Summarize the ledger to identify rules with poor signal-to-noise in this repo:
+
+```bash
+python3 scripts/security_audit.py rule-stats --since=180d --threshold=0.2
+```
+
+Output:
+
+```
+Rule: react.dangerously-set-inner-html
+  Total triaged: 14  (TP: 1, FP: 12, unconfirmed: 1)
+  FP rate: 86%
+  Suggestion: consider promoting a global memory or adjusting confidence
+              floor for this rule, or excluding it via .claude/security-config.yaml.
+
+Rule: javascript.lang.security.audit.sqli.tagged-template-no-params
+  Total triaged: 3  (TP: 3, FP: 0, unconfirmed: 0)
+  FP rate: 0%
+  Suggestion: high-signal rule, keep at default sensitivity.
+```
+
+The `--threshold` flag (default 0.5) controls when a rule gets flagged as "high FP rate" in the suggestion text.
+
 ### Hard exclusions (verbatim. DO NOT REPORT)
 
 This list mirrors `references/exclusions.md` (25 items). Both are canonical.

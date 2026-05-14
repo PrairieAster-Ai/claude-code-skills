@@ -531,6 +531,88 @@ def cmd_comment(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def cmd_rule_stats(args: argparse.Namespace) -> int:
+    """Summarize .claude/security-audit/rule-stats.jsonl to identify rules
+    with poor signal-to-noise in this repo. Append-only ledger; one row
+    per triage decision."""
+    import datetime
+    from collections import defaultdict
+
+    ledger = ROOT / ".claude" / "security-audit" / "rule-stats.jsonl"
+    if not ledger.exists():
+        print(f"No ledger at {ledger}", file=sys.stderr)
+        return 0
+
+    # Parse --since: "180d" or "30d" or an ISO date
+    cutoff = None
+    if args.since:
+        if args.since.endswith("d") and args.since[:-1].isdigit():
+            days = int(args.since[:-1])
+            cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+        else:
+            try:
+                cutoff = datetime.datetime.fromisoformat(args.since.replace("Z", "+00:00"))
+            except ValueError:
+                print(f"Bad --since value: {args.since}", file=sys.stderr)
+                return 1
+
+    by_rule: dict[str, dict[str, int]] = defaultdict(lambda: {"tp": 0, "fp": 0, "unconfirmed": 0})
+    parsed = 0
+    skipped = 0
+
+    for raw in ledger.read_text(encoding="utf-8").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            row = json.loads(raw)
+        except json.JSONDecodeError:
+            skipped += 1
+            continue
+        if cutoff is not None:
+            ts = row.get("ts", "")
+            try:
+                row_ts = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                continue
+            if row_ts.replace(tzinfo=None) < cutoff:
+                continue
+        rule = f"{row.get('tool', '?')}:{row.get('rule_id', '?')}"
+        verdict = row.get("verdict", "unconfirmed")
+        if verdict in by_rule[rule]:
+            by_rule[rule][verdict] += 1
+        else:
+            by_rule[rule]["unconfirmed"] += 1
+        parsed += 1
+
+    if not by_rule:
+        print(f"No entries in window. Parsed: {parsed}, skipped: {skipped}", file=sys.stderr)
+        return 0
+
+    rows = []
+    for rule, counts in by_rule.items():
+        total = sum(counts.values())
+        fp_rate = counts["fp"] / total if total else 0.0
+        rows.append((rule, counts, total, fp_rate))
+    rows.sort(key=lambda r: r[3], reverse=True)
+
+    for rule, counts, total, fp_rate in rows:
+        print(f"Rule: {rule}")
+        print(f"  Total triaged: {total}  (TP: {counts['tp']}, FP: {counts['fp']}, unconfirmed: {counts['unconfirmed']})")
+        print(f"  FP rate: {fp_rate:.0%}")
+        if fp_rate >= args.threshold and total >= args.min_total:
+            print(
+                "  Suggestion: high FP rate. Consider promoting a global memory, "
+                "adjusting the confidence floor for this rule, or excluding it via "
+                ".claude/security-config.yaml."
+            )
+        elif fp_rate == 0 and counts["tp"] >= 3:
+            print("  Suggestion: high-signal rule, keep at default sensitivity.")
+        print()
+
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -552,6 +634,15 @@ def build_parser() -> argparse.ArgumentParser:
     comment.add_argument("--pr", required=True, help="Pull request number.")
     comment.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Artifact output directory.")
     comment.set_defaults(func=cmd_comment)
+
+    stats = subparsers.add_parser(
+        "rule-stats",
+        help="Summarize .claude/security-audit/rule-stats.jsonl to identify high-FP rules in this repo.",
+    )
+    stats.add_argument("--since", default="180d", help="Look-back window. Format: NNd or ISO date. Default: 180d.")
+    stats.add_argument("--threshold", type=float, default=0.5, help="FP-rate threshold for the high-FP suggestion. Default: 0.5.")
+    stats.add_argument("--min-total", type=int, default=3, help="Minimum triage count before suggesting changes. Default: 3.")
+    stats.set_defaults(func=cmd_rule_stats)
 
     return parser
 
