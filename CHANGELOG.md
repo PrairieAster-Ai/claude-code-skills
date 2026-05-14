@@ -4,6 +4,13 @@ All notable changes to this repository are documented here. The format follows [
 
 ## [Unreleased]
 
+### Automation layer (new)
+
+- **Add `scripts/security_audit.py`**, **`hooks/pre-push.security-audit`**, **`.github/workflows/security-audit-tools-only.yml`** — the deterministic portion of the security-audit skill extracted into a standalone CLI. Originally contributed by John Malone (@Pro777) in PR #1; landed here with the PR #2 fixes layered in (ESLint 9+ flat config, gitleaks merge-base resolution, HTML-comment marker for `--post-pr` dedup, cross-repo safety check).
+- **Fix `scripts/code_quality.py` lint/typecheck error counting** — replace `extract_first_number` (which grabbed the first digit anywhere in stdout, including line numbers) with dedicated `count_eslint_errors` and `count_tsc_errors` functions that look for canonical error markers (`N errors` summary line and `error TS<code>:` patterns respectively).
+- **Fix `scripts/code_quality.py` coverage default** — fall through to `npx vitest run --coverage` directly instead of `npm run test`, which rarely emits coverage by itself.
+- **Fix `scripts/code_quality.py` `: any` false positives** — strip `//` and `/* */` comments before counting, switch to regex `:\s*any\b` so it doesn't match `// can be: any` or `:: anything`.
+
 ### security-audit
 
 - **Fix:** `--post-pr` dedup now embeds an HTML-comment marker (`<!-- security-audit:sha=<full> -->`) so the dedup grep is deterministic. Previously the short-SHA header didn't match the full-SHA grep and every push re-posted.

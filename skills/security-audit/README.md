@@ -66,6 +66,41 @@ Six of seven are OSS and need no API key. Socket's `scan create` (the recommende
 /security-audit --deep           # adds complexity hotspots + full-history secret scan
 ```
 
+## Deterministic CLI
+
+The tool-driven portion of this workflow is also available as a standalone script:
+
+```bash
+python3 scripts/security_audit.py scan
+python3 scripts/security_audit.py scan --base origin/main --deep
+python3 scripts/security_audit.py ci --base origin/main
+python3 scripts/security_audit.py comment --pr 123
+```
+
+What the script owns:
+- diff discovery
+- conditional scanner selection
+- SARIF/JSON artifact generation
+- markdown/json summary generation
+- optional PR comment posting via `gh`
+
+What stays in the skill:
+- LLM verification of raw findings
+- semantic deduplication and confidence judgment
+- memory management and false-positive suppression logic
+- fix recommendation and patch validation
+
+Artifacts are written under `.artifacts/security-audit/` by default.
+
+## Hooks and CI
+
+Example automation entrypoints are included at the repo root:
+
+- `hooks/pre-push.security-audit`
+- `.github/workflows/security-audit-tools-only.yml`
+
+These are templates, not mandatory installation paths. The expectation is that consuming repos copy or adapt them to local needs.
+
 ## How it works (5 phases + optional 6th)
 
 ```
@@ -196,6 +231,7 @@ Both skills read CLAUDE.md and will respect this boundary.
 | File | Purpose |
 |---|---|
 | `SKILL.md` | Main skill prompt with full workflow |
+| `../../scripts/security_audit.py` | Deterministic CLI for scanners, artifacts, and CI integration |
 | `references/tools.md` | Tool-by-tool comparison + install + scope-to-diff commands |
 | `references/exclusions.md` | The 21-rule hard exclusion list with rationale |
 | `references/asvs-chapter-map.md` | Touched-chapter detection patterns |
@@ -204,4 +240,4 @@ Both skills read CLAUDE.md and will respect this boundary.
 
 ## License
 
-Apache License 2.0. See the [LICENSE](../../LICENSE) file at the repo root.
+Same as the parent repo.
