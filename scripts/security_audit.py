@@ -200,16 +200,17 @@ def build_tool_plan(base: str, changed_files: list[str], output_dir: Path, deep:
     plan: list[tuple[str, list[str], Path | None, str]] = []
 
     semgrep_out = output_dir / "semgrep.sarif"
-    # `semgrep ci` requires `semgrep login`. For the local/CI default we use
-    # `semgrep scan --config=auto` which runs the registry rule set without
-    # any account. The MCP path (--use-mcp) bypasses this entirely.
+    # `semgrep ci` requires `semgrep login`; `--config=auto` requires
+    # metrics enabled. Use `--config=p/default` (the curated registry
+    # pack) with metrics off — works locally and in CI without any
+    # account or telemetry. The MCP path (--use-mcp) bypasses this.
     plan.append(
         (
             "semgrep",
             [
                 "semgrep",
                 "scan",
-                "--config=auto",
+                "--config=p/default",
                 f"--baseline-commit={mb}",
                 "--sarif",
                 f"--sarif-output={semgrep_out}",

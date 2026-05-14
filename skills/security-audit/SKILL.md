@@ -94,9 +94,12 @@ Run language-and-context-appropriate scanners. **All run in parallel, all emit S
 
 ```bash
 # 1. Multi-language SAST + OWASP/CWE mapping.
-# Use `semgrep scan --config=auto` (not `semgrep ci`) so it works without
-# `semgrep login`. The registry rule set is fetched on-demand.
-semgrep scan --config=auto \
+# Use `semgrep scan --config=p/default` (not `semgrep ci`, not `--config=auto`).
+# `semgrep ci` requires login; `--config=auto` requires metrics enabled.
+# `p/default` is the curated registry pack and works with metrics off.
+# For richer language-specific coverage layer additional configs:
+#   --config=p/typescript --config=p/react --config=p/express
+semgrep scan --config=p/default \
   --baseline-commit="$(git merge-base HEAD "$BASE")" \
   --sarif --sarif-output=/tmp/sr-semgrep.sarif --metrics=off --quiet
 
