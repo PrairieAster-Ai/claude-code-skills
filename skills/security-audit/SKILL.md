@@ -93,9 +93,15 @@ Run language-and-context-appropriate scanners. **All run in parallel, all emit S
 ### Always-on (default stack, ~25s on a 20-file PR)
 
 ```bash
-# 1. Multi-language SAST + OWASP/CWE mapping
-semgrep ci --baseline-commit="$(git merge-base HEAD "$BASE")" \
-  --sarif --sarif-output=/tmp/sr-semgrep.sarif --quiet
+# 1. Multi-language SAST + OWASP/CWE mapping.
+# Use `semgrep scan --config=p/default` (not `semgrep ci`, not `--config=auto`).
+# `semgrep ci` requires login; `--config=auto` requires metrics enabled.
+# `p/default` is the curated registry pack and works with metrics off.
+# For richer language-specific coverage layer additional configs:
+#   --config=p/typescript --config=p/react --config=p/express
+semgrep scan --config=p/default \
+  --baseline-commit="$(git merge-base HEAD "$BASE")" \
+  --sarif --sarif-output=/tmp/sr-semgrep.sarif --metrics=off --quiet
 
 # 2. Secrets in the diff (resolve symbolic refs first — gitleaks two-dot
 #    ranges are flaky against refs like `origin/HEAD`)

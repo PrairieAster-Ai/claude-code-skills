@@ -200,15 +200,21 @@ def build_tool_plan(base: str, changed_files: list[str], output_dir: Path, deep:
     plan: list[tuple[str, list[str], Path | None, str]] = []
 
     semgrep_out = output_dir / "semgrep.sarif"
+    # `semgrep ci` requires `semgrep login`; `--config=auto` requires
+    # metrics enabled. Use `--config=p/default` (the curated registry
+    # pack) with metrics off — works locally and in CI without any
+    # account or telemetry. The MCP path (--use-mcp) bypasses this.
     plan.append(
         (
             "semgrep",
             [
                 "semgrep",
-                "ci",
+                "scan",
+                "--config=p/default",
                 f"--baseline-commit={mb}",
                 "--sarif",
                 f"--sarif-output={semgrep_out}",
+                "--metrics=off",
                 "--quiet",
             ],
             semgrep_out,
@@ -612,6 +618,206 @@ def cmd_comment(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def cmd_promote_memories(args: argparse.Namespace) -> int:
+    """Promote pending suggested_memory entries into .claude/security-memories.md.
+
+    Reads .claude/security-audit/pending-memories.jsonl (one JSON object per
+    line), applies safety filters (T8 mitigations), and appends the survivors
+    to .claude/security-memories.md.
+
+    Safety filters:
+      1. Never promote a memory whose path-scope intersects files changed in
+         this PR (the contributor must not be able to suppress findings about
+         their own diff).
+      2. Verify the rationale's cited sanitizer/file exists on the base ref
+         (cheap "not making up references" check).
+      3. Apply a default 14-day expiry unless --no-expire.
+    """
+    import datetime
+    from pathlib import Path as _Path
+
+    pending_path = ROOT / ".claude" / "security-audit" / "pending-memories.jsonl"
+    if not pending_path.exists():
+        print(f"No pending memories at {pending_path}", file=sys.stderr)
+        return 0
+
+    memories_path = ROOT / ".claude" / "security-memories.md"
+    memories_path.parent.mkdir(parents=True, exist_ok=True)
+
+    base = args.base or "origin/HEAD"
+    try:
+        changed = set(
+            run(["git", "diff", "--name-only", f"{base}..."], check=False).stdout.splitlines()
+        )
+    except Exception:
+        changed = set()
+
+    promoted = 0
+    rejected: list[tuple[str, str]] = []
+    appended_blocks: list[str] = []
+
+    for raw in pending_path.read_text(encoding="utf-8").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            mem = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            rejected.append((raw[:60], f"invalid JSON: {exc}"))
+            continue
+
+        scope = mem.get("scope") or {}
+        rule = scope.get("rule", "?")
+        paths = scope.get("paths") or []
+        rationale = mem.get("rationale", "").strip()
+
+        # Filter 1: scope must not intersect changed files
+        intersects = False
+        for pattern in paths:
+            for path in changed:
+                if _Path(path).match(pattern):
+                    intersects = True
+                    break
+            if intersects:
+                break
+        if intersects:
+            rejected.append((rule, f"scope intersects changed files: {paths}"))
+            continue
+
+        # Filter 2: if rationale references a file:line, verify the file exists on base
+        ref_match = re.search(r"`([^`]+\.\w{1,8}):\d+`", rationale)
+        if ref_match:
+            cited_path = ref_match.group(1)
+            check = run(["git", "show", f"{base}:{cited_path}"], check=False)
+            if check.returncode != 0:
+                rejected.append((rule, f"rationale cites {cited_path} which doesn't exist on {base}"))
+                continue
+
+        # Filter 3: default 14-day expiry
+        if not args.no_expire:
+            expires = mem.get("expires")
+            if not expires:
+                expires = (datetime.date.today() + datetime.timedelta(days=14)).isoformat()
+                mem["expires"] = expires
+
+        scope_str = f"rule={rule}"
+        if paths:
+            scope_str += " path=" + ",".join(paths)
+
+        block = "\n## FP (auto-promoted): {title}\n\n- **Rule:** {rule}\n- **Scope:** {scope}\n- **Reason:** {reason}\n- **Created:** {today} by /security-audit promote-memories\n".format(
+            title=rule.split(":", 1)[-1].split(".")[-1][:60],
+            rule=rule,
+            scope=scope_str,
+            reason=rationale or "(no rationale provided)",
+            today=datetime.date.today().isoformat(),
+        )
+        if mem.get("expires"):
+            block += f"- **Expires:** {mem['expires']}\n"
+        appended_blocks.append(block)
+        promoted += 1
+
+    if appended_blocks:
+        with memories_path.open("a", encoding="utf-8") as fp:
+            if memories_path.stat().st_size == 0:
+                fp.write("# Security audit memories\n")
+            fp.write("\n".join(appended_blocks))
+            fp.write("\n")
+
+    print(f"Promoted: {promoted}", file=sys.stderr)
+    if rejected:
+        print(f"Rejected: {len(rejected)}", file=sys.stderr)
+        for rule, reason in rejected:
+            print(f"  {rule}: {reason}", file=sys.stderr)
+
+    # Clear pending file after successful promotion
+    if promoted > 0 and not args.dry_run:
+        pending_path.unlink()
+
+    return 0
+
+
+def cmd_rule_stats(args: argparse.Namespace) -> int:
+    """Summarize .claude/security-audit/rule-stats.jsonl to identify rules
+    with poor signal-to-noise in this repo. Append-only ledger; one row
+    per triage decision."""
+    import datetime
+    from collections import defaultdict
+
+    ledger = ROOT / ".claude" / "security-audit" / "rule-stats.jsonl"
+    if not ledger.exists():
+        print(f"No ledger at {ledger}", file=sys.stderr)
+        return 0
+
+    # Parse --since: "180d" or "30d" or an ISO date
+    cutoff = None
+    if args.since:
+        if args.since.endswith("d") and args.since[:-1].isdigit():
+            days = int(args.since[:-1])
+            cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+        else:
+            try:
+                cutoff = datetime.datetime.fromisoformat(args.since.replace("Z", "+00:00"))
+            except ValueError:
+                print(f"Bad --since value: {args.since}", file=sys.stderr)
+                return 1
+
+    by_rule: dict[str, dict[str, int]] = defaultdict(lambda: {"tp": 0, "fp": 0, "unconfirmed": 0})
+    parsed = 0
+    skipped = 0
+
+    for raw in ledger.read_text(encoding="utf-8").splitlines():
+        raw = raw.strip()
+        if not raw:
+            continue
+        try:
+            row = json.loads(raw)
+        except json.JSONDecodeError:
+            skipped += 1
+            continue
+        if cutoff is not None:
+            ts = row.get("ts", "")
+            try:
+                row_ts = datetime.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                continue
+            if row_ts.replace(tzinfo=None) < cutoff:
+                continue
+        rule = f"{row.get('tool', '?')}:{row.get('rule_id', '?')}"
+        verdict = row.get("verdict", "unconfirmed")
+        if verdict in by_rule[rule]:
+            by_rule[rule][verdict] += 1
+        else:
+            by_rule[rule]["unconfirmed"] += 1
+        parsed += 1
+
+    if not by_rule:
+        print(f"No entries in window. Parsed: {parsed}, skipped: {skipped}", file=sys.stderr)
+        return 0
+
+    rows = []
+    for rule, counts in by_rule.items():
+        total = sum(counts.values())
+        fp_rate = counts["fp"] / total if total else 0.0
+        rows.append((rule, counts, total, fp_rate))
+    rows.sort(key=lambda r: r[3], reverse=True)
+
+    for rule, counts, total, fp_rate in rows:
+        print(f"Rule: {rule}")
+        print(f"  Total triaged: {total}  (TP: {counts['tp']}, FP: {counts['fp']}, unconfirmed: {counts['unconfirmed']})")
+        print(f"  FP rate: {fp_rate:.0%}")
+        if fp_rate >= args.threshold and total >= args.min_total:
+            print(
+                "  Suggestion: high FP rate. Consider promoting a global memory, "
+                "adjusting the confidence floor for this rule, or excluding it via "
+                ".claude/security-config.yaml."
+            )
+        elif fp_rate == 0 and counts["tp"] >= 3:
+            print("  Suggestion: high-signal rule, keep at default sensitivity.")
+        print()
+
+    return 0
+
+
 def cmd_validate_rule(args: argparse.Namespace) -> int:
     """Run the Autogrep-style 4-stage filter on a candidate Semgrep rule.
 
@@ -786,6 +992,24 @@ def build_parser() -> argparse.ArgumentParser:
     vr.add_argument("--fixed", required=True, help="Path to a code snippet the rule MUST NOT fire on.")
     vr.add_argument("--append-to", help="If all filters pass, append the rule to this file.")
     vr.set_defaults(func=cmd_validate_rule)
+
+    promote = subparsers.add_parser(
+        "promote-memories",
+        help="Promote pending suggested_memory entries to .claude/security-memories.md (with T8 safety filters).",
+    )
+    promote.add_argument("--base", default="origin/HEAD", help="Base ref for the changed-files safety check.")
+    promote.add_argument("--no-expire", action="store_true", help="Don't add a default 14-day expiry.")
+    promote.add_argument("--dry-run", action="store_true", help="Show what would be promoted without writing.")
+    promote.set_defaults(func=cmd_promote_memories)
+
+    stats = subparsers.add_parser(
+        "rule-stats",
+        help="Summarize .claude/security-audit/rule-stats.jsonl to identify high-FP rules in this repo.",
+    )
+    stats.add_argument("--since", default="180d", help="Look-back window. Format: NNd or ISO date. Default: 180d.")
+    stats.add_argument("--threshold", type=float, default=0.5, help="FP-rate threshold for the high-FP suggestion. Default: 0.5.")
+    stats.add_argument("--min-total", type=int, default=3, help="Minimum triage count before suggesting changes. Default: 3.")
+    stats.set_defaults(func=cmd_rule_stats)
 
     return parser
 
