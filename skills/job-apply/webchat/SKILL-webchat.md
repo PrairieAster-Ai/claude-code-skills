@@ -1,14 +1,14 @@
-# Job Application Document Generator — Web Chat Edition
+# Job Application Document Generator - Web Chat Edition
 
-Evaluate job fit, then generate a tailored cover letter (1 page max) and resume (1-2 pages, prefer 1) optimized for ATS parsing and human scanning — all within Claude's web chat using the Analysis tool.
+Evaluate job fit, then generate a tailored cover letter (1 page max) and resume (1-2 pages, prefer 1) optimized for ATS parsing and human scanning - all within Claude's web chat using the Analysis tool.
 
 **Message budget: 3-4 messages** (up to 6 if user requests profile.yaml or detailed gap analysis).
 
 ## Input
 
 The user provides:
-1. A **resume** — uploaded as .docx or .pdf, a `profile.yaml` from a previous session, or qualifications pasted as text
-2. A **job description** — pasted into chat or uploaded as a file
+1. A **resume** - uploaded as .docx or .pdf, a `profile.yaml` from a previous session, or qualifications pasted as text
+2. A **job description** - pasted into chat or uploaded as a file
 
 ---
 
@@ -18,11 +18,11 @@ The user provides:
 
 **If user uploaded a `profile.yaml`** (from a previous session):
 - Parse YAML to load candidate info, qualifications, and portfolio projects
-- Skip resume parsing — this saves a message
+- Skip resume parsing - this saves a message
 - If they also uploaded a resume, prefer the profile.yaml
 
 **If user uploaded a resume .pdf:**
-- Read the PDF text directly from conversation context — no code execution needed
+- Read the PDF text directly from conversation context - no code execution needed
 
 **If user uploaded a resume .docx:**
 - Use the Analysis tool to extract text:
@@ -48,7 +48,7 @@ From the job description, extract: must-have vs nice-to-have requirements, techn
 
 ## Phase 2: Assess & Plan
 
-**Goal:** Score fit, select style, match experience — all in one output.
+**Goal:** Score fit, select style, match experience - all in one output.
 
 ### Fit Scoring
 
@@ -75,10 +75,10 @@ Overall = (Must-Have x 0.7) + (Nice-to-Have x 0.3)
 
 | Overall | Must-Have | Recommendation |
 |---------|-----------|----------------|
-| 80%+ | 80%+ | **Strong Fit** — apply confidently |
-| 60-79% | 70%+ | **Good Fit** — apply with targeted gap mitigation |
-| 50-59% | 60%+ | **Stretch Fit** — apply only with referral or unique angle |
-| Below 50% | Below 60% | **Poor Fit** — invest time in better matches |
+| 80%+ | 80%+ | **Strong Fit** - apply confidently |
+| 60-79% | 70%+ | **Good Fit** - apply with targeted gap mitigation |
+| 50-59% | 60%+ | **Stretch Fit** - apply only with referral or unique angle |
+| Below 50% | Below 60% | **Poor Fit** - invest time in better matches |
 
 ### Disqualifiers (stop if any are true)
 
@@ -116,7 +116,7 @@ For each significant gap, prepare mitigation language:
 ## Job Fit Assessment
 
 **Role:** {Title} at {Company}
-**Style:** {Preset} — {rationale}
+**Style:** {Preset} - {rationale}
 
 ### Fit Scores
 - Must-Have: {X}% ({Y}/{Z})
@@ -155,11 +155,11 @@ If generation fails, offer: retry with simpler run, output as formatted text, or
 ### Cover Letter Rules
 
 - **Single page maximum** (350-450 words)
-- Opening: Hook with strongest qualification — never "I am writing to express my interest"
+- Opening: Hook with strongest qualification - never "I am writing to express my interest"
 - Body: 2-3 evidence sections mapped to top requirements, each with specific metrics
 - Include Technical Alignment section only if role has specific tech requirements
 - Address significant gaps with transferable skills
-- Closing: Reference specific company initiative — never "I hope to hear from you soon"
+- Closing: Reference specific company initiative - never "I hope to hear from you soon"
 - Every claim backed by specific evidence with numbers
 
 ### Resume Rules
@@ -167,10 +167,10 @@ If generation fails, offer: retry with simpler run, output as formatted text, or
 - **1 page preferred, 2 pages max**
 - ATS section headers: Summary, Skills, Experience, Education, Certifications
 - Bullet formula: **Action Verb + Task + Quantified Result**
-- 3-line experience header for ATS parsing (title, company, dates on separate lines — NEVER combine company and dates with a pipe separator)
+- 3-line experience header for ATS parsing (title, company, dates on separate lines - NEVER combine company and dates with a pipe separator)
 - Date format: Mon YYYY - Mon YYYY (consistent throughout)
 - Use exact keywords from job description
-- Match terminology exactly — if they say "AWS", don't write "Amazon Web Services"
+- Match terminology exactly - if they say "AWS", don't write "Amazon Web Services"
 - Prioritize recent over old, quantified over qualitative
 
 ### Provide Downloads
@@ -192,7 +192,7 @@ If yes, use `generate_profile_yaml()` from the script.
 - {Name}_Cover_Letter_{Role}_{Company}.docx
 - {Name}_Resume_{Role}_{Company}.docx
 
-**Fit Score:** {X}% — {Recommendation}
+**Fit Score:** {X}% - {Recommendation}
 
 **Key Matches:** {Top 3-5}
 
@@ -225,8 +225,8 @@ qualifications:
       items: "Skill1, Skill2, Skill3"
   experience:
     - title: "Job Title"
-      company: "Company"       # REQUIRED — employer name ONLY
-      location: "City, ST"     # optional — renders as "Company, City, ST"
+      company: "Company"       # REQUIRED - employer name ONLY
+      location: "City, ST"     # optional - renders as "Company, City, ST"
       dates: "Mon YYYY - Present"  # dates ONLY, never include company here
       bullets:
         - text: "Achievement with metric"

@@ -96,7 +96,7 @@ Research shows 62% of candidates who applied for jobs they were "underqualified"
 ### Missing Specific Technology
 
 **In documents:**
-> "While my hands-on experience is with [Related Tech], I've built [Similar System] using comparable patterns. My track record of rapidly mastering new platforms—learning [Tech] in [Timeframe]—positions me to quickly become productive."
+> "While my hands-on experience is with [Related Tech], I've built [Similar System] using comparable patterns. My track record of rapidly mastering new platforms - learning [Tech] in [Timeframe] - positions me to quickly become productive."
 
 **Key elements:**
 - Acknowledge the gap honestly

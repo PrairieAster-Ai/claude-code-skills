@@ -182,35 +182,59 @@ def _format_cert_detail(cert):
 
 
 # =============================================================================
-# ATS Character Sanitizer (Workday + similar)
+# Character Sanitizer (ATS-unsafe + AI-tell prevention)
 # =============================================================================
 #
-# Workday and several other ATS systems strip or mangle '<' and '>' characters
-# during text extraction. The result is a butchered keyword like "Capability
-# Epic Story Task" with the hierarchy markers gone, or worse — the section
-# silently dropped. We replace the characters with safe equivalents:
+# Two classes of characters get cleaned here:
 #
-#   ' > ' (hierarchy)        → ' → '
-#   ' < ' (hierarchy)        → ' ← '
-#   '>N'  (numeric compare)  → 'over N'
-#   '<N'  (numeric compare)  → 'under N'
+# 1. ATS-unsafe ('<', '>'): Workday and similar ATS systems strip or mangle
+#    these during text extraction. The result is a butchered keyword like
+#    "Capability Epic Story Task" with the hierarchy markers gone, or worse,
+#    the section silently dropped.
+#
+# 2. AI-tell ('—', '–'): The em-dash has become a recognized indicator of
+#    AI-generated writing; recruiters increasingly flag em-dash-heavy prose
+#    as likely AI-edited, which carries stigma. We replace with plain
+#    hyphens so the prose reads like human keystrokes. En-dash in numeric
+#    ranges ("3-4 months") gets the same treatment.
+#
+# Replacement table:
+#
+#   ' > ' (hierarchy)        -> ' → '
+#   ' < ' (hierarchy)        -> ' ← '
+#   '>N'  (numeric compare)  -> 'over N'
+#   '<N'  (numeric compare)  -> 'under N'
+#   '—' (em-dash)            -> ' - '   (surrounding whitespace collapsed)
+#   '–' (en-dash, ranges)    -> '-'     (e.g. "3–4" -> "3-4")
 #
 # Sanitization runs once at the top of generate_application_documents() so
 # both renderers and any temp-script content benefit. Source data should also
-# avoid these characters (see SKILL.md ATS Optimization section), but this
-# is the defense-in-depth safety net.
+# avoid these characters (see SKILL.md ATS Optimization and AI-Tell Characters
+# sections), but this is the defense-in-depth safety net.
 
 _NUMERIC_GT = re.compile(r">\s*(\d)")
 _NUMERIC_LT = re.compile(r"<\s*(\d)")
+_EMDASH_PADDED = re.compile(r"\s*\u2014\s*")
+_ENDASH_NUMERIC = re.compile(r"(\d)\s*\u2013\s*(\d)")
 
 
 def _sanitize_for_ats(text):
-    """Replace ATS-unsafe '<' and '>' characters in a single string."""
+    """Replace ATS-unsafe and AI-tell characters in a single string.
+
+    ATS-unsafe: '<' and '>' get stripped/mangled by Workday and similar.
+    AI-tell:    em-dash and numeric-range en-dash read as AI-edited prose
+                (recruiters increasingly flag em-dash-heavy text).
+    """
     if not isinstance(text, str) or not text:
         return text
+    # ATS-unsafe: '<' and '>'
     text = _NUMERIC_GT.sub(r"over \1", text)
     text = _NUMERIC_LT.sub(r"under \1", text)
     text = text.replace(">", "\u2192").replace("<", "\u2190")
+    # AI-tell: em-dash and numeric-range en-dash
+    text = _EMDASH_PADDED.sub(" - ", text)
+    text = _ENDASH_NUMERIC.sub(r"\1-\2", text)
+    text = text.replace("\u2013", "-")
     return text
 
 

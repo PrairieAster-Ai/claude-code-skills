@@ -1,4 +1,4 @@
-# Job Application Assistant — Manual Test Script
+# Job Application Assistant - Manual Test Script
 
 **File under test:** `job-apply-artifact.html`
 **Open:** directly in a browser (Chrome, Firefox, Safari, or Edge)
@@ -76,7 +76,7 @@ Certifications
 AWS Certified Solutions Architect
 ```
 
-### Sample JD (Poor Match — Nursing)
+### Sample JD (Poor Match - Nursing)
 
 ```
 Registered Nurse - ICU
@@ -123,7 +123,7 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 | 1.5  | Inspect page background                   | Subtle lavender tint (`#f8f6fb`), not pure white or grey                                                  |      |
 | 1.6  | Inspect card borders                      | Purple-tinted grey (`#e0dae8`)                                                                            |      |
 | 1.7  | Check max-width                           | Main content area is 850px wide (matches CLAUDE.md constraint)                                            |      |
-| 1.8  | Check persistence bar                     | Shows below header: "No saved data — your inputs will auto-save locally". No "Clear" button visible.      |      |
+| 1.8  | Check persistence bar                     | Shows below header: "No saved data - your inputs will auto-save locally". No "Clear" button visible.      |      |
 | 1.9  | Check step indicator                      | Three steps shown: "1 Input" (active/purple), "2 Assessment" (grey), "3 Documents" (grey)                 |      |
 | 1.10 | Check step 1 is active                    | Input panel visible with JD textarea, Resume textarea, and Style Preset dropdown                          |      |
 
@@ -137,10 +137,10 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 | 2.2 | Reload the page (F5)                                             | JD textarea retains the typed characters. Persistence bar shows the saved timestamp.                                                   |      |
 | 2.3 | Paste the full Sample JD (Strong Match) into JD textarea         | Auto-saves after 1 second (persistence bar updates)                                                                                    |      |
 | 2.4 | Paste the full Sample Resume (Strong Match) into Resume textarea | Auto-saves after 1 second                                                                                                              |      |
-| 2.5 | Change style preset to "Classic"                                 | Auto-saves. Reload page — "Classic" is still selected, both textareas retain content.                                                  |      |
+| 2.5 | Change style preset to "Classic"                                 | Auto-saves. Reload page - "Classic" is still selected, both textareas retain content.                                                  |      |
 | 2.6 | Click "Clear Saved Data"                                         | Both textareas cleared. Dropdown resets to "Modern". Persistence bar shows "No saved data". Toast: "Saved data cleared".               |      |
 | 2.7 | Reload the page                                                  | Both textareas are empty. Dropdown is "Modern Professional". Persistence bar shows "No saved data".                                    |      |
-| 2.8 | Open in incognito/private window                                 | Page loads normally. Persistence bar shows "No saved data". Typing triggers auto-save (may fail silently in some browsers — no crash). |      |
+| 2.8 | Open in incognito/private window                                 | Page loads normally. Persistence bar shows "No saved data". Typing triggers auto-save (may fail silently in some browsers - no crash). |      |
 
 ---
 
@@ -155,42 +155,42 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 
 ---
 
-## Section 4: Fit Assessment — Strong Match
+## Section 4: Fit Assessment - Strong Match
 
 **Setup:** Paste Sample JD (Strong Match) and Sample Resume (Strong Match), select "Modern Professional", click Analyze.
 
 | #    | Check                     | Expected Behavior                                                                                                                                                                       | Pass |
 | ---- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
 | 4.1  | Recommendation badge      | Green badge: "Strong Fit" with advice "Apply confidently. Lead with your strengths."                                                                                                    |      |
-| 4.2  | Overall Score             | 80–100%, displayed in green (`#2e7d32`)                                                                                                                                                 |      |
-| 4.3  | Must-Have Score           | 80–100%, displayed in green                                                                                                                                                             |      |
-| 4.4  | Nice-to-Have Score        | 25–75% (some nice-to-haves won't match), green/blue/orange depending on value                                                                                                           |      |
+| 4.2  | Overall Score             | 80-100%, displayed in green (`#2e7d32`)                                                                                                                                                 |      |
+| 4.3  | Must-Have Score           | 80-100%, displayed in green                                                                                                                                                             |      |
+| 4.4  | Nice-to-Have Score        | 25-75% (some nice-to-haves won't match), green/blue/orange depending on value                                                                                                           |      |
 | 4.5  | Detected Information      | Title: "Senior Software Engineer", Location: "San Francisco, CA", Level: "senior", Industry: "technology"                                                                               |      |
 | 4.6  | Must-Have table           | 7-8 rows. Most show ✅ (strong match). Skills like Python, JavaScript, React, Node.js, AWS, PostgreSQL, Docker, Kubernetes should be strong matches. Education (Bachelor's) should be ✅. |      |
 | 4.7  | Nice-to-Have table        | 3-4 rows. "Machine learning" may show ❌ (gap). "GraphQL" likely ❌. "CSM" likely ❌. "Terraform" should show ✅ (it's in the resume skills).                                               |      |
 | 4.8  | Evidence column           | At least some must-have rows show bullet text from resume (e.g., "Led development of microservices…" or "Built RESTful APIs…")                                                          |      |
-| 4.9  | Skills Analysis — Matched | Green pills showing: JavaScript, Python, React, Node.js, AWS, Docker, Kubernetes, PostgreSQL, REST, Agile, Scrum, Terraform, Git                                                        |      |
-| 4.10 | Skills Analysis — Missing | Red pills showing unmatched JD skills (e.g., GraphQL, Machine Learning, CSM)                                                                                                            |      |
-| 4.11 | Disqualifiers             | "No disqualifiers detected — you can proceed with your application." in green                                                                                                           |      |
+| 4.9  | Skills Analysis - Matched | Green pills showing: JavaScript, Python, React, Node.js, AWS, Docker, Kubernetes, PostgreSQL, REST, Agile, Scrum, Terraform, Git                                                        |      |
+| 4.10 | Skills Analysis - Missing | Red pills showing unmatched JD skills (e.g., GraphQL, Machine Learning, CSM)                                                                                                            |      |
+| 4.11 | Disqualifiers             | "No disqualifiers detected - you can proceed with your application." in green                                                                                                           |      |
 | 4.12 | Navigation buttons        | "Back to Input" and "View Documents" buttons visible                                                                                                                                    |      |
 
 ---
 
-## Section 5: Fit Assessment — Poor Match
+## Section 5: Fit Assessment - Poor Match
 
-**Setup:** Paste Sample JD (Nursing) and Sample Resume (Strong Match — tech), click Analyze.
+**Setup:** Paste Sample JD (Nursing) and Sample Resume (Strong Match - tech), click Analyze.
 
 | #   | Check                | Expected Behavior                                                                       | Pass |
 | --- | -------------------- | --------------------------------------------------------------------------------------- | ---- |
 | 5.1 | Recommendation badge | Red badge: "Poor Fit"                                                                   |      |
 | 5.2 | Overall Score        | Below 50%, displayed in red                                                             |      |
-| 5.3 | Must-Have table      | Most items show ❌ (gap) — RN license, BLS/ACLS, ICU experience are not in a tech resume |      |
+| 5.3 | Must-Have table      | Most items show ❌ (gap) - RN license, BLS/ACLS, ICU experience are not in a tech resume |      |
 | 5.4 | Matched Skills       | 0 or very few matched skills                                                            |      |
 | 5.5 | Missing Skills       | Nursing-specific terms (BLS, ACLS, ICU, etc.) shown as missing                          |      |
 
 ---
 
-## Section 6: Fit Assessment — Minimal Input
+## Section 6: Fit Assessment - Minimal Input
 
 **Setup:** Paste Minimal JD and Minimal Resume, click Analyze.
 
@@ -200,12 +200,12 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 | 6.2 | Title        | "Professional Role" (fallback) or detects a partial title               |      |
 | 6.3 | Location     | "Remote" (detected from "Remote position")                              |      |
 | 6.4 | Skills       | Detects Python, Django, PostgreSQL from free text                       |      |
-| 6.5 | Requirements | May be 0 (no bullet points) — assessment still works via skill matching |      |
+| 6.5 | Requirements | May be 0 (no bullet points) - assessment still works via skill matching |      |
 | 6.6 | Score        | Should be high (80-100%) since skills match well                        |      |
 
 ---
 
-## Section 7: Document Preview — Modern Preset
+## Section 7: Document Preview - Modern Preset
 
 **Setup:** From a successful Strong Match assessment, click "View Documents".
 
@@ -223,7 +223,7 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 
 ---
 
-## Section 8: Document Preview — Classic Preset
+## Section 8: Document Preview - Classic Preset
 
 **Setup:** Go back to Input, change preset to "Classic", click Analyze, then View Documents.
 
@@ -234,7 +234,7 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 
 ---
 
-## Section 9: Document Preview — Creative Preset
+## Section 9: Document Preview - Creative Preset
 
 **Setup:** Go back to Input, change preset to "Creative", click Analyze, then View Documents.
 
@@ -250,9 +250,9 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 
 | #    | Action                                          | Expected Behavior                                                                                                                    | Pass |
 | ---- | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| 10.1 | View a cover letter, click "Copy to Clipboard"  | Toast: "Copied to clipboard (rich text)". Paste into Google Docs or Word — formatted text with headers, bold, and styling preserved. |      |
+| 10.1 | View a cover letter, click "Copy to Clipboard"  | Toast: "Copied to clipboard (rich text)". Paste into Google Docs or Word - formatted text with headers, bold, and styling preserved. |      |
 | 10.2 | Paste into a plain text editor (Notepad)        | Pasted as plain text (no HTML tags).                                                                                                 |      |
-| 10.3 | Switch to Resume tab, click "Copy to Clipboard" | Toast shows success. Paste into Word — resume formatting preserved.                                                                  |      |
+| 10.3 | Switch to Resume tab, click "Copy to Clipboard" | Toast shows success. Paste into Word - resume formatting preserved.                                                                  |      |
 
 ---
 
@@ -275,7 +275,7 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 
 | #    | Action                               | Expected Behavior                                                                                                              | Pass |
 | ---- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ | ---- |
-| 12.1 | On the Documents step, click "Print" | Print dialog opens. Preview shows only the document content — no header, step indicator, buttons, persistence bar, or tab bar. |      |
+| 12.1 | On the Documents step, click "Print" | Print dialog opens. Preview shows only the document content - no header, step indicator, buttons, persistence bar, or tab bar. |      |
 | 12.2 | Both tabs visible in print           | If both cover letter and resume tabs exist, both documents appear with a page break between them.                              |      |
 | 12.3 | Background is white                  | No colored page background in print preview.                                                                                   |      |
 
@@ -309,7 +309,7 @@ Python developer with 5 years experience building Django and PostgreSQL applicat
 | #    | Action                                               | Expected Behavior                                                                                                                        | Pass |
 | ---- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---- |
 | 15.1 | Resize browser to 600px width                        | Layout remains usable. Score cards may stack. Tables may scroll horizontally. No content overflow.                                       |      |
-| 15.2 | Paste a JD with no bullet points                     | Parser falls back to any bullet-like lines. If none found, 0 requirements — assessment still works (skill matching drives score).        |      |
+| 15.2 | Paste a JD with no bullet points                     | Parser falls back to any bullet-like lines. If none found, 0 requirements - assessment still works (skill matching drives score).        |      |
 | 15.3 | Paste a resume with no experience section            | Experience array is empty. Summary/skills still parsed. Assessment uses keyword matching. Documents generate without experience section. |      |
 | 15.4 | Paste extremely long JD (5000+ words)                | No crash. Parsing may take a moment but completes. Assessment renders.                                                                   |      |
 | 15.5 | Paste text with special characters (<, >, &, quotes) | No XSS. Characters are HTML-escaped in display. Documents render correctly.                                                              |      |

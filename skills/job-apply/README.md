@@ -27,8 +27,8 @@ This skill is available in three editions:
 | Edition | Best For | Requirements |
 |---------|----------|-------------|
 | **CLI** (this directory) | Power users with Claude Code | Python 3.8+, python-docx, pyyaml |
-| **Web Chat** (`webchat/`) | Claude.ai free/pro users | No install — attach files to chat |
-| **Artifact** (`job-apply-artifact.html`) | Standalone browser tool | None — open HTML file in any browser |
+| **Web Chat** (`webchat/`) | Claude.ai free/pro users | No install - attach files to chat |
+| **Artifact** (`job-apply-artifact.html`) | Standalone browser tool | None - open HTML file in any browser |
 
 ### Artifact Edition
 
