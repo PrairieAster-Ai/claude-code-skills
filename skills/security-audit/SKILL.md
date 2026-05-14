@@ -740,9 +740,90 @@ For each finding at confidence ≥ 0.9:
 
 5. Only surface patches that pass both checks. Render as a markdown diff block per finding.
 
-6. **Offer to synthesize a regression rule.** For each surfaced patch, prompt the user: "Author a Semgrep rule that catches this pattern repo-wide?" If yes, delegate to the `/semgrep-rule-creator` skill (Trail of Bits, see `README.md` "Authoring custom rules for your repo") with the (vulnerable, fixed) pair as input. The rule-creator skill handles the test-first authoring loop and writes the resulting rule to `.semgrep/repo-rules.yml`. The fix patches one instance; the rule catches every future instance.
+6. **Synthesize a regression rule (Autogrep filter chain).** For each surfaced patch, the skill orchestrates an LLM-driven rule synthesis flow modeled on Lambdasec's Autogrep paper. The fix patches one instance; the synthesized rule catches every future instance.
 
-This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing" + a delegation to test-driven rule authoring for compounding value.
+   The workflow runs in three steps with deterministic gates between them:
+
+   **6a. Author candidate rule (LLM).** Spawn a sub-task with the prompt:
+
+   ```
+   You are authoring a Semgrep rule that will catch this vulnerability class
+   throughout the codebase going forward.
+
+   INPUTS:
+   - VULNERABLE SNIPPET (rule must fire on this):
+     {pre-fix slice from sandbox-validated patch}
+   - FIXED SNIPPET (rule must NOT fire on this):
+     {post-fix slice from sandbox-validated patch}
+   - CWE: {from original finding}
+   - OWASP TAG: {from original finding}
+   - LANGUAGE: {detected}
+
+   OUTPUT YAML ONLY. Produce a single Semgrep rule using pattern, pattern-either,
+   or taint mode. Include metadata.cwe, metadata.owasp, metadata.severity,
+   metadata.references. Do not include `fix:` (autofix patterns are out of
+   scope for synthesized rules; they're regression detectors, not auto-fixers).
+   ```
+
+   Write the YAML to `/tmp/sr-candidate-rule-${N}.yml`.
+
+   **6b. Validate via the Autogrep filter (deterministic).** Invoke:
+
+   ```bash
+   python3 scripts/security_audit.py validate-rule \
+     --rule /tmp/sr-candidate-rule-${N}.yml \
+     --vuln /tmp/sr-vuln-snippet-${N}.txt \
+     --fixed /tmp/sr-fixed-snippet-${N}.txt
+   ```
+
+   The script runs three filter stages, all required:
+
+   1. **Schema validation** via `semgrep scan --validate` — catches malformed YAML, unknown keys, syntax errors.
+   2. **Fires on vulnerable** — `semgrep scan --config=<rule> <vuln-snippet>` must emit at least one result.
+   3. **Silent on fixed** — `semgrep scan --config=<rule> <fixed-snippet>` must emit zero results.
+
+   If any stage fails, the script returns non-zero with a diagnostic. Loop back to 6a with the diagnostic in the prompt and let the LLM iterate. Cap at 5 iterations.
+
+   **6c. LLM quality scoring.** Before committing the rule, spawn a quality-scoring sub-task:
+
+   ```
+   Score this synthesized Semgrep rule on a 1-5 scale for each criterion:
+   1. Specificity (does it match the exact vuln pattern, not adjacent safe patterns?)
+   2. Generality (does it generalize beyond this specific instance?)
+   3. Metadata completeness (CWE, OWASP, severity, references?)
+   4. Documentation (clear message + rationale?)
+
+   Reject if any score is below 3. Approve if all scores are >= 3.
+   ```
+
+   This is the only LLM step in the synthesis flow; the deterministic filter (6b) handles structural correctness. Quality scoring captures "is this a good rule to live with long-term."
+
+   **6d. Append to `.semgrep/repo-rules.yml`.** If 6b + 6c pass, the skill appends the rule via:
+
+   ```bash
+   python3 scripts/security_audit.py validate-rule \
+     --rule /tmp/sr-candidate-rule-${N}.yml \
+     --vuln /tmp/sr-vuln-snippet-${N}.txt \
+     --fixed /tmp/sr-fixed-snippet-${N}.txt \
+     --append-to .semgrep/repo-rules.yml
+   ```
+
+   The append is gated by the same filter chain. The next `/security-audit` run picks it up automatically.
+
+   **6e. Surface the synthesized rule in the report.** Each `--fix` patch entry in the final report includes:
+
+   ```
+   • Patch: see diff above
+   • Regression rule: .semgrep/repo-rules.yml#L<line>  (synthesized, all filters passed)
+   ```
+
+   The user reviews both the patch and the rule in the same PR.
+
+### Delegating to /semgrep-rule-creator for complex rules
+
+For rules that need test-driven authoring (multiple positive and negative cases, taint-mode rules with sources and sinks, language-variant rules), delegate to the [`trailofbits/semgrep-rule-creator`](https://github.com/trailofbits/skills/tree/main/plugins/semgrep-rule-creator) skill instead of running the inline 6a-6c flow. That skill handles the test-corpus iteration loop. See `README.md` "Authoring custom rules for your repo" for the delegation pattern.
+
+This implements GitHub Copilot Autofix's "pair deterministic finding with LLM-generated fix" + Vercel Agent's "sandbox-validate before showing" + Lambdasec's Autogrep filter chain for rule synthesis.
 
 ### `--fix` failure modes
 
