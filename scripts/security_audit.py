@@ -531,6 +531,139 @@ def cmd_comment(args: argparse.Namespace) -> int:
     return result.returncode
 
 
+def cmd_validate_rule(args: argparse.Namespace) -> int:
+    """Run the Autogrep-style 4-stage filter on a candidate Semgrep rule.
+
+    Inputs:
+      --rule       Path to a Semgrep rule YAML (single rule or rules block).
+      --vuln       Path to a code snippet that the rule MUST fire on.
+      --fixed      Path to a code snippet that the rule MUST NOT fire on.
+      --append-to  (optional) If all filters pass, append the rule to this
+                   file (typically .semgrep/repo-rules.yml).
+
+    Filter stages:
+      1. Schema validation: `semgrep scan --validate --config=<rule>`
+      2. Fires on vulnerable: `semgrep scan --config=<rule> <vuln>` must
+         emit at least one result.
+      3. Does NOT fire on fixed: `semgrep scan --config=<rule> <fixed>`
+         must emit zero results.
+      4. LLM quality scoring is intentionally NOT done here. The skill
+         layer orchestrates the LLM step; this command emits a deterministic
+         pass/fail that the skill can act on.
+
+    Output is JSON to stdout:
+      {
+        "stages": {
+          "schema": {"passed": bool, "detail": "..."},
+          "fires_on_vuln": {"passed": bool, "detail": "..."},
+          "silent_on_fixed": {"passed": bool, "detail": "..."}
+        },
+        "all_passed": bool,
+        "appended_to": <path or null>
+      }
+    """
+    rule_path = Path(args.rule).resolve()
+    vuln_path = Path(args.vuln).resolve()
+    fixed_path = Path(args.fixed).resolve()
+
+    for p in (rule_path, vuln_path, fixed_path):
+        if not p.exists():
+            print(json.dumps({"error": f"missing: {p}"}), file=sys.stderr)
+            return 2
+
+    if not command_exists("semgrep"):
+        print(json.dumps({"error": "missing dependency: semgrep"}), file=sys.stderr)
+        return 2
+
+    result: dict[str, dict] = {
+        "stages": {
+            "schema": {"passed": False, "detail": ""},
+            "fires_on_vuln": {"passed": False, "detail": ""},
+            "silent_on_fixed": {"passed": False, "detail": ""},
+        },
+        "all_passed": False,
+        "appended_to": None,
+    }
+
+    # Stage 1: schema validation
+    sv = run(
+        ["semgrep", "scan", "--validate", f"--config={rule_path}", "--metrics=off"],
+        check=False,
+    )
+    if sv.returncode == 0:
+        result["stages"]["schema"]["passed"] = True
+        result["stages"]["schema"]["detail"] = "Schema valid"
+    else:
+        result["stages"]["schema"]["detail"] = (sv.stderr or sv.stdout).strip()[:500]
+        print(json.dumps(result))
+        return 1
+
+    # Stage 2: fires on vulnerable snippet
+    sv_out = run(
+        [
+            "semgrep", "scan", f"--config={rule_path}", "--json", "--metrics=off",
+            "--no-git-ignore", str(vuln_path),
+        ],
+        check=False,
+    )
+    try:
+        vuln_results = json.loads(sv_out.stdout or "{}").get("results", [])
+    except json.JSONDecodeError:
+        vuln_results = []
+    if vuln_results:
+        result["stages"]["fires_on_vuln"]["passed"] = True
+        result["stages"]["fires_on_vuln"]["detail"] = f"{len(vuln_results)} match(es)"
+    else:
+        result["stages"]["fires_on_vuln"]["detail"] = "Rule did not match vulnerable snippet"
+        print(json.dumps(result))
+        return 1
+
+    # Stage 3: silent on fixed snippet
+    sf_out = run(
+        [
+            "semgrep", "scan", f"--config={rule_path}", "--json", "--metrics=off",
+            "--no-git-ignore", str(fixed_path),
+        ],
+        check=False,
+    )
+    try:
+        fixed_results = json.loads(sf_out.stdout or "{}").get("results", [])
+    except json.JSONDecodeError:
+        fixed_results = []
+    if not fixed_results:
+        result["stages"]["silent_on_fixed"]["passed"] = True
+        result["stages"]["silent_on_fixed"]["detail"] = "No matches on fixed snippet"
+    else:
+        result["stages"]["silent_on_fixed"]["detail"] = (
+            f"Rule still fires on fixed snippet ({len(fixed_results)} match(es)). "
+            "Rule is too broad."
+        )
+        print(json.dumps(result))
+        return 1
+
+    result["all_passed"] = True
+
+    # Optional append to repo-rules.yml
+    if args.append_to and result["all_passed"]:
+        target = Path(args.append_to).resolve()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        rule_yaml = rule_path.read_text(encoding="utf-8")
+        if not target.exists():
+            target.write_text("rules:\n", encoding="utf-8")
+        with target.open("a", encoding="utf-8") as fp:
+            # If the rule file is a full "rules:" doc, strip the header
+            # before appending so we don't duplicate the "rules:" key.
+            for line in rule_yaml.splitlines(keepends=True):
+                if line.strip() == "rules:":
+                    continue
+                fp.write(line)
+            fp.write("\n")
+        result["appended_to"] = str(target)
+
+    print(json.dumps(result, indent=2))
+    return 0 if result["all_passed"] else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -552,6 +685,16 @@ def build_parser() -> argparse.ArgumentParser:
     comment.add_argument("--pr", required=True, help="Pull request number.")
     comment.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR), help="Artifact output directory.")
     comment.set_defaults(func=cmd_comment)
+
+    vr = subparsers.add_parser(
+        "validate-rule",
+        help="Autogrep-style filter: validate a candidate Semgrep rule against (vuln, fixed) snippet pair.",
+    )
+    vr.add_argument("--rule", required=True, help="Path to a Semgrep rule YAML.")
+    vr.add_argument("--vuln", required=True, help="Path to a code snippet the rule MUST fire on.")
+    vr.add_argument("--fixed", required=True, help="Path to a code snippet the rule MUST NOT fire on.")
+    vr.add_argument("--append-to", help="If all filters pass, append the rule to this file.")
+    vr.set_defaults(func=cmd_validate_rule)
 
     return parser
 
