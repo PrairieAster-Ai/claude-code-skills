@@ -4,6 +4,10 @@ All notable changes to this repository are documented here. The format follows [
 
 ## [Unreleased]
 
+### code-readability (new skill)
+
+- **Add the `code-readability` skill** — enforces a TSDoc-native comment standard that serves four readers at once (human, IDE, doc generator, AI agent), then generates and publishes cross-linked API docs to a GitHub Wiki. Modes: `assess` (doc-coverage scorecard), `annotate` (add/upgrade TSDoc, comments-only), `generate` (hybrid tool + prose Markdown), `publish` (push to the wiki). Ships `extract-docs.mjs` (react-docgen-typescript), `gen-schema-page.mjs` (Drizzle schema → wiki page), `linkify-wiki.mjs`, and `wiki-slug.mjs`, plus `references/comment-style.md` (TSDoc house style; also HTML/CSS/Sass/vanilla-JS) and `references/doc-generation.md`. Project-agnostic: paths are parameterized via `CR_TSCONFIG` / `CR_SCHEMA` env vars + CLI args, with worked examples framed as illustrative.
+
 ### Automation layer (new)
 
 - **Add `scripts/security_audit.py`**, **`hooks/pre-push.security-audit`**, **`.github/workflows/security-audit-tools-only.yml`** — the deterministic portion of the security-audit skill extracted into a standalone CLI. Originally contributed by John Malone (@Pro777) in PR #1; landed here with the PR #2 fixes layered in (ESLint 9+ flat config, gitleaks merge-base resolution, HTML-comment marker for `--post-pr` dedup, cross-repo safety check).
