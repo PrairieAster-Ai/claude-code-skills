@@ -68,4 +68,4 @@ for (const name of fs.readdirSync(wikiDir)) {
   });
   if (changed) { fs.writeFileSync(p, out.join('\n')); total += changed; console.log(`  ${name}: +links on ${changed} line(s)`); }
 }
-console.log(`\n✓ cross-referenced file mentions in ${wikiDir} → ${blobBase}`);
+console.log(`\n✓ cross-referenced ${total} file mention(s) in ${wikiDir} → ${blobBase}`);
