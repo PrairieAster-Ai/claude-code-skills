@@ -12,6 +12,18 @@ A collection of reusable skills for [Claude Code](https://docs.anthropic.com/en/
 | [**code-readability**](skills/code-readability/) | Enforce a TSDoc-native comment standard that serves humans, IDEs, doc generators, and AI at once, then generate + publish cross-linked API docs — plus onboarding + skill-inventory pages — to a GitHub Wiki. | `/code-readability [assess\|annotate\|generate\|publish\|team] [path]` |
 | [**github**](skills/github/) | GitHub Wiki management, business model validation, and memory-bank integration | `/github` |
 
+## Agents
+
+Orchestration **agents** compose several of the skills above toward a recurring goal.
+Unlike a skill (one instruction set), an agent is given a goal and a toolbox and decides
+what to do with what it finds.
+
+| Agent | Description | Runs |
+|-------|-------------|------|
+| [**quality-steward**](agents/quality-steward/) | Monitors code-quality metrics, suggests improvements (auto-fixing safe mechanical ones via a PR, surfacing risky ones as issues/PR comments), and keeps docs in sync. Composes `/code-review`, `/code-readability`, `/security-audit`, `/github`. | PR · weekly · on-demand (GitHub Actions) |
+
+See the [quality-steward README](agents/quality-steward/) for install + usage.
+
 ---
 
 ## Installation
