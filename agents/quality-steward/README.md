@@ -107,7 +107,8 @@ gh workflow run quality-steward.yml -f mode=steward
 |---|---|
 | `Could not fetch an OIDC token` | The job needs `id-token: write` (workflow-level and on the verify job). It's in the template. |
 | Auth fails despite the secret | Ensure no `ANTHROPIC_API_KEY` secret exists (it wins); confirm the token isn't expired (`claude setup-token` mints a fresh one yearly). |
-| Steward run blocks on `npm`/`gh`/`git` | Swap `--permission-mode acceptEdits` for `--dangerously-skip-permissions` in `claude_args` (safe on an ephemeral runner; the agent's guardrails forbid pushing to the default branch). |
+| Steward run blocks on `npm`/`gh`/`git` | Swap `--permission-mode acceptEdits` for `--dangerously-skip-permissions` in `claude_args` (safe on an ephemeral runner; the agent's guardrails forbid pushing to the default branch). *(In practice `acceptEdits` ran with zero permission denials — try it first.)* |
+| Run fails with `error_max_turns` | The sweep is doing too much for the turn budget. Raise `--max-turns` (template ships 80) and/or shrink the first-sweep window (the agent defaults to `HEAD~20`). PR-mode runs are far lighter than the sweep. |
 | Per-PR review doesn't run on a **public** repo's outside PRs | Expected — GitHub withholds secrets from fork PRs. Keep the trigger as `pull_request`; **never** switch to `pull_request_target` (it would expose your token to untrusted fork code). |
 | Duplicate PRs/issues across runs | The agent dedupes against open `steward/*` PRs and matching issues; ensure `memory: project` is set so it remembers across runs. |
 

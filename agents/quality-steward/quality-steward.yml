@@ -100,7 +100,7 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "instruction=Run as the quality-steward in PER-PR mode. Review the diff of PR #${{ github.event.pull_request.number }} (origin/${{ github.base_ref }}...HEAD). Post inline PR comments for risky findings; open an auto-fix PR ONLY for safe, behavior-preserving mechanical fixes. Never push to the default branch." >> "$GITHUB_OUTPUT"
           else
-            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Read the last-sweep SHA from project memory and review git diff <last-sweep-sha>...HEAD (fall back to HEAD~50...HEAD on first run). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed). Write the current HEAD SHA back to memory as the new last-sweep marker." >> "$GITHUB_OUTPUT"
+            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Read the last-sweep SHA from project memory and review git diff <last-sweep-sha>...HEAD (fall back to HEAD~20...HEAD on first run; keep the first sweep bounded). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed). Write the current HEAD SHA back to memory as the new last-sweep marker." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run the steward
@@ -116,5 +116,5 @@ jobs:
           claude_args: >-
             --agent quality-steward
             --permission-mode acceptEdits
-            --max-turns 40
+            --max-turns 80
             --allowedTools Bash,Read,Write,Edit,Grep,Glob,Skill

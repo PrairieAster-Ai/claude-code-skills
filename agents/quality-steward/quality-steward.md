@@ -64,7 +64,8 @@ operate on a **diff**, not a static tree — so a sweep against a clean working 
 nothing to chew on. For the **weekly sweep**, construct the review diff explicitly: read the
 **last-sweep SHA from your `project` memory**, then review `git diff <last-sweep-sha>...HEAD`
 (everything merged since the last sweep). If no last-sweep SHA is stored (first run), fall back
-to `git diff HEAD~50...HEAD` or the last 7 days (`git log --since='7 days ago'`). **After a
+to `git diff HEAD~20...HEAD` or the last 7 days (`git log --since='7 days ago'`) — keep the
+first sweep bounded so it completes within the turn budget. **After a
 successful sweep, write the current `HEAD` SHA back to memory** as the new last-sweep marker,
 so the next sweep reviews exactly what's new and nothing is double-reviewed. Trend deltas
 (step 1) remain repo-wide and are independent of this diff window.
