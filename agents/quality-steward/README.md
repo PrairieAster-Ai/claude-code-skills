@@ -42,44 +42,45 @@ with what it finds.
 2. **A Claude subscription token** for CI auth (Max/Pro) — see install step 4. Using the
    subscription means **no separate API key / API billing**.
 
-## Install
+## Install (pull-at-runtime — recommended)
 
-From the repo you want the steward to watch:
+The workflow **pulls the agent definition and skills from this canonical repo at runtime**
+(pinned to a reviewed commit), so the repo you're installing into commits **only the
+workflow** — nothing to keep in sync, one source of truth.
 
-**1. Copy the agent definition** into the project's agent dir:
-```bash
-mkdir -p .claude/agents
-curl -fsSL https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/agents/quality-steward/quality-steward.md \
-  -o .claude/agents/quality-steward.md
-```
-
-**2. Copy the workflow** into `.github/workflows/`:
+**1. Copy just the workflow** into `.github/workflows/`:
 ```bash
 mkdir -p .github/workflows
 curl -fsSL https://raw.githubusercontent.com/PrairieAster-Ai/claude-code-skills/main/agents/quality-steward/quality-steward.yml \
   -o .github/workflows/quality-steward.yml
 ```
 
-**3. Make sure the agent file is tracked.** If `.claude/` is gitignored, un-ignore the
-agents dir so CI can check it out — in `.gitignore`:
-```gitignore
-.claude/*
-!.claude/agents/
-```
+**2. Set your project config + stack.** In the workflow:
+- edit the **`PROJECT_CONFIG`** env (in "Build the run instruction") with your metric
+  command, green-gate, auto-fixable surface, and doc-publish flow — these feed the
+  generic agent at runtime;
+- swap the `setup-node` / `npm ci` steps for your toolchain;
+- review and pin **`SKILLS_REF`** to a commit you've read (it controls both the skills and
+  the agent def; bump it intentionally to take upstream updates).
 
-**4. Authenticate CI with your subscription:**
+**3. Authenticate CI with your subscription:**
 ```bash
 claude setup-token        # prints a one-year OAuth token — copy it
 ```
-Add it as an **Actions** secret named exactly **`CLAUDE_CODE_OAUTH_TOKEN`**
-(repo-level, or org-level with this repo in the access list).
-**Do not** also add an `ANTHROPIC_API_KEY` secret — it takes precedence and silently
-overrides the subscription token.
+Add it as an **Actions** secret named exactly **`CLAUDE_CODE_OAUTH_TOKEN`** (repo-level, or
+org-level with this repo in the access list). **Do not** also add an `ANTHROPIC_API_KEY`
+secret — it takes precedence and silently overrides the subscription token.
 
-**5. Adjust the workflow for your stack.** The template assumes Node/npm; swap the
-`setup-node` / `npm ci` steps for your toolchain, and set the per-project knobs in
-`quality-steward.md` → *Configure for your project* (metric command, green-gate commands,
-auto-fixable surface, doc-publish flow).
+**4. (Optional) Local use.** To run the agent locally (`/agents`,
+`claude --agent quality-steward`), fetch the def into `.claude/agents/` — e.g. a small
+`steward:sync` script that reads `SKILLS_REF` from the workflow and curls
+`agents/quality-steward/quality-steward.md` at that ref. `.claude/` can stay gitignored.
+
+### Alternative: commit the agent def
+If you'd rather vendor the agent file instead of pulling it, `curl` it into
+`.claude/agents/quality-steward.md`, track that path (`.claude/*` + `!.claude/agents/` in
+`.gitignore`), and delete the "agents" copy line from the workflow's install step. You then
+maintain your own copy and merge upstream changes by hand.
 
 ## Verify before you rely on it
 
@@ -121,6 +122,6 @@ gh workflow run quality-steward.yml -f mode=steward
 
 | File | Purpose |
 |---|---|
-| `quality-steward.md` | The agent definition (the brain) — copy to `.claude/agents/`. |
-| `quality-steward.yml` | The GitHub Actions workflow — copy to `.github/workflows/`. |
+| `quality-steward.md` | The agent definition (the brain) — the **canonical source**; the workflow pulls it at runtime (don't copy it unless using the vendored alternative). |
+| `quality-steward.yml` | The GitHub Actions workflow — the **only file you copy** into a consuming repo. |
 | `README.md` | This file. |

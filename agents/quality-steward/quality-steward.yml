@@ -82,25 +82,27 @@ jobs:
           node-version: 20
       - run: npm ci
 
-      - name: Install the composed skills into the project skill dir
-        # Headless CI loads PROJECT skills (./.claude/skills/<name>/SKILL.md), not
-        # user-level ~/.claude/skills. Populate them from the public skills repo at
-        # runtime. code-review + code-quality are built into Claude Code; the agent
-        # definition is checked out (track .claude/agents/).
+      - name: Install the composed skills + agent definition from canonical
+        # Headless CI loads PROJECT skills (./.claude/skills/<name>/SKILL.md) and the
+        # agent def (./.claude/agents/<name>.md). Both are pulled from this canonical
+        # repo at runtime, so the consuming repo commits NOTHING but this workflow —
+        # the canonical version stays the single source of truth.
+        # (code-review + code-quality are built into Claude Code.)
         #
         # SUPPLY-CHAIN: pin SKILLS_REF to a reviewed commit. The steward runs with
         # contents/PR/issues:write + the OAuth token, so fetching the live branch
         # would let a compromised upstream execute inside it. Bump intentionally
         # after reviewing the upstream diff.
         env:
-          SKILLS_REF: 7dc75af2cd8b6058c563261d2ee6fdb769e1cd9b # bump to a reviewed commit
+          SKILLS_REF: 724cb9774a9e56717f1a8ab13280e2c109b76eab # bump to a reviewed commit
         run: |
           git clone --filter=blob:none https://github.com/PrairieAster-Ai/claude-code-skills.git /tmp/ccs
           git -C /tmp/ccs checkout --quiet "$SKILLS_REF"
-          mkdir -p .claude/skills
+          mkdir -p .claude/skills .claude/agents
           cp -r /tmp/ccs/skills/code-readability .claude/skills/
           cp -r /tmp/ccs/skills/security-audit   .claude/skills/
           cp -r /tmp/ccs/skills/github           .claude/skills/
+          cp /tmp/ccs/agents/quality-steward/quality-steward.md .claude/agents/quality-steward.md
 
       # Durable sweep marker: read the last-sweep SHA from the steward-state branch so
       # each weekly sweep resumes from where the last one ended. CI runners are
@@ -130,11 +132,20 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           BASE_REF: ${{ github.base_ref }}
           SWEEP_RANGE: ${{ steps.range.outputs.range }}
+          # The canonical agent def is project-agnostic; supply YOUR project's knobs here
+          # (the "Configure for your project" values) so the agent has them at runtime.
+          # EDIT THIS for your repo (metric command, green-gate, auto-fixable surface,
+          # doc-publish flow). Example for a Node project:
+          PROJECT_CONFIG: >-
+            Project config — metric command: `npm run codehealth:report` (read deltas vs the previous reading);
+            green-gate: `npm run lint && npm run type-check`;
+            auto-fixable surface: `/code-readability annotate`, lint --fix, formatter;
+            doc-publish flow: your stamp/publish scripts, e.g. `/code-readability publish`/`team`.
         run: |
           if [ "$EVENT_NAME" = "pull_request" ]; then
-            echo "instruction=Run as the quality-steward in PER-PR mode. Review the diff of PR #${PR_NUMBER} (origin/${BASE_REF}...HEAD). Post inline PR comments for risky findings; open an auto-fix PR ONLY for safe, behavior-preserving mechanical fixes. Never push to the default branch." >> "$GITHUB_OUTPUT"
+            echo "instruction=${PROJECT_CONFIG} Run as the quality-steward in PER-PR mode. Review the diff of PR #${PR_NUMBER} (origin/${BASE_REF}...HEAD). Post inline PR comments for risky findings; open an auto-fix PR ONLY for safe, behavior-preserving mechanical fixes. Never push to the default branch." >> "$GITHUB_OUTPUT"
           else
-            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Review git diff ${SWEEP_RANGE} (the commits merged since the last sweep). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed)." >> "$GITHUB_OUTPUT"
+            echo "instruction=${PROJECT_CONFIG} Run as the quality-steward in WEEKLY SWEEP mode. Review git diff ${SWEEP_RANGE} (the commits merged since the last sweep). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed)." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run the steward
