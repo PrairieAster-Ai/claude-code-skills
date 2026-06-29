@@ -155,7 +155,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          HEAD_SHA="$(git rev-parse HEAD)"
+          # Use the immutable commit the workflow ran against — NOT `git rev-parse HEAD`,
+          # which reflects whatever the steward left the working tree on (auto-fix branch,
+          # checkouts during review) and would persist the wrong SHA.
+          HEAD_SHA="${{ github.sha }}"
           D="$(mktemp -d)"
           REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
           if ! git clone --depth 1 --branch steward-state "$REMOTE" "$D" 2>/dev/null; then
