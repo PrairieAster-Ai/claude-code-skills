@@ -123,11 +123,18 @@ jobs:
 
       - name: Build the run instruction from the trigger
         id: mode
+        # github/step context is passed via env (referenced as $VARS), never
+        # interpolated directly into the shell — avoids script injection.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+          SWEEP_RANGE: ${{ steps.range.outputs.range }}
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "instruction=Run as the quality-steward in PER-PR mode. Review the diff of PR #${{ github.event.pull_request.number }} (origin/${{ github.base_ref }}...HEAD). Post inline PR comments for risky findings; open an auto-fix PR ONLY for safe, behavior-preserving mechanical fixes. Never push to the default branch." >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            echo "instruction=Run as the quality-steward in PER-PR mode. Review the diff of PR #${PR_NUMBER} (origin/${BASE_REF}...HEAD). Post inline PR comments for risky findings; open an auto-fix PR ONLY for safe, behavior-preserving mechanical fixes. Never push to the default branch." >> "$GITHUB_OUTPUT"
           else
-            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Review git diff ${{ steps.range.outputs.range }} (the commits merged since the last sweep). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed)." >> "$GITHUB_OUTPUT"
+            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Review git diff ${SWEEP_RANGE} (the commits merged since the last sweep). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed)." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run the steward
@@ -154,13 +161,16 @@ jobs:
         if: success() && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
+          # github context via env (referenced as $VARS), never interpolated into the
+          # shell directly — avoids script injection.
+          HEAD_SHA: ${{ github.sha }}
+          REPO: ${{ github.repository }}
         run: |
-          # Use the immutable commit the workflow ran against — NOT `git rev-parse HEAD`,
-          # which reflects whatever the steward left the working tree on (auto-fix branch,
-          # checkouts during review) and would persist the wrong SHA.
-          HEAD_SHA="${{ github.sha }}"
+          # HEAD_SHA is the immutable commit the workflow ran against — NOT
+          # `git rev-parse HEAD`, which reflects whatever the steward left the working
+          # tree on (auto-fix branch, checkouts during review) and would persist the wrong SHA.
           D="$(mktemp -d)"
-          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
           if ! git clone --depth 1 --branch steward-state "$REMOTE" "$D" 2>/dev/null; then
             git clone --depth 1 "$REMOTE" "$D"
             git -C "$D" checkout --orphan steward-state
