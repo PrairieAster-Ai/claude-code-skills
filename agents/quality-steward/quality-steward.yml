@@ -102,13 +102,32 @@ jobs:
           cp -r /tmp/ccs/skills/security-audit   .claude/skills/
           cp -r /tmp/ccs/skills/github           .claude/skills/
 
+      # Durable sweep marker: read the last-sweep SHA from the steward-state branch so
+      # each weekly sweep resumes from where the last one ended. CI runners are
+      # ephemeral, so agent memory does NOT persist across runs — this branch is the
+      # source of truth. Falls back to a bounded HEAD~20 on the first run (the branch
+      # is created by the "Persist sweep marker" step below — self-bootstrapping).
+      - name: Resolve sweep range
+        id: range
+        if: github.event_name != 'pull_request'
+        run: |
+          RANGE="HEAD~20...HEAD"
+          if git fetch --depth 1 origin steward-state 2>/dev/null; then
+            LAST="$(git show FETCH_HEAD:last-sweep-sha 2>/dev/null | tr -d '[:space:]')"
+            if [ -n "$LAST" ] && git cat-file -e "${LAST}^{commit}" 2>/dev/null; then
+              RANGE="${LAST}...HEAD"
+            fi
+          fi
+          echo "range=$RANGE" >> "$GITHUB_OUTPUT"
+          echo "Sweep range: $RANGE"
+
       - name: Build the run instruction from the trigger
         id: mode
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "instruction=Run as the quality-steward in PER-PR mode. Review the diff of PR #${{ github.event.pull_request.number }} (origin/${{ github.base_ref }}...HEAD). Post inline PR comments for risky findings; open an auto-fix PR ONLY for safe, behavior-preserving mechanical fixes. Never push to the default branch." >> "$GITHUB_OUTPUT"
           else
-            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Read the last-sweep SHA from project memory and review git diff <last-sweep-sha>...HEAD (fall back to HEAD~20...HEAD on first run; keep the first sweep bounded). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed). Write the current HEAD SHA back to memory as the new last-sweep marker." >> "$GITHUB_OUTPUT"
+            echo "instruction=Run as the quality-steward in WEEKLY SWEEP mode. Review git diff ${{ steps.range.outputs.range }} (the commits merged since the last sweep). Open GitHub issues for risky findings, an auto-fix PR for safe mechanical fixes, and refresh the project docs via the configured doc-publish flow (publish only if the code surface changed)." >> "$GITHUB_OUTPUT"
           fi
 
       - name: Run the steward
@@ -126,3 +145,26 @@ jobs:
             --permission-mode acceptEdits
             --max-turns 80
             --allowedTools Bash,Read,Write,Edit,Grep,Glob,Skill
+
+      # Persist the new marker only after a successful sweep, so the next run resumes
+      # from here. Lives on a dedicated `steward-state` branch (never the default
+      # branch — honors the agent's no-push-to-default guardrail) and uses the
+      # built-in token (contents: write). Self-bootstraps the branch on first run.
+      - name: Persist sweep marker
+        if: success() && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          HEAD_SHA="$(git rev-parse HEAD)"
+          D="$(mktemp -d)"
+          REMOTE="https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git"
+          if ! git clone --depth 1 --branch steward-state "$REMOTE" "$D" 2>/dev/null; then
+            git clone --depth 1 "$REMOTE" "$D"
+            git -C "$D" checkout --orphan steward-state
+            git -C "$D" rm -rf . >/dev/null 2>&1 || true
+          fi
+          echo "$HEAD_SHA" > "$D/last-sweep-sha"
+          git -C "$D" add last-sweep-sha
+          git -C "$D" -c user.name='github-actions[bot]' -c user.email='github-actions[bot]@users.noreply.github.com' \
+            commit -m "chore(steward): last-sweep marker ${HEAD_SHA}" || { echo "marker unchanged"; exit 0; }
+          git -C "$D" push origin steward-state

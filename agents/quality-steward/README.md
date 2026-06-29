@@ -26,8 +26,13 @@ with what it finds.
 | Trigger | Mode | Diff window | Output |
 |---|---|---|---|
 | `pull_request` | per-PR | the PR diff | inline PR comments |
-| `schedule` (weekly) | sweep | the week's merged commits (`git diff <last-sweep-sha>...HEAD`, SHA in agent memory) | GitHub issues |
+| `schedule` (weekly) | sweep | the commits merged since the last sweep (`git diff <last-sweep-sha>...HEAD`) | GitHub issues |
 | `workflow_dispatch` | on-demand / verify | as instructed | issues / none |
+
+> **Sweep state:** the workflow tracks the last-sweep SHA on a dedicated, auto-created
+> `steward-state` branch (one file, `last-sweep-sha`) — CI runners are ephemeral, so this
+> branch, not agent memory, is what lets each sweep resume from the last. It never touches
+> your default branch. First run falls back to `HEAD~20`.
 
 ## Prerequisites
 

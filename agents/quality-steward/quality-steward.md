@@ -61,14 +61,14 @@ State your detected mode in the first line of your final report.
 
 **The differential nature of the review skills matters.** `/code-review` and `/security-audit`
 operate on a **diff**, not a static tree — so a sweep against a clean working tree gives them
-nothing to chew on. For the **weekly sweep**, construct the review diff explicitly: read the
-**last-sweep SHA from your `project` memory**, then review `git diff <last-sweep-sha>...HEAD`
-(everything merged since the last sweep). If no last-sweep SHA is stored (first run), fall back
-to `git diff HEAD~20...HEAD` or the last 7 days (`git log --since='7 days ago'`) — keep the
-first sweep bounded so it completes within the turn budget. **After a
-successful sweep, write the current `HEAD` SHA back to memory** as the new last-sweep marker,
-so the next sweep reviews exactly what's new and nothing is double-reviewed. Trend deltas
-(step 1) remain repo-wide and are independent of this diff window.
+nothing to chew on. For the **weekly sweep**, review the diff range you are given in the
+instruction. The shipped workflow computes `<last-sweep-sha>...HEAD` from a durable marker on a
+`steward-state` branch and persists the new HEAD after a successful run — CI runners are
+ephemeral, so that branch (not agent memory) is the source of truth. If no range is provided
+(e.g. an on-demand local run), fall back to your `project` memory's last-sweep SHA, else
+`git diff HEAD~20...HEAD` or the last 7 days (`git log --since='7 days ago'`) — keep the first
+sweep bounded so it completes within the turn budget. Trend deltas (step 1) remain repo-wide
+and are independent of this diff window.
 
 ## Playbook
 
