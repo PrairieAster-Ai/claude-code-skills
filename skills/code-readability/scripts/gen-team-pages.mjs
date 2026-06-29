@@ -153,7 +153,9 @@ function stampFile(file) {
   let src = fs.readFileSync(file, 'utf8');
   let out = src;
   for (const [name, val] of Object.entries(VALUES)) {
-    out = out.replace(new RegExp(`(<!--cr:${name}-->)[\\s\\S]*?(<!--/cr:${name}-->)`, 'g'), `$1\n${val}\n$2`);
+    // Function replacer so `$` in `val` (e.g. an npm script with $1, a $PORT env
+    // example) is inserted literally, not interpreted as a replacement back-reference.
+    out = out.replace(new RegExp(`(<!--cr:${name}-->)[\\s\\S]*?(<!--/cr:${name}-->)`, 'g'), (_m, p1, p2) => `${p1}\n${val}\n${p2}`);
   }
   if (out !== src) { fs.writeFileSync(file, out); console.log(`  stamped ${file}`); }
   else console.log(`  no markers changed: ${file}`);
