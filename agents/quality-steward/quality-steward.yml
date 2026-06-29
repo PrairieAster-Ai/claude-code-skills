@@ -87,8 +87,16 @@ jobs:
         # user-level ~/.claude/skills. Populate them from the public skills repo at
         # runtime. code-review + code-quality are built into Claude Code; the agent
         # definition is checked out (track .claude/agents/).
+        #
+        # SUPPLY-CHAIN: pin SKILLS_REF to a reviewed commit. The steward runs with
+        # contents/PR/issues:write + the OAuth token, so fetching the live branch
+        # would let a compromised upstream execute inside it. Bump intentionally
+        # after reviewing the upstream diff.
+        env:
+          SKILLS_REF: 7dc75af2cd8b6058c563261d2ee6fdb769e1cd9b # bump to a reviewed commit
         run: |
-          git clone --depth 1 https://github.com/PrairieAster-Ai/claude-code-skills.git /tmp/ccs
+          git clone --filter=blob:none https://github.com/PrairieAster-Ai/claude-code-skills.git /tmp/ccs
+          git -C /tmp/ccs checkout --quiet "$SKILLS_REF"
           mkdir -p .claude/skills
           cp -r /tmp/ccs/skills/code-readability .claude/skills/
           cp -r /tmp/ccs/skills/security-audit   .claude/skills/
