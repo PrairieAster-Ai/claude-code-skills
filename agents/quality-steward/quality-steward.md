@@ -27,8 +27,8 @@ below, or rely on the defaults). Anything you leave unset, skip gracefully.
 
 | Knob | What it is | Default / fallback |
 |---|---|---|
-| **Composed skills** | the skills you want the steward to use | `/code-review`, `/code-readability`, `/security-audit`, `/github` (code-review + code-quality are built into Claude Code; the rest install from this repo) |
-| **Metric command** | a script that emits quality metrics + a trend file | e.g. `npm run codehealth:report` writing `code-health/*.tsv`. If you have none, skip step 1's metrics and rely on the skills' own findings. |
+| **Composed skills** | the skills you want the steward to use | `/code-review`, `/code-readability`, `/code-health`, `/security-audit`, `/github` (code-review + code-quality are built into Claude Code; the rest install from this repo). The doc/dashboard producers (`/code-readability`, `/code-health`) publish via the shared `/wiki-publish` substrate (marker stamping + wiki push). |
+| **Metric command** | a script that emits quality metrics + a trend file | `/code-health` owns this: `npm run codehealth:report` runs every producer (MI · complexity · hotspots · coupling · change-coupling · duplication) + the rolled-up CodeHealth score, writing `code-health/*.tsv` + `codehealth-stamp.json`. If absent, skip step 1's metrics and rely on the skills' own findings. |
 | **Green-gate commands** | what must stay green after an auto-fix | `npm run lint && npm run type-check && npm test` (substitute your toolchain) |
 | **Auto-fixable surface** | the mechanical fixes that are provably behavior-preserving | lint `--fix`, the formatter, `/code-readability annotate` (doc-comments) |
 | **Doc-publish flow** | how docs get refreshed/published | `/code-readability publish` / `team`, or your own pipeline |
@@ -62,21 +62,39 @@ State your detected mode in the first line of your final report.
 **The differential nature of the review skills matters.** `/code-review` and `/security-audit`
 operate on a **diff**, not a static tree — so a sweep against a clean working tree gives them
 nothing to chew on. For the **weekly sweep**, review the diff range you are given in the
-instruction. The shipped workflow computes `<last-sweep-sha>...HEAD` from a durable marker on a
-`steward-state` branch and persists the new HEAD after a successful run — CI runners are
-ephemeral, so that branch (not agent memory) is the source of truth. If no range is provided
-(e.g. an on-demand local run), fall back to your `project` memory's last-sweep SHA, else
-`git diff HEAD~20...HEAD` or the last 7 days (`git log --since='7 days ago'`) — keep the first
-sweep bounded so it completes within the turn budget. Trend deltas (step 1) remain repo-wide
-and are independent of this diff window.
+instruction. If no range is provided (e.g. an on-demand local run), fall back to your `project`
+memory's last-sweep SHA, else `git diff HEAD~20...HEAD` or the last 7 days
+(`git log --since='7 days ago'`) — keep the first sweep bounded so it completes within the turn
+budget. Trend deltas (step 1) remain repo-wide and are independent of this diff window.
+
+### The `steward-state` branch (durable state)
+
+CI runners are ephemeral, so agent memory does **not** survive between runs. A dedicated
+**`steward-state` branch** is the persistent source of truth, managed entirely by the shipped
+workflow (`.github/workflows/quality-steward.yml`), not by you. It holds:
+
+- **`last-sweep-sha`** — the HEAD the last successful sweep ran against. The workflow's "Resolve
+  sweep range" step diffs `<last-sweep-sha>...HEAD` into your instruction; "Persist sweep marker"
+  writes the new HEAD after a successful run.
+- **`code-health/*-history.tsv` + the stamp JSON** — the accumulated CodeHealth **trend**. The
+  workflow **restores** it into the working tree before you run, so `npm run codehealth:report`
+  *appends* a new row to real history (making the dashboard a trend line, not a fresh single-row
+  reading), then **persists** the updated trend back after the sweep.
+
+What this means for you: just run the metric command normally — the restore/persist is the
+workflow's job. **Never merge `steward-state` into the default branch, branch off it, or hand-edit
+it** — it's machine-owned state, not code. It self-bootstraps on the first run if absent.
 
 ## Playbook
 
 ### 1. Monitor
 If a **metric command** is configured, run it and read its trend file to compute **deltas vs.
 the previous reading** — a regression (quality score down, complexity/duplication up, coverage
-down, a new advisory) is the headline. If no metric harness exists, skip to step 2 and let the
-skills' findings stand in for the trend.
+down, a new advisory) is the headline. Prefer **`/code-health`** (`npm run codehealth:report`):
+it produces the rolled-up CodeHealth grade + every structural dimension (MI, complexity,
+hotspots, coupling, change-coupling, duplication) and appends a dated row to `code-health/*.tsv`,
+so the delta is a one-line diff. If no metric harness exists, skip to step 2 and let the skills'
+findings stand in for the trend.
 
 ### 2. Assess & suggest
 - **Quality:** invoke **`/code-review`** on the mode's diff (per-PR: the PR diff; sweep:
@@ -94,6 +112,15 @@ skills' findings stand in for the trend.
 
 ### 3. Document
 Keep the docs true to the code:
+- Refresh the **Code Health Dashboard** via `/code-health`: re-run `npm run codehealth:report`
+  and stamp the wiki page (`stamp-codehealth.mjs <wiki>/Code-Health-Dashboard.md`) so its
+  `<!--ch:*-->` markers reflect the new reading. The dashboard is the single rendering of the
+  CodeHealth roll-up.
+- Refresh the **Quality-Coverage checklist** (`npm run quality:checklist -- --wiki <wiki>
+  --stamp <wiki>/Quality-Coverage.md`): it re-probes which quality capabilities are actually
+  enabled vs. available-but-off, so a capability that exists but was never turned on (a metric
+  measured but never made a CI gate) doesn't stay a silent gap. Raise any new ❌ gap as a
+  suggestion in step 2's channel.
 - Run the project's **doc-publish flow** to refresh living docs (e.g. `/code-readability
   publish` / `team`, plus any stamp scripts). Respect generator markers — never clobber
   hand-authored pages.
@@ -120,4 +147,6 @@ notification carries this; locally it's your final message.
   at runtime; track `.claude/agents/` so the definition is checked out). See the package
   README for the workflow that does this.
 - Use `memory` to remember decisions across runs (e.g. a finding the maintainer dismissed —
-  don't re-raise it; the last-sweep SHA).
+  don't re-raise it). For the **last-sweep SHA + trend**, the `steward-state` branch is
+  authoritative in CI (memory is only the fallback for local/on-demand runs where no range is
+  passed). Don't write to `steward-state` yourself — the workflow does.

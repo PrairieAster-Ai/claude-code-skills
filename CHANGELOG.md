@@ -4,6 +4,10 @@ All notable changes to this repository are documented here. The format follows [
 
 ## [Unreleased]
 
+### quality-steward (agent)
+
+- **Document the `steward-state` branch + sync the agent definition.** The shipped workflow keeps durable state on a dedicated `steward-state` branch (machine-owned, never merged): the `last-sweep-sha` that anchors each weekly diff window, and — new — the accumulated `code-health/*-history.tsv` trend, which the workflow now **restores** before a sweep and **persists** after, so the CodeHealth dashboard is a real trend line across ephemeral CI runners rather than a single-row baseline. The agent definition now documents this branch (and that the agent must not write to it), and is reconciled with improvements that had accrued in the reference vendor copy but never landed here: the `/wiki-publish` composition note, the Quality-Coverage checklist refresh step, and the CodeHealth dashboard-stamp step in the document phase.
+
 ### wiki-publish (new skill)
 
 - **Add the `wiki-publish` skill** — the shared GitHub-Wiki publishing substrate factored out of `code-readability` and `code-health`. Owns *how* generated facts reach the wiki: generic `<!--PREFIX:NAME-->…<!--/PREFIX:NAME-->` marker stamping (`stamp.mjs <facts.json> <prefix> <pages>`, generic over prefix so `ch:` for the CodeHealth dashboard and `cr:` for the team pages share one stamper), plus the wiki git plumbing (`wiki-repo.mjs` — derive the SSH `…​.wiki.git` URL, clone, **guard** against overwriting hand-authored pages lacking the generated marker, and commit/push). `code-health`'s `stamp-codehealth.mjs` now delegates to it (with an inline fallback so code-health stays self-contained), and `code-readability`'s Phase-4 publish points at it. Producers emit pages + a facts JSON; `wiki-publish` stamps and pushes. The `quality-steward` composes it in its document step.
