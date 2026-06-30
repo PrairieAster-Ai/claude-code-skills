@@ -68,10 +68,10 @@ const CAPS = [
   ['📊 Code-health metrics', 'Duplication', npmScript(/^duplication:report/) ? DONE : GAP, ''],
   ['📊 Code-health metrics', 'CodeHealth roll-up + dashboard', exists(path.join(HISTORY_DIR, 'codehealth-stamp.json')) ? DONE : GAP, ''],
 
-  ['⛓️ Enforcement gates (measured → enforced)', 'Circular-imports gate', ciHas(/madge|check-circular/i) ? DONE : GAP, 'madge — measured by code-health; not yet a CI gate'],
-  ['⛓️ Enforcement gates (measured → enforced)', 'Cognitive-complexity gate', /sonarjs.*cognitive|cognitive-complexity/i.test(eslintTxt) ? DONE : GAP, 'sonarjs/cognitive-complexity ≤ 15'],
-  ['⛓️ Enforcement gates (measured → enforced)', 'Cyclomatic-complexity rule', /["']complexity["']\s*:/.test(eslintTxt) ? DONE : GAP, "eslint `complexity` rule"],
-  ['⛓️ Enforcement gates (measured → enforced)', 'Doc-coverage gate', ciHas(/check-doc-coverage|docs:check/i) ? DONE : GAP, '`check-doc-coverage --gate` in CI'],
+  ['⛓️ Enforcement gates (measured → enforced)', 'Circular-imports gate', ciHas(/madge|check-circular|lint:circular/i) ? DONE : GAP, 'madge `--circular` as a CI gate'],
+  ['⛓️ Enforcement gates (measured → enforced)', 'Cognitive-complexity gate', /sonarjs.*cognitive|cognitive-complexity/i.test(eslintTxt) ? DONE : GAP, 'eslint-plugin-sonarjs `cognitive-complexity` (ratchet)'],
+  ['⛓️ Enforcement gates (measured → enforced)', 'Cyclomatic-complexity rule', /(?:^|[\s{,])complexity\s*:\s*\[/m.test(eslintTxt) ? DONE : GAP, 'eslint `complexity` rule (ratchet)'],
+  ['⛓️ Enforcement gates (measured → enforced)', 'Doc-coverage gate', ciHas(/check-doc-coverage|docs:(check|gate)/i) ? DONE : GAP, '`check-doc-coverage --gate` in CI'],
 
   ['📚 Documentation', 'TSDoc coverage measured', npmScript(/doc/) || exists(path.join(HISTORY_DIR, 'codehealth-stamp.json')) ? DONE : PARTIAL, '/code-readability'],
   ['📚 Documentation', 'API reference published', wikiStatus('Reference-Home'), 'Reference-Home/Components/Hooks/Lib/Types'],
