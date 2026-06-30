@@ -127,9 +127,16 @@ the **Quality-Coverage** dashboard. The steward runs it in its weekly document s
 
 ## Trend it (optional)
 
-Schedule the steward (or a `maintainability.yml` workflow) weekly to commit the
+Schedule the steward (or a `maintainability.yml` workflow) weekly to accumulate the
 `*-history.tsv` rows and re-stamp the dashboard, turning a one-time reading into
 an early-warning trend.
+
+**Where the trend lives:** the `<historyDir>/*-history.tsv` + stamp JSON are
+**generated artifacts — gitignore them on the default branch.** The durable trend
+belongs on the steward's `steward-state` branch (the quality-steward workflow
+restores it before a run and persists it after), so it survives ephemeral CI
+runners without the agent ever pushing to the default branch. Committing the trend
+to the default branch instead leaves a snapshot that silently goes stale.
 
 ## Don'ts
 

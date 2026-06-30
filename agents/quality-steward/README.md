@@ -29,10 +29,17 @@ with what it finds.
 | `schedule` (weekly) | sweep | the commits merged since the last sweep (`git diff <last-sweep-sha>...HEAD`) | GitHub issues |
 | `workflow_dispatch` | on-demand / verify | as instructed | issues / none |
 
-> **Sweep state:** the workflow tracks the last-sweep SHA on a dedicated, auto-created
-> `steward-state` branch (one file, `last-sweep-sha`) — CI runners are ephemeral, so this
-> branch, not agent memory, is what lets each sweep resume from the last. It never touches
-> your default branch. First run falls back to `HEAD~20`.
+> **Sweep state — the `steward-state` branch:** a dedicated, auto-created, machine-owned
+> branch holds the steward's durable state (CI runners are ephemeral, so agent memory does
+> not persist). It never touches your default branch and you should never merge, branch off,
+> or hand-edit it. It holds two things:
+> - **`last-sweep-sha`** — what lets each sweep resume from the last (`git diff <sha>...HEAD`);
+>   first run falls back to `HEAD~20`.
+> - **the metric trend** (e.g. `code-health/*-history.tsv` + stamp JSON) — the workflow
+>   **restores** it before the run so the metric command *appends* to real history, and
+>   **persists** it after, so the dashboard becomes a trend line across runs rather than a
+>   fresh single-row reading each week. Keep these generated files **gitignored** on the
+>   default branch — `steward-state` is their sole home (otherwise a committed copy goes stale).
 
 ## Prerequisites
 

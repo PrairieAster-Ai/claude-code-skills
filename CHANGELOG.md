@@ -4,6 +4,10 @@ All notable changes to this repository are documented here. The format follows [
 
 ## [Unreleased]
 
+### quality-steward (agent) + code-health
+
+- **Document the trend's home on the `steward-state` branch.** The branch now holds the metric **trend** (`code-health/*-history.tsv` + stamp JSON), not just the `last-sweep-sha` — the workflow restores it before a sweep and persists it after, so the dashboard is a trend line across ephemeral CI runners. The agent README's "Sweep state" note and `code-health/SKILL.md`'s "Trend it" section now say so explicitly, and add the guidance to **gitignore the generated trend on the default branch** (a committed copy silently goes stale; `steward-state` is the sole source of truth).
+
 ### quality-steward (agent)
 
 - **Document the `steward-state` branch + sync the agent definition.** The shipped workflow keeps durable state on a dedicated `steward-state` branch (machine-owned, never merged): the `last-sweep-sha` that anchors each weekly diff window, and — new — the accumulated `code-health/*-history.tsv` trend, which the workflow now **restores** before a sweep and **persists** after, so the CodeHealth dashboard is a real trend line across ephemeral CI runners rather than a single-row baseline. The agent definition now documents this branch (and that the agent must not write to it), and is reconciled with improvements that had accrued in the reference vendor copy but never landed here: the `/wiki-publish` composition note, the Quality-Coverage checklist refresh step, and the CodeHealth dashboard-stamp step in the document phase.
