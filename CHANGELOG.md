@@ -4,6 +4,11 @@ All notable changes to this repository are documented here. The format follows [
 
 ## [Unreleased]
 
+### dev-onboarding (new skill)
+
+- **Add the `dev-onboarding` skill** — gets a developer from a fresh `git clone` to a running localhost, fast and *self-diagnosing*, designed for two explicit paths: an internal **team member** (real backing services) and an external **contributor** (own free-tier accounts / seed data, no internal access). Ships a read-only **`doctor`** (the high-leverage missing piece in most repos: detects missing tools, wrong Node/npm versions vs `.nvmrc`/`engines`, and absent/placeholder/mis-shaped `.env` secrets, printing the **exact fix** for every red line; exits non-zero on blockers for CI), an idempotent **`bootstrap`** (doctor → install → `.env` from example → profile-specific data path → hand off to the run command; never clobbers an existing `.env`), a **`scaffold`** that infers a starter `dev-onboarding.config.json` from `package.json`/`.nvmrc`/`.env.example` and appends a labeled "contributor" block, and a **`verify`** mode. Config-driven (`dev-onboarding.config.json`) so the same scripts drive any repo; profiles differ only on secrets/data, never tools. Honesty rule baked in: the contributor path uses real free-tier services or a *clearly-labeled* fixture, never silent mock data. Composes with `code-readability`'s Getting-Started page (the docs) rather than duplicating it.
+
+
 ### quality-steward (agent) + code-health
 
 - **Document the trend's home on the `steward-state` branch.** The branch now holds the metric **trend** (`code-health/*-history.tsv` + stamp JSON), not just the `last-sweep-sha` — the workflow restores it before a sweep and persists it after, so the dashboard is a trend line across ephemeral CI runners. The agent README's "Sweep state" note and `code-health/SKILL.md`'s "Trend it" section now say so explicitly, and add the guidance to **gitignore the generated trend on the default branch** (a committed copy silently goes stale; `steward-state` is the sole source of truth).
