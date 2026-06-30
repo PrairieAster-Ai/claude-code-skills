@@ -108,6 +108,23 @@ headline grade → metrics by **business outcome** (risk / throughput / onboardi
 → detailed views (MI pie, hotspots, coupling) → glossary. Every view ends with
 **Improve & ROI**. Mirror the layout in `references/methodology.md`.
 
+## Quality-coverage checklist (steward feature)
+
+`quality-checklist.mjs` is a steward-level tracker that ships here (it reuses this
+skill's config + the `/wiki-publish` stamper). It probes the repo — CI workflows,
+ESLint config, `package.json`, pre-commit, the code-health history, installed
+skills, and (with `--wiki`) published pages — for **every** capability the quality
+skills offer, and classifies each ✅ enabled / ⚠️ partial / ❌ gap / ➖ n/a. It exists
+to stop audits from forgetting things: a capability that's available but never
+turned on is a silent gap (e.g. a metric *measured* but never made a CI **gate**).
+
+```bash
+node <skill>/scripts/quality-checklist.mjs --wiki <wiki> --stamp <wiki>/Quality-Coverage.md
+```
+
+Writes `<historyDir>/quality-checklist.json` and stamps the `<!--ql:*-->` markers on
+the **Quality-Coverage** dashboard. The steward runs it in its weekly document step.
+
 ## Trend it (optional)
 
 Schedule the steward (or a `maintainability.yml` workflow) weekly to commit the
@@ -128,4 +145,5 @@ an early-warning trend.
 - `scripts/codehealth-report.mjs` — the roll-up + stamp facts
 - `scripts/stamp-codehealth.mjs` — fill dashboard markers
 - `scripts/run-all.mjs` — produce everything in order (+ optional `--stamp`)
+- `scripts/quality-checklist.mjs` — capability-coverage checklist → Quality-Coverage dashboard
 - `references/methodology.md` — formulas, anchors, glossary, dashboard template
