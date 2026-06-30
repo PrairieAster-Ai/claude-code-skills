@@ -100,7 +100,10 @@ D 60–69 · F < 60.
 
 `Code-Health-Dashboard.md` (wiki) is the single rendering. Hand-authored prose +
 `<!--ch:NAME-->…<!--/ch:NAME-->` markers that `stamp-codehealth.mjs` fills from
-`codehealth-stamp.json`, so the prose never drifts from the numbers. Structure:
+`codehealth-stamp.json`, so the prose never drifts from the numbers. The marker
+stamping + wiki clone/commit/push are the shared **`/wiki-publish`** substrate
+(`stamp-codehealth.mjs` delegates to it, prefix `ch`, with an inline fallback so
+code-health stays self-contained). Structure:
 headline grade → metrics by **business outcome** (risk / throughput / onboarding)
 → detailed views (MI pie, hotspots, coupling) → glossary. Every view ends with
 **Improve & ROI**. Mirror the layout in `references/methodology.md`.

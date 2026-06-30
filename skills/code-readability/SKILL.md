@@ -119,7 +119,7 @@ Assemble into pages under `/tmp/cr-docs/` and show the user the index + one samp
 
 ## Phase 4 — Publish to the GitHub Wiki
 
-Reuse the repo's `/github wiki` flow (SSH push to `<repo>.wiki.git`, single `master` branch, no PRs). Do **not** invent new auth.
+The clone / marker-guard / commit / push mechanics are the shared **`/wiki-publish`** substrate — use it rather than reimplementing: `wiki-repo.mjs {url,clone,guard,push}` for the git plumbing and `stamp.mjs <facts.json> cr <pages>` for the `cr:` fact-blocks (the same stamper `/code-health` uses for `ch:`). This skill owns *what* to publish (the pages); `/wiki-publish` owns *how*. Reuse the repo's `/github wiki` flow (SSH push to `<repo>.wiki.git`, single `master` branch, no PRs). Do **not** invent new auth.
 
 1. Resolve the wiki SSH URL: take the repo origin, swap `.git` → `.wiki.git`, ensure `git@github.com:` form. Verify `ssh -T git@github.com`.
 2. Clone (or `git pull` an existing clone) into a temp dir.

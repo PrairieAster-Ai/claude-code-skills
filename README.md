@@ -10,6 +10,7 @@ A collection of reusable skills for [Claude Code](https://docs.anthropic.com/en/
 | [**job-apply**](skills/job-apply/) | Generate tailored cover letters and resumes with job fit assessment | `/job-apply [job description]` |
 | [**code-quality**](skills/code-quality/) | Code quality assessment and improvement for TypeScript/React projects | `/code-quality` |
 | [**code-health**](skills/code-health/) | Structural code-health metrics (Maintainability Index, cyclomatic complexity, churn×complexity hotspots, coupling/instability, change-coupling, duplication, circular imports) + a rolled-up CodeHealth score and the Code Health Dashboard pipeline. The metrics-and-dashboard half of code quality; the quality-steward composes it. | `/code-health [instrument\|read\|refresh]` |
+| [**wiki-publish**](skills/wiki-publish/) | Shared GitHub-Wiki publishing substrate — generic `<!--PREFIX:NAME-->` marker stamping + wiki clone/guard/commit/push plumbing. The common layer beneath code-readability (`cr:`) and code-health (`ch:`) so neither reimplements it. | `/wiki-publish` |
 | [**code-readability**](skills/code-readability/) | Enforce a TSDoc-native comment standard that serves humans, IDEs, doc generators, and AI at once, then generate + publish cross-linked API docs — plus onboarding + skill-inventory pages — to a GitHub Wiki. | `/code-readability [assess\|annotate\|generate\|publish\|team] [path]` |
 | [**github**](skills/github/) | GitHub Wiki management, business model validation, and memory-bank integration | `/github` |
 
