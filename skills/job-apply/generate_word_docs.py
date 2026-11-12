@@ -200,8 +200,8 @@ def _format_cert_detail(cert):
 #
 # Replacement table:
 #
-#   ' > ' (hierarchy)        -> ' → '
-#   ' < ' (hierarchy)        -> ' ← '
+#   ' > ' (hierarchy)        -> ' to '   (ASCII; NOT a Unicode arrow)
+#   ' < ' (hierarchy)        -> ' / '    (ASCII; NOT a Unicode arrow)
 #   '>N'  (numeric compare)  -> 'over N'
 #   '<N'  (numeric compare)  -> 'under N'
 #   '—' (em-dash)            -> ' - '   (surrounding whitespace collapsed)
@@ -224,13 +224,23 @@ def _sanitize_for_ats(text):
     ATS-unsafe: '<' and '>' get stripped/mangled by Workday and similar.
     AI-tell:    em-dash and numeric-range en-dash read as AI-edited prose
                 (recruiters increasingly flag em-dash-heavy text).
+
+    Substitutions are pure ASCII on purpose. Replacing '>' with a Unicode
+    arrow (U+2192) fixes Workday but exposes the older parsers, which are
+    the ones most likely to garble non-ASCII: Oracle Taleo and iCIMS both
+    mangle special characters, and Jobscan's parser testing says to avoid
+    arrows outright. ASCII survives every parser in the chain.
     """
     if not isinstance(text, str) or not text:
         return text
     # ATS-unsafe: '<' and '>'
     text = _NUMERIC_GT.sub(r"over \1", text)
     text = _NUMERIC_LT.sub(r"under \1", text)
-    text = text.replace(">", "\u2192").replace("<", "\u2190")
+    # Whatever survives the numeric passes is almost always a hierarchy
+    # separator ("Capability > Epic"). Absorb any surrounding whitespace so
+    # both "A > B" and "A>B" come out correctly spaced.
+    text = re.sub(r"\s*>\s*", " to ", text)
+    text = re.sub(r"\s*<\s*", " / ", text)
     # AI-tell: em-dash and numeric-range en-dash
     text = _EMDASH_PADDED.sub(" - ", text)
     text = _ENDASH_NUMERIC.sub(r"\1-\2", text)
@@ -256,23 +266,38 @@ def _sanitize_data_for_ats(obj):
 def sanitize_filename(text, max_length=50):
     """Convert text to a safe filename component.
 
-    Preserves Unicode letters/numbers (José, Müller, 田中) while removing
-    characters that are unsafe in filenames across platforms.
+    Preserves Unicode letters/numbers (Jose, Muller, field names in other
+    scripts) while removing characters that are unsafe or awkward in filenames
+    across platforms, and truncating on a word boundary rather than mid-word.
 
     Args:
         text: Input text to sanitize
         max_length: Maximum length for the sanitized filename component
                    (helps avoid Windows 260-char path limit)
     """
-    # Remove characters unsafe in filenames: / \ : * ? " < > |
-    safe = re.sub(r'[/\\:*?"<>|]', '', text)
+    # Remove characters unsafe in filenames (/ \ : * ? " < > |) plus brackets,
+    # commas, semicolons and ampersands, which several upload handlers, mail
+    # gateways, URL builders and CSV-backed import tools mangle. '&' is both a
+    # shell metacharacter and a URL query separator.
+    safe = re.sub(r'[/\\:*?"<>|()\[\]{},;&]', '', text)
     # Replace whitespace and hyphens with underscores
     safe = re.sub(r'[-\s]+', '_', safe)
     # Remove any remaining control characters
     safe = re.sub(r'[\x00-\x1f\x7f]', '', safe)
-    # Truncate to avoid path length issues (especially on Windows)
-    safe = safe.strip('_')[:max_length].rstrip('_')
+    # Collapse runs of underscores left behind by removed characters
+    safe = re.sub(r'_{2,}', '_', safe)
+    safe = safe.strip('._')
+    # Truncate on a word boundary so titles are not cut mid-word
+    # ("Retrieval Systems" must not become "Retrieval System").
+    if len(safe) > max_length:
+        cut = safe[:max_length]
+        boundary = cut.rfind('_')
+        safe = cut[:boundary] if boundary > 0 else cut
+    # Strip trailing dots so a company like "Polaris Inc." cannot produce
+    # a filename ending in "Inc..docx".
+    safe = safe.strip('._')
     return safe or 'unnamed'
+
 
 
 # =============================================================================
@@ -312,7 +337,7 @@ def create_cover_letter(candidate, job, content, output_path):
     # Contact info
     contact_parts = [candidate.get('phone', ''), candidate.get('email', ''),
                      candidate.get('linkedin', ''), candidate.get('calendar', '')]
-    contact_text = '  \u00b7  '.join(p for p in contact_parts if p)
+    contact_text = '  |  '.join(p for p in contact_parts if p)
 
     contact_p = doc.add_paragraph()
     contact_run = contact_p.add_run(contact_text)
@@ -345,7 +370,8 @@ def create_cover_letter(candidate, job, content, output_path):
 
     # === CONTENT SECTIONS ===
     for i, section in enumerate(content.get('sections', [])):
-        add_section_heading(doc, section['title'], is_first=(i == 0))
+        if section.get('title'):
+            add_section_heading(doc, section['title'], is_first=(i == 0))
 
         for para_content in section.get('paragraphs', []):
             if isinstance(para_content, dict):
@@ -357,6 +383,7 @@ def create_cover_letter(candidate, job, content, output_path):
                 text = para_content.get('text', '')
                 highlights = para_content.get('highlights', [])
                 _add_text_with_highlights(p, text, highlights)
+                _append_bullet_links(p, para_content.get('links', []))
                 p.space_after = Pt(8)
 
             elif isinstance(para_content, list):
@@ -364,8 +391,12 @@ def create_cover_letter(candidate, job, content, output_path):
                 for bullet_item in para_content:
                     bullet = doc.add_paragraph(style='List Bullet')
                     if isinstance(bullet_item, dict):
-                        bullet.add_run(f"{bullet_item['label']}: ").bold = True
-                        bullet.add_run(bullet_item.get('text', ''))
+                        if bullet_item.get('label'):
+                            bullet.add_run(f"{bullet_item['label']}: ").bold = True
+                        _add_text_with_highlights(
+                            bullet, bullet_item.get('text', ''),
+                            bullet_item.get('highlights', []))
+                        _append_bullet_links(bullet, bullet_item.get('links', []))
                     else:
                         bullet.add_run(bullet_item)
                     bullet.space_after = Pt(4)
@@ -446,13 +477,19 @@ def _add_hyperlink(paragraph, url, text, color="1a5276", size_half_pts="20"):
 
 
 def _append_bullet_links(paragraph, links):
-    """Render a bullet's `links` list as ' (label1 · label2)' with real hyperlinks."""
+    """Render a bullet's `links` list as ' (label1 | label2)' with real hyperlinks.
+
+    Separator is an ASCII vertical bar, not U+00B7. Older parsers (Taleo,
+    iCIMS) mangle non-ASCII punctuation, and the same separator renders the
+    contact line, which is the block Greenhouse extracts name, email, phone
+    and address from. Jobscan lists the vertical bar as a safe separator.
+    """
     if not links:
         return
     paragraph.add_run(' (').bold = False
     for i, link in enumerate(links):
         if i > 0:
-            paragraph.add_run(' \u00b7 ').bold = False
+            paragraph.add_run(' | ').bold = False
         _add_hyperlink(paragraph, link['url'], link['label'])
     paragraph.add_run(')').bold = False
 
@@ -556,9 +593,12 @@ def create_resume(candidate, content, output_path):
         title_p.space_after = Pt(4)
 
     # Contact info
-    contact_parts = [candidate.get('phone', ''), candidate.get('email', ''),
-                     candidate.get('linkedin', ''), candidate.get('calendar', '')]
-    contact_text = '  \u00b7  '.join(p for p in contact_parts if p)
+    # `location` leads the contact line: recruiters and ATS location filters look for
+    # city/state first, and it settles residency questions for location-gated roles.
+    contact_parts = [candidate.get('location', ''), candidate.get('phone', ''),
+                     candidate.get('email', ''), candidate.get('linkedin', ''),
+                     candidate.get('github', ''), candidate.get('calendar', '')]
+    contact_text = '  |  '.join(p for p in contact_parts if p)
 
     contact_p = doc.add_paragraph()
     contact_run = contact_p.add_run(contact_text)
@@ -573,9 +613,13 @@ def create_resume(candidate, content, output_path):
         summary_p.add_run(content['summary'])
         summary_p.space_after = Pt(6)
 
-    # === TECHNICAL SKILLS ===
+    # === SKILLS ===
+    # Header must read exactly "Skills": it is one of the canonical ATS section
+    # names, and skill categories routinely cover non-technical ground
+    # (product management, leadership, governance) that "Technical Skills"
+    # mislabels for both the parser and the human skimming the page.
     if content.get('skills'):
-        add_section_heading(doc, 'Technical Skills')
+        add_section_heading(doc, 'Skills')
         for skill in content['skills']:
             p = doc.add_paragraph()
             p.add_run(f"{skill['category']}:").bold = True
@@ -788,7 +832,42 @@ def open_output_folder(folder_path):
         return False
 
 
-def log_application(company, role, fit_score, output_dir):
+def save_job_description(company, role, jd_text, when=None):
+    """Archive the raw job description text and return its filename.
+
+    Job descriptions are the only honest source for "what are employers actually
+    asking for". Inferring demand from generated resumes does not work: terms
+    that live in the candidate's standing config skills line appear in every
+    document regardless of what the posting requested.
+
+    Args:
+        company: Company name
+        role: Job title
+        jd_text: Raw job description text, exactly as supplied
+        when: datetime to stamp (defaults to now)
+
+    Returns:
+        str: Filename relative to job_descriptions/, or '' if jd_text was empty
+    """
+    from datetime import datetime
+
+    if not jd_text or not jd_text.strip():
+        return ''
+
+    when = when or datetime.now()
+    jd_dir = Path(__file__).parent / "job_descriptions"
+    jd_dir.mkdir(exist_ok=True)
+
+    name = "%s_%s_%s.txt" % (
+        when.strftime('%Y-%m-%d'),
+        sanitize_filename(company, max_length=40),
+        sanitize_filename(role, max_length=60),
+    )
+    (jd_dir / name).write_text(jd_text, encoding='utf-8')
+    return name
+
+
+def log_application(company, role, fit_score, output_dir, jd_text=None):
     """Log an application to the applications history file.
 
     Args:
@@ -796,15 +875,60 @@ def log_application(company, role, fit_score, output_dir):
         role: Job title
         fit_score: Fit assessment score (0-100)
         output_dir: Where documents were saved
+        jd_text: Raw job description text. Archived under job_descriptions/ and
+            referenced from a sixth column. Older 5-column lines still parse.
     """
     from datetime import datetime
 
     log_path = Path(__file__).parent / "applications.log"
+    now = datetime.now()
+    jd_file = save_job_description(company, role, jd_text, when=now)
 
-    entry = f"{datetime.now().strftime('%Y-%m-%d %H:%M')}\t{company}\t{role}\t{fit_score}%\t{output_dir}\n"
+    entry = f"{now.strftime('%Y-%m-%d %H:%M')}\t{company}\t{role}\t{fit_score}%\t{output_dir}"
+    if jd_file:
+        entry += f"\t{jd_file}"
+    entry += "\n"
 
     with open(log_path, 'a', encoding='utf-8') as f:
         f.write(entry)
+
+
+def mark_submitted(company, role, when=None):
+    """Mark a logged application as actually submitted.
+
+    The log records when documents were GENERATED, which is not the same as
+    applying. The distinction matters: a recruiter may pitch a role that another
+    firm has already submitted the candidate for, and duplicate submissions to
+    one requisition through two vendors typically get both rejected. Knowing what is actually out is what prevents that.
+
+    Appends a seventh column, submitted=YYYY-MM-DD. Older lines and lines
+    without it still parse.
+
+    Args:
+        company: Company name, must match the logged entry
+        role: Job title, must match the logged entry
+        when: date to stamp (defaults to today)
+
+    Returns:
+        int: number of log entries updated
+    """
+    from datetime import datetime
+
+    log_path = Path(__file__).parent / "applications.log"
+    if not log_path.exists():
+        return 0
+
+    stamp = "submitted=%s" % (when or datetime.now()).strftime('%Y-%m-%d')
+    lines, updated = [], 0
+    for line in log_path.read_text(encoding='utf-8').splitlines():
+        parts = line.split('\t')
+        if (len(parts) >= 3 and parts[1] == company and parts[2] == role
+                and not any(p.startswith('submitted=') for p in parts)):
+            parts.append(stamp)
+            updated += 1
+        lines.append('\t'.join(parts))
+    log_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    return updated
 
 
 def get_application_history():
@@ -833,10 +957,86 @@ def get_application_history():
                     'company': parts[1],
                     'role': parts[2],
                     'score': parts[3],
-                    'path': parts[4] if len(parts) > 4 else ''
+                    'path': parts[4] if len(parts) > 4 else '',
+                    'jd_file': parts[5] if len(parts) > 5 and not parts[5].startswith('submitted=') else '',
+                    'submitted': next((p.split('=', 1)[1] for p in parts if p.startswith('submitted=')), '')
                 })
 
     return history
+
+
+DEFAULT_SKILL_LEXICON = {
+    "roadmap": r"roadmap", "backlog": r"backlog", "user stories": r"user stor",
+    "acceptance criteria": r"acceptance criteria", "discovery": r"discovery",
+    "personas / journeys": r"persona|user journey|journey map",
+    "KPIs / success metrics": r"\bkpi|success metric",
+    "prioritization": r"prioriti", "stakeholder management": r"stakeholder",
+    "influence without authority": r"without (direct )?authority",
+    "cross-functional": r"cross.functional", "product vision": r"product vision",
+    "scrum": r"\bscrum\b", "kanban": r"kanban", "SAFe": r"\bsafe\b",
+    "Jira": r"\bjira\b", "Confluence": r"confluence", "Azure DevOps": r"azure devops|\bado\b",
+    "Rally": r"\brally\b", "Productboard": r"productboard", "Miro": r"\bmiro\b",
+    "APIs": r"\bapi", "SQL": r"\bsql\b", "Python": r"python", "Java": r"\bjava\b",
+    "cloud": r"\bcloud\b|\baws\b|azure|gcp", "CI/CD": r"ci/cd",
+    "data pipelines / ETL": r"\betl\b|data pipeline|data lake|warehous",
+    "Databricks": r"databricks", "Snowflake": r"snowflake", "dbt": r"\bdbt\b",
+    "Tableau": r"tableau", "Looker": r"looker", "Power BI": r"power ?bi",
+    "microservices": r"microservice", "architecture": r"architect",
+    "AI / GenAI": r"\bai\b|generative ai|genai", "LLMs": r"\bllm|large language model",
+    "RAG / vector search": r"\brag\b|retrieval.augmented|vector (database|db|store)|embedding|semantic search|knowledge graph",
+    "MLOps": r"mlops|mlflow|kubeflow|sagemaker", "machine learning": r"machine learning",
+    "responsible AI / governance": r"responsible ai|ai governance|ethical ai",
+    "EDI": r"\bedi\b|x12|edifact", "ERP": r"\berp\b|netsuite|dynamics|sap",
+    "HL7 / FHIR": r"hl7|fhir", "compliance / regulated": r"complian|regulat",
+    "security": r"security", "privacy": r"privacy",
+    "vendor management": r"vendor", "budget / ROI": r"budget|\broi\b|business case",
+    "coaching / mentoring": r"coach|mentor", "UX research / design": r"\bux\b|user research|usability",
+    "financial services": r"financial servic|fintech|banking|wealth",
+    "healthcare": r"healthcare|clinical|patient", "e-commerce": r"e.commerce|commerce",
+    "manufacturing / supply chain": r"manufactur|supply chain",
+}
+
+
+def analyze_job_descriptions(lexicon=None, min_pct=0):
+    """Document-frequency analysis over archived job descriptions.
+
+    Counts how many DISTINCT postings mention each term, which is the honest
+    measure of employer demand. Raw term counts would let one verbose posting
+    dominate, and analysing generated resumes instead would just re-measure the
+    candidate's own standing skills line.
+
+    Args:
+        lexicon: dict of {label: regex}. Defaults to DEFAULT_SKILL_LEXICON.
+        min_pct: suppress terms appearing in fewer than this percent of postings.
+
+    Returns:
+        dict with 'count' (postings analysed) and 'terms' (list of
+        (label, n, pct) sorted by frequency descending).
+    """
+    jd_dir = Path(__file__).parent / "job_descriptions"
+    if not jd_dir.exists():
+        return {'count': 0, 'terms': []}
+
+    docs = []
+    for f in sorted(jd_dir.glob("*.txt")):
+        try:
+            docs.append(f.read_text(encoding='utf-8', errors='replace').lower())
+        except OSError:
+            continue
+
+    n_docs = len(docs)
+    if not n_docs:
+        return {'count': 0, 'terms': []}
+
+    lex = lexicon or DEFAULT_SKILL_LEXICON
+    rows = []
+    for label, pattern in lex.items():
+        hits = sum(1 for d in docs if re.search(pattern, d))
+        pct = 100.0 * hits / n_docs
+        if pct >= min_pct:
+            rows.append((label, hits, pct))
+    rows.sort(key=lambda r: -r[1])
+    return {'count': n_docs, 'terms': rows}
 
 
 # =============================================================================

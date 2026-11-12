@@ -254,3 +254,38 @@ Don't apply even with good match if:
 - [ ] Gap areas they may probe identified
 - [ ] Strongest differentiators highlighted
 - [ ] Portfolio pieces to reference suggested
+
+## Lessons from comparing against a commercial ATS optimizer
+
+A resume from a commercial ATS-optimizer service was compared against this skill's output
+for the same role. What it did better, now adopted:
+
+- **City/State/ZIP on the contact line.** Decisive when a JD gates on location, and ATS
+  location filters key off it. Supported via `candidate.location`.
+- **Percentage beside the absolute.** "Cut vendor migration costs 50%, from $7M to $3.5M"
+  scans faster than the dollar figures alone. Give skimmers the ratio and readers the numbers.
+- **Name the target company in the last clause of the summary.** One clause, in the
+  candidate's own voice, not boilerplate.
+- **A few JD-verbatim umbrella terms** in Skills ("Product Lifecycle Management",
+  "AI Best Practices", "Engineering Collaboration") that bullets do not state literally.
+
+What it did worse, and must NOT be copied:
+
+- **It deleted the evidence.** A measured result such as "caught 38 of 38 seeded defects
+  across a 43-file test corpus" became a generic "established the onboarding practice", and
+  test counts, coverage and uptime figures became "launched the website". **Numbers are the
+  differentiator; never trade a metric for a verb.**
+- **It stripped every verifiable link**, leaving a bare "GitHub" in the header. A link to a
+  page written for the reader (a case study, a wiki walkthrough) beats a bare repo root.
+- **It keyword-stuffed unevidenced claims**, including one the candidate had explicitly
+  declined to claim. Skills must be backed by a bullet or a real credential.
+- **It inflated verbs** ("Spearheaded", "Conceptualized", "Resourceful ... Leader") and
+  understated the candidate's tenure.
+- **Its math was wrong**: it called 2 weeks to 2 hours a "90%" reduction. It is over 99%.
+  Always recompute a percentage before printing it.
+- **3 pages.** Length is a prioritization signal for product roles.
+
+**Always verify page count before delivering.** Convert and count; do not eyeball it:
+`soffice --headless --convert-to pdf --outdir <dir> <file>.docx && pdfinfo <file>.pdf | grep Pages`
+Cover letter must be 1 page; resume 1-2. Trimming words rarely drops a rendered line;
+removing a whole clause, list item, or heading does.
