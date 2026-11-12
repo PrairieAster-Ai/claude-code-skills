@@ -252,6 +252,39 @@ Nice-to-Have Score = (Nice-to-have points / Nice-to-have count) × 100
 Overall Score = (Must-Have Score × 0.7) + (Nice-to-Have Score × 0.3)
 ```
 
+#### Step 3a: Check config.yaml `known_gaps` and `not_gaps` First
+
+Before building the T-chart, read the `known_gaps` and `not_gaps` sections of `config.yaml`.
+
+- **`known_gaps`** lists competencies confirmed absent, with severity, the JD terms that trigger them, and the
+  adjacent strengths that legitimately soften them. Rate these honestly and never claim them. When a JD names a
+  high-severity gap repeatedly, say so in the assessment rather than letting an unweighted score paper over it: the
+  formula treats all requirements as equal, and a competency a posting names three times is not equal to one it
+  mentions once.
+- **`not_gaps`** lists competencies previously mis-flagged as weaknesses. Do not surface these as gaps again, and
+  read the detail before assuming a near-match term means the same thing (Epic Systems the EHR vendor is not the
+  same as an agile epic).
+- **A missing skill may be a documentation gap, not a skill gap.** Candidates routinely leave real experience out of
+  their resume, so an apparent weakness is often just something never recorded, and disclosing it can move an
+  application from a partial to a full match. When a JD names something absent from `config.yaml` that is plausibly
+  adjacent to recorded work, ASK before scoring it as a gap. When the answer is yes, write it into `config.yaml` so
+  the next application inherits it.
+
+#### Step 3b: Weigh the Applicant Pool
+
+Relevancy models rank candidates against the pool rather than against a fixed bar (see Relevancy Scoring in Resume
+Requirements). Where the posting exposes pool data, factor it into the recommendation instead of reading the fit
+score in isolation:
+
+- **Applicant count and posting age.** "Over 100 applicants" on a two-week-old post is a different race than 5 clicks
+  on a 50-minute-old repost.
+- **Seniority mix**, where LinkedIn reports it. A senior candidate in a pool that is 60% entry level clears the median
+  comfortably even at a lower absolute fit score.
+- **Reposts.** A reposted requisition usually means the first pool did not produce a hire.
+
+State this in the assessment as context, not as a score adjustment. It informs how hard to push and how fast to
+apply, not whether the candidate is qualified.
+
 #### Step 4: Check for Disqualifiers
 
 **Non-negotiable gaps (do not proceed):**
@@ -501,17 +534,78 @@ Apply styling from selected preset in [style-presets.md](style-presets.md).
 
 **ATS Optimization:**
 - Use standard section headers: Summary, Skills, Experience, Education, Certifications
-- Include exact keywords from job description - every required skill, tool, methodology, and credential named in the JD should appear at least once verbatim in the resume (Skills section is the natural place for terms that don't fit organically in bullets)
+- Include exact keywords from job description - every required skill, tool, methodology, and credential named in the JD should appear at least once verbatim in the resume
+- Put any keyword you actually need matched in an Experience bullet, not only in the Skills section. Workday's own documentation states it never auto-fills the Skills or Languages fields from a resume, so terms parked only under Skills reach the searchable resume text but never populate the structured skill profile recruiters filter on. Treat the Skills section as reinforcement, not as the primary carrier
 - Reword existing config.yaml bullets to use the JD's exact phrasing where it names a qualifier (e.g., if config says "PRDs" and JD says "product requirements documents", use the JD's phrasing in the tailored output)
 - Use consistent date formatting (Mon YYYY - Mon YYYY)
 - Keep creative elements in header only; main content follows standard format
 - Use bullet points with action verbs
+- Keep the file under 2.5MB. Greenhouse cannot parse a resume above that threshold (a tighter ceiling than the 5MB figure some guides quote). Generated .docx files run well under 100KB, so this only becomes a risk if images are ever introduced
+- Give every employer its legal identifier where accurate (Inc., LLC, Co., Ltd.). Greenhouse lists company names lacking one as a cause of failed parses, and it is the same field Greenhouse extracts as "current company" from the most recent role
+- Never use year-only date ranges. `1999 - 2001` is a documented parse failure; Taleo requires `Month YYYY` or `MM/YYYY`. Always `Mon YYYY - Mon YYYY`
+- Tailor the Education entry to the JD's own degree language ONLY when the degree string has been confirmed against the registrar. Education is separately scored by some relevancy models (see Relevancy Scoring below), so a degree whose field is not obviously the field the JD names scores worse than it should, and appending a parenthetical cue such as `Bachelor of Arts, Marketing (Business)` closes that gap. But the National Student Clearinghouse matches the conferred title exactly, so a cue attached to an unverified string compounds an error instead of fixing one. Unconfirmed degrees get the literal string and nothing else. Never restate a degree as something it is not; only surface a connection that already exists
+
+**Relevancy Scoring (ADP, Eightfold, and similar AI matching models):**
+
+Several major platforms score a resume against the job description and hand recruiters a number or a band. Their own
+NYC Local Law 144 compliance disclosures state how this works, and the mechanics change what to optimize.
+
+- **Be independently strong on education, skills, and experience.** ADP's model "creates three sub-scores indicating
+  how close the applicant's education, skills, and experience matches those found in the job description," then
+  weights them. The weights are learned per sector and are not published: "the importance (i.e., the weights) must be
+  estimated empirically from the data. Separate weights are created for each sector." Eightfold's model scores only
+  "a candidate's skills and experiences." Since you cannot know which vendor is behind a posting or which component
+  carries the weight, never let one of the three go thin to make room for another. This is the counterweight to the
+  Workday note above: Skills is reinforcement for Workday's structured profile, but a first-class scored component
+  for ADP. Both are true at once.
+- **The operative bar is the median applicant, not an absolute score.** Local Law 144 defines the scoring rate as the
+  proportion of applicants "who scored at or above the overall median score," and both ADP and Eightfold disclose that
+  their scores rank rather than gate. ADP is explicit: "there are no cut-off scores that would eliminate applicants
+  from being visible to employers." You are competing with the pool, not against a threshold. See Phase 2.
+- **These models match semantically, not just literally.** ADP and Eightfold both use ML matching trained on prior
+  hiring outcomes, so synonyms can match. **Do NOT relax the ATS Keyword Fidelity Rule on this basis.** Taleo and
+  iCIMS still do literal matching, and the rule has to satisfy the strictest parser in the chain, not the smartest.
+- **The employer can retune the model.** Eightfold's audit lists "job requirements calibration process" as a
+  user-configurable setting affecting output. The same resume scores differently at two employers using the same
+  vendor. There is nothing to game; mirroring the specific JD is the only durable strategy.
+- **Never opt out of relevancy scoring.** ADP offers a per-job opt-out; opting out displays "Not Available" to the
+  recruiter, which is the same string shown when scoring fails for technical reasons. A candidate who assesses as a
+  Good or Strong Fit is discarding a favorable signal and gaining nothing. Advise opting out only for a Stretch Fit
+  the candidate is applying to anyway.
+- ADP lists "poor resolution on resume pdf" as a cause of an unavailable score, which is direct vendor confirmation
+  of the .docx default and a reason never to submit a scanned or image-based PDF.
+
+**Background Check Alignment:**
+
+Employment history is verified from payroll data, not phone calls. Equifax's The Work Number is fed per pay period by
+over 5 million employers and returns employer name, job title, hire and separation dates, tenure and status instantly.
+The National Student Clearinghouse returns institution, degree level, major and conferral date, and matches exactly.
+A mismatch is not a rejection (FCRA guarantees a pre-adverse action notice, a copy of the report, and a dispute
+window) but it costs delay and credibility at the offer stage. The goal is never to soften a claim; it is to make the
+resume say what the payroll and registrar records say so automated matching succeeds on the first pass.
+
+- **Name the employer of record, credit the client in the bullet.** When a staffing firm ran payroll, that firm is the
+  employer; the client company legally cannot verify the candidate because it never employed them. Listing the client
+  as the employer is the most common verification discrepancy there is. Render it as
+  `Contract Product Owner, <Staffing Firm>` with the first bullet opening `Client: <Client Name>.` Nothing is lost:
+  the client's brand still reads at a glance, and the entry now matches the payroll record.
+- **State concurrency when roles overlap.** Overlapping date ranges read as two simultaneous full-time employers and
+  get flagged. A consultancy that ran alongside employed roles should say so in its own first bullet.
+- **Date to payroll, not memory.** Use the first and last paycheck months, which is what the database holds. Never a
+  year-only range; that is both a Taleo parse failure and an unverifiable claim.
+- **Match degree strings to the registrar exactly**, including the major's full wording. Abbreviations and
+  approximations are flagged by exact matching.
+- **Self-employment verifies through a different path**: Secretary of State filings, EIN letter, Schedule C or tax
+  transcripts (Form 4506-T), and client attestation. Check that a claimed start date is not earlier than the entity's
+  formation date, and keep this packet assembled so a query becomes a same-day reply rather than a two-week delay.
+- Record confirmed employer-of-record, concurrency and registrar facts as comments in `config.yaml` next to the entry
+  they govern, so the next application inherits them instead of rediscovering the risk.
 
 **ATS-Unsafe Characters (Workday + similar):**
 Workday and several other ATS systems strip or mangle `<` and `>` characters during text extraction. A hierarchy like `Capability > Epic > Story > Task` can come out as `Capability Epic Story Task` with the markers gone, or worse, the section silently dropped.
 
 - Never write `<` or `>` in any user-visible bullet text, summary, skills line, or cover letter content. This applies whether you are writing fresh content for an application or reading from `config.yaml` (the canonical config has already been cleaned).
-- For hierarchies, use `→` (Unicode rightward arrow, U+2192) instead of `>`. Example: `Capability → Epic → Story → Task`.
+- For hierarchies, use plain ASCII instead of `>`: `Capability to Epic to Story to Task`, or `Capability / Epic / Story / Task`. Do NOT substitute a Unicode arrow (U+2192). It fixes Workday but exposes the older parsers: Oracle Taleo and iCIMS mangle special characters, and Jobscan's parser testing says to avoid arrows outright. ASCII is the only substitution that survives every parser.
 - For numeric comparisons, write `over N` instead of `>N` and `under N` instead of `<N`. Example: write "over 80% test coverage" not ">80% test coverage".
 
 **AI-Tell Characters (em-dash U+2014 and en-dash U+2013):**
@@ -566,9 +660,22 @@ The `generate_application_documents()` function handles file naming automaticall
 Use the helper functions from the generation script (call in the same temp Python script):
 ```python
 from generate_word_docs import log_application, open_output_folder
-log_application(company, role, fit_score, output_dir)
+# ALWAYS pass jd_text. The raw posting is archived under job_descriptions/ and
+# referenced from a sixth column in applications.log.
+log_application(company, role, fit_score, output_dir, jd_text=job_description_text)
 open_output_folder(output_dir)
 ```
+
+**Always pass `jd_text`.** The archived postings are the only honest corpus for answering "what are employers
+actually asking for". Inferring demand from generated resumes does not work: terms sitting in the candidate's
+standing `config.yaml` skills line appear in every document regardless of what the posting requested, which produces
+false 100% readings. Archive the posting as supplied, minus obvious page chrome ("Apply now", "Show 4 more",
+navigation labels). Archive it even when the candidate skips the role: a posting they declined is still market
+signal, so note the skip at the top of the file.
+
+`analyze_job_descriptions()` in `generate_word_docs.py` reports document frequency over that corpus, meaning how many
+distinct postings mention each term. Use document frequency, never raw counts, so one verbose posting cannot
+dominate. Roughly 20 postings are needed before the numbers mean anything; below that, report them as directional.
 
 #### Step 6.3: Provide Summary
 
